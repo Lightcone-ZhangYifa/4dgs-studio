@@ -75,7 +75,17 @@ final class StreamingScene {
             let means = try values("means",[3]),scales = try values("scales",[3]),quaternions = try values("quaternions",[4]),colors = try values("colors",[3]),opacity = try values("opacity",[])
             var packed = [Float](repeating:0,count:n*16),low = SIMD3<Float>(repeating:.infinity),high = SIMD3<Float>(repeating:-.infinity)
             for i in 0..<n {
-                guard scales[(i*3)..<(i*3+3)].allSatisfy({$0 > 0}),(0...1).contains(opacity[i]),abs((0..<4).reduce(Float(0)){$0+quaternions[i*4+$1]*quaternions[i*4+$1]}-1)<0.003 else {throw SceneError.invalid("Invalid static Gaussian scale, opacity or rotation.")}
+                let scaleBase = i * 3
+                let validScale = scales[scaleBase..<(scaleBase + 3)].allSatisfy { $0 > 0 }
+                var rotationNormSquared: Float = 0
+                for component in 0..<4 {
+                    let value = quaternions[i * 4 + component]
+                    rotationNormSquared += value * value
+                }
+                guard validScale, (0...1).contains(opacity[i]),
+                      abs(rotationNormSquared - 1) < 0.003 else {
+                    throw SceneError.invalid("Invalid static Gaussian scale, opacity or rotation.")
+                }
                 let extent = 4*max(scales[i*3],max(scales[i*3+1],scales[i*3+2]))
                 for c in 0..<3 {packed[i*16+c]=means[i*3+c];packed[i*16+4+c]=scales[i*3+c];packed[i*16+12+c]=colors[i*3+c];low[c]=min(low[c],means[i*3+c]-extent);high[c]=max(high[c],means[i*3+c]+extent)}
                 packed[i*16+3]=opacity[i];packed[i*16+7]=1;packed[i*16+15] = -1
