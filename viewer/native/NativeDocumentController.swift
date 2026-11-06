@@ -839,14 +839,16 @@ final class NativeDocumentController {
         ?? cameraEntries.first(where: {
           $0.camera.object.space == activeSpaceID && $0.camera.object.clock == activeClockID
         })?.camera.times ?? [0]))
-    timeline = Array(
-      Set(
-        (times.isEmpty ? [0] : times) + (authoredTimeline[activeClockID] ?? [])
-          + observations.filter {$0.object.clock == activeClockID}.flatMap {observation in observation.times}
-          + authoredCameras.filter { $0.clock == activeClockID }.flatMap {
-            $0.keyframes.map { $0.time }
-          })
-    ).sorted()
+    var sampleTimes = Set<Double>(times)
+    if sampleTimes.isEmpty { sampleTimes.insert(0) }
+    sampleTimes.formUnion(authoredTimeline[activeClockID] ?? [])
+    for observation in observations where observation.object.clock == activeClockID {
+      sampleTimes.formUnion(observation.times)
+    }
+    for camera in authoredCameras where camera.clock == activeClockID {
+      for key in camera.keyframes { sampleTimes.insert(key.time) }
+    }
+    timeline = sampleTimes.sorted()
     var objects = document.objects.map { object in
       WorkspaceObjectInfo(
         id: object.id, label: object.label, type: object.type, encoding: object.encoding,
