@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+  <title id="title">4DGS Studio</title>
+  <desc id="description">A spatial Gaussian with continuous cyan, gold and violet trajectories and a highlighted time sample.</desc>
+  <defs>
+    <linearGradient id="tile" gradientUnits="userSpaceOnUse" x1="160" y1="80" x2="840" y2="944"><stop offset="0" stop-color="#253D60" stop-opacity="1"/><stop offset="1" stop-color="#091525" stop-opacity="1"/></linearGradient>
+    <radialGradient id="halo" gradientUnits="userSpaceOnUse" cx="500" cy="490" r="344"><stop offset="0" stop-color="#53B7DE" stop-opacity="0.22"/><stop offset="1" stop-color="#53B7DE" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gaussian" gradientUnits="userSpaceOnUse" cx="461" cy="461" r="249"><stop offset="0" stop-color="#ABF4E6" stop-opacity="1"/><stop offset="1" stop-color="#205C91" stop-opacity="1"/></radialGradient>
+    <radialGradient id="highlight" gradientUnits="userSpaceOnUse" cx="472" cy="454" r="108"><stop offset="0" stop-color="#DEFFF4" stop-opacity="0.66"/><stop offset="1" stop-color="#DEFFF4" stop-opacity="0"/></radialGradient>
+    <radialGradient id="playhead" gradientUnits="userSpaceOnUse" cx="783" cy="438" r="38"><stop offset="0" stop-color="#FFF2C3" stop-opacity="1"/><stop offset="1" stop-color="#EDA551" stop-opacity="1"/></radialGradient>
+  </defs>
+  <path d="M 248 40 L 776 40 C 890.8752 40 984 133.1248 984 248 L 984 776 C 984 890.8752 890.8752 984 776 984 L 248 984 C 133.1248 984 40 890.8752 40 776 L 40 248 C 40 133.1248 133.1248 40 248 40 Z" fill="url(#tile)"/>
+  <path d="M 248 42 L 776 42 C 889.7707 42 982 134.2293 982 248 L 982 776 C 982 889.7707 889.7707 982 776 982 L 248 982 C 134.2293 982 42 889.7707 42 776 L 42 248 C 42 134.2293 134.2293 42 248 42 Z" fill="none" stroke="#A9CDE9" stroke-opacity="0.19" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 856 512 C 856 678.79 701.986 814 512 814 C 322.014 814 168 678.79 168 512 C 168 345.21 322.014 210 512 210 C 701.986 210 856 345.21 856 512 Z" fill="url(#halo)"/>
+  <path d="M 780.5403 365.2958 C 822.905 442.8439 737.0188 571.3907 588.7081 652.4132 C 440.3974 733.4357 285.8244 736.2523 243.4597 658.7042 C 201.095 581.1561 286.9812 452.6093 435.2919 371.5868 C 583.6026 290.5643 738.1756 287.7477 780.5403 365.2958 Z" fill="none" stroke="#3086BE" stroke-opacity="0.58" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 684.8076 729.7649 C 636.3542 768.2151 519.7064 701.8885 424.2674 581.6203 C 328.8284 461.3521 290.739 332.6854 339.1924 294.2351 C 387.6458 255.7849 504.2936 322.1115 599.7326 442.3797 C 695.1716 562.6479 733.261 691.3146 684.8076 729.7649 Z" fill="none" stroke="#D68F46" stroke-opacity="0.5" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 709.6581 562.4704 C 673.0393 705.8814 554.8593 799.5426 445.6957 771.6685 C 336.5322 743.7945 277.723 604.9406 314.3419 461.5296 C 350.9607 318.1186 469.1407 224.4574 578.3043 252.3315 C 687.4678 280.2055 746.277 419.0594 709.6581 562.4704 Z" fill="none" stroke="#9382D5" stroke-opacity="0.6" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 673.5769 448.1005 C 710.6461 515.9551 671.9378 608.5252 587.1196 654.8616 C 502.3014 701.198 403.4922 683.754 366.4231 615.8995 C 329.3539 548.0449 368.0622 455.4748 452.8804 409.1384 C 537.6986 362.802 636.5078 380.246 673.5769 448.1005 Z" fill="url(#gaussian)" stroke="#CEFFF3" stroke-opacity="0.38" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 557.1048 420.3311 C 572.1973 447.9576 549.4634 489.4568 506.3273 513.0222 C 463.1911 536.5876 415.9876 533.2954 400.8952 505.6689 C 385.8027 478.0424 408.5366 436.5432 451.6727 412.9778 C 494.8089 389.4124 542.0124 392.7046 557.1048 420.3311 Z" fill="url(#highlight)"/>
+  <path d="M 238 647 C 340 786 689 713 792 447" fill="none" stroke="#6ADFDA" stroke-opacity="1" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 373 283 C 408 306 550 531 573 693 C 583 767 560 791 520 780" fill="none" stroke="#F5B765" stroke-opacity="1" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 311 445 C 315 675 502 828 645 737" fill="none" stroke="#C3A1F0" stroke-opacity="1" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 253 647 C 253 655.2843 246.2843 662 238 662 C 229.7157 662 223 655.2843 223 647 C 223 638.7157 229.7157 632 238 632 C 246.2843 632 253 638.7157 253 647 Z" fill="#91EEE6"/>
+  <path d="M 819 447 C 819 461.9117 806.9117 474 792 474 C 777.0883 474 765 461.9117 765 447 C 765 432.0883 777.0883 420 792 420 C 806.9117 420 819 432.0883 819 447 Z" fill="url(#playhead)"/>
+  <path d="M 533 780 C 533 787.1797 527.1797 793 520 793 C 512.8203 793 507 787.1797 507 780 C 507 772.8203 512.8203 767 520 767 C 527.1797 767 533 772.8203 533 780 Z" fill="#F5BC71"/>
+  <path d="M 657 737 C 657 743.6274 651.6274 749 645 749 C 638.3726 749 633 743.6274 633 737 C 633 730.3726 638.3726 725 645 725 C 651.6274 725 657 730.3726 657 737 Z" fill="#DAC2FC"/>
+</svg>

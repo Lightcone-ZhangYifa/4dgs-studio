@@ -1,0 +1,14 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+*.egg-info/
+packages/gsv/build/
+packages/gsv/dist/
+viewer/dist/
+viewer/fixtures/
+viewer/qa/
+*.gsv
+
+/dist/

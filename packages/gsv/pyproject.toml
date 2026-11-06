@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gsv"
+version = "0.1.0"
+description = "Read, write and validate GSV scene containers for dynamic Gaussian splatting"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "Yifa Zhang (张亦法)"}]
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24"]
+classifiers = ["Programming Language :: Python :: 3", "Operating System :: POSIX", "Operating System :: MacOS"]
+
+[project.urls]
+Repository = "https://github.com/Lightcone-ZhangYifa/4dgs-studio"
+Documentation = "https://github.com/Lightcone-ZhangYifa/4dgs-studio/tree/main/docs/gsv"
+Issues = "https://github.com/Lightcone-ZhangYifa/4dgs-studio/issues"
+
+[project.scripts]
+gsv = "gsv.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

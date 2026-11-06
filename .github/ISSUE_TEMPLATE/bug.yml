@@ -1,0 +1,41 @@
+name: Bug report
+description: Report a reproducible problem in Studio, the Python SDK or a GSV document.
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - 4DGS Studio
+        - GSV Python SDK
+        - GSV format or documentation
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: Studio version and build, SDK version, or Git revision
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: For Studio, include your macOS version and Mac chip. For Python, include the OS, Python and NumPy versions.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include the smallest script or scene you can share publicly.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and observed behavior
+      description: Include the exact error message when available.
+    validations:
+      required: true

@@ -1,0 +1,52 @@
+name: Release
+on:
+  push:
+    tags: ['v[0-9]*']
+permissions: {}
+jobs:
+  check:
+    uses: ./.github/workflows/check.yml
+    permissions:
+      contents: read
+  publish:
+    needs: check
+    runs-on: macos-15
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Build release distributions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = arm64
+          version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' viewer/native/Info.plist)"
+          test "v$version" = "$GITHUB_REF_NAME"
+          test -s "docs/releases/$GITHUB_REF_NAME.md"
+          mkdir assets
+          python -m pip install build
+          python tools/build_sdk.py assets
+          python -m pip install assets/*.whl
+          python -I -m unittest discover -s packages/gsv/tests -q
+          python packages/gsv/examples/write_scene.py "$RUNNER_TEMP/example.gsv"
+          gsv validate "$RUNNER_TEMP/example.gsv"
+          python viewer/tools/test_native.py --suite cpu
+          python viewer/tools/package_app.py
+          cp viewer/dist/*.zip assets/
+          python viewer/native/tests/make_trajectory_fixtures.py "$RUNNER_TEMP/scenes"
+          cp "$RUNNER_TEMP/scenes/trajectory_preview.gsv" assets/colored-ring.gsv
+          gsv validate assets/colored-ring.gsv
+          (cd assets && shasum -a 256 ./*.zip ./*.whl ./*.tar.gz ./*.gsv > SHA256SUMS && shasum -a 256 -c SHA256SUMS)
+      - name: Publish tagged release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" assets/* --verify-tag \
+            --title "4DGS Studio ${GITHUB_REF_NAME#v}" \
+            --notes-file "docs/releases/$GITHUB_REF_NAME.md"
