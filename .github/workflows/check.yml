@@ -48,6 +48,6 @@ jobs:
       - name: Build Studio and verify language catalogs
         run: bash viewer/build_native.sh
       - name: Check bundle architecture
-        run: lipo -verify_arch arm64 'viewer/dist/4DGS Studio.app/Contents/MacOS/4DGSStudio'
+        run: test "$(lipo -archs 'viewer/dist/4DGS Studio.app/Contents/MacOS/4DGSStudio')" = arm64
       - name: Run native CPU checks
         run: python3 viewer/tools/test_native.py --suite cpu
