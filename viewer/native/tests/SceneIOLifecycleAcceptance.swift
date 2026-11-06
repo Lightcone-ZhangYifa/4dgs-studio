@@ -38,7 +38,7 @@ import Foundation
     check(wait(entered), "The production scene worker starts requests in serial order")
     let superseded = SceneIOCancellation()
     var payload: Payload? = Payload(state)
-    weak let weakPayload = payload
+    weak var weakPayload = payload
     worker.submit(cancellation: superseded) { [captured = payload!] in
       state.increment("superseded"); _ = captured.bytes[0]
     }
