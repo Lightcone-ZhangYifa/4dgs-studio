@@ -51,7 +51,12 @@ def wait_for(check, description, timeout=15):
     end = time.monotonic() + timeout
     while time.monotonic() < end:
         pump()
-        result = check()
+        try:
+            result = check()
+        except GLib.Error as error:
+            if 'Object does not exist' in str(error) or 'defunct' in str(error).lower():
+                continue
+            raise
         if result:
             return result
     raise RuntimeError('Timed out: ' + description)
@@ -90,6 +95,9 @@ class Desktop:
         self.pointer_stream = None
         self.allow_close = False
         self.allow_discard = False
+        self.backend = None
+        self.virtual_size = None
+        self.maximized = False
 
     def call(self, destination, path, interface, method, value=None):
         return self.bus.call_sync(destination, path, interface, method, value, None,
@@ -125,8 +133,14 @@ class Desktop:
         return list(walk(app)) if app is not None else []
 
     def find(self, predicate, root=None):
-        return next((n for n in walk(root) if predicate(n)), None) if root else next(
-            (n for n in self.app_nodes() if predicate(n)), None)
+        for node in walk(root) if root else self.app_nodes():
+            try:
+                if predicate(node):
+                    return node
+            except GLib.Error as error:
+                if 'Object does not exist' not in str(error) and 'defunct' not in str(error).lower():
+                    raise
+        return None
 
     def button(self, name, root=None):
         return self.find(lambda n: n.get_role_name() in ('push button', 'toggle button')
@@ -201,6 +215,47 @@ class Desktop:
                 self.key_call('NotifyKeyboardKeysym', GLib.Variant('(ub)', (code, False)))
                 pump(.035)
 
+    def click(self, node):
+        """Click a real control on this runner's single, maximized output.
+
+        GTK 4.14 reports zero SCREEN origins; WINDOW coordinates retain the
+        correct widget allocation. The maximized work area leaves GNOME's dock
+        on the left and panel above. No pointer action uses an unowned output.
+        """
+        if self.virtual_size is None or not self.maximized or self.monitor_count() != 1:
+            return False
+        rect = Atspi.Component.get_extents(node, Atspi.CoordType.WINDOW)
+        window = Atspi.Component.get_extents(self.window(), Atspi.CoordType.WINDOW)
+        x, y = rect.x+rect.width*.5, rect.y+rect.height*.5
+        if rect.width <= 0 or rect.height <= 0 or not (0 <= x < window.width and 0 <= y < window.height):
+            raise RuntimeError('The accessible target is outside the owned maximized window')
+        x += self.virtual_size[0]-window.width
+        y += self.virtual_size[1]-window.height
+        if self.backend == 'x11':
+            xlib = ctypes.CDLL(ctypes.util.find_library('X11'))
+            xtst = ctypes.CDLL(ctypes.util.find_library('Xtst'))
+            xlib.XOpenDisplay.argtypes, xlib.XOpenDisplay.restype = [ctypes.c_char_p], ctypes.c_void_p
+            xlib.XFlush.argtypes = [ctypes.c_void_p]
+            xlib.XCloseDisplay.argtypes = [ctypes.c_void_p]
+            xtst.XTestFakeMotionEvent.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_ulong]
+            xtst.XTestFakeButtonEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_int, ctypes.c_ulong]
+            display = xlib.XOpenDisplay(None)
+            if not display:
+                raise RuntimeError('The owned Xwayland display is unavailable')
+            try:
+                xtst.XTestFakeMotionEvent(display, -1, round(x), round(y), 0)
+                xtst.XTestFakeButtonEvent(display, 1, True, 0)
+                xtst.XTestFakeButtonEvent(display, 1, False, 0)
+                xlib.XFlush(display)
+            finally:
+                xlib.XCloseDisplay(display)
+        else:
+            self.key_call('NotifyPointerMotionAbsolute', GLib.Variant('(sdd)', (self.pointer_stream, x, y)))
+            self.key_call('NotifyPointerButton', GLib.Variant('(ib)', (272, True)))
+            self.key_call('NotifyPointerButton', GLib.Variant('(ib)', (272, False)))
+        pump(.2)
+        return True
+
     def native_open(self, operation, path):
         title = 'Open GSV Scene' if operation == 'open' else 'Import Camera Animation'
         self.window_action('open' if operation == 'open' else 'import-camera')
@@ -248,6 +303,7 @@ class Desktop:
         # window or taking a desktop screenshot.
         window = self.window()
         action(window, 'window.toggle-maximized')
+        self.maximized = True
         leaves = []
         for node in self.app_nodes():
             if (node.get_role_name() in ('panel', 'filler', 'drawing area') and node.get_child_count() == 0
@@ -397,9 +453,11 @@ class VirtualOutput:
             'width=1920,height=1080,framerate=0/1,max-framerate=30/1 ! fakesink sync=false')
         self.pipeline.set_state(Gst.State.PLAYING)
         wait_for(lambda: d.monitor_count() > 0, 'temporary native logical monitor')
+        d.virtual_size = (1920,1080)
 
     def close(self):
         try:
+            self.desktop.virtual_size = None
             if self.pipeline is not None:
                 self.pipeline.set_state(self.Gst.State.NULL)
         finally:
@@ -438,6 +496,7 @@ def run(args):
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     desktop = Desktop()
+    desktop.backend = args.backend
     existing = desktop.owner_pid()
     if existing and existing != args.attach_pid:
         raise RuntimeError(f'An existing Studio process ({existing}) owns the application ID. Close it, or explicitly attach to your test process with --attach-pid.')
@@ -545,6 +604,17 @@ def run(args):
             np.testing.assert_array_equal(before.array(before.objects[0]['data']['pose']['camera_to_world']),
                                           after.array(after.objects[0]['data']['pose']['camera_to_world']))
         report['steps'].append('native-camera-undo-redo-delete-import-roundtrip')
+        if args.full:
+            if report['temporary_virtual_output'] and not desktop.maximized:
+                action(desktop.window(), 'window.toggle-maximized')
+                desktop.maximized = True
+                pump(.3)
+            from desktop_parity import run_full
+            run_full(desktop, output, report)
+            from desktop_comparison_checks import run_comparison_checks
+            run_comparison_checks(desktop, output, report)
+            from desktop_lifecycle_checks import run_lifecycle_checks
+            run_lifecycle_checks(desktop, output, report)
         workspace = output / 'workspace.png'
         desktop.native_save('workspace-snapshot', 'Save Workspace Snapshot…', workspace)
         report['steps'].append('native-workspace-png-save')
@@ -577,6 +647,15 @@ def run(args):
         return report
     except Exception as error:
         report.update(passed=False, error=str(error), traceback=traceback.format_exc())
+        try:
+            nodes = [{'name': node.get_name(), 'role': node.get_role_name(),
+                      'description': node.get_description(), 'attributes': node.get_attributes(),
+                      'interfaces': node.get_interfaces(),
+                      'states': [state.value_nick for state in node.get_state_set().get_states()]}
+                     for node in desktop.app_nodes()]
+            (output / 'accessibility.json').write_text(json.dumps(nodes, indent=2, ensure_ascii=False)+'\n')
+        except Exception:
+            pass
         return report
     finally:
         try:
@@ -612,6 +691,7 @@ def main():
     parser.add_argument('--prime', action='store_true', help='Select NVIDIA PRIME offload for this process only')
     parser.add_argument('--test-orbit', action='store_true', help='Also require the mapped Mutter pointer check on Wayland; Xwayland always uses real XTEST input')
     parser.add_argument('--python', type=Path)
+    parser.add_argument('--full', action='store_true', help='Also exercise inspector pages, all transport commands, camera fields, key editing, preview settings, resolution exports and workbench commands')
     args = parser.parse_args()
     try:
         return 0 if run(args)['passed'] else 1

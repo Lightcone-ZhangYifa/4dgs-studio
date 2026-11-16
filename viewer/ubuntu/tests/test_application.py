@@ -126,14 +126,12 @@ class ApplicationTests(unittest.TestCase):
         w = self.window
         self.assertEqual(w.stack.get_visible_child_name(), "scene")
         self.assertEqual(w.frame.ids.tolist(), [2**60 + 3])
-        row = w.outliner.get_first_child()
-        while row.object_id != "field":
-            row = row.get_next_sibling()
-        w.outliner.select_row(row)
+        w.outliner.selection_model.select_item(w.outliner.position_for_member(('field',None)), True)
         self.assertEqual(w.selected, {("field", None)})
         self.pump_until(lambda: len(w.viewport.paths) > 0 and not w.frames.running)
         w.id_entry.set_text(str(2**60 + 3))
         w.id_entry.emit("activate")
+        self.pump_until(lambda: w.selected == {("field", 2**60 + 3)})
         self.assertEqual(w.selected, {("field", 2**60 + 3)})
         w._frame_selection()
         w.toggle_playback()
@@ -401,11 +399,7 @@ class ApplicationTests(unittest.TestCase):
         w.primary = identifier
         w.selected = {(identifier, None)}
         w._selection_changed()
-        row = w.outliner.get_first_child()
-        while row.object_id != "field":
-            row = row.get_next_sibling()
-        w.outliner.unselect_all()
-        w.outliner.select_row(row)
+        w.outliner.selection_model.select_item(w.outliner.position_for_member(('field',None)), True)
         self.assertIsNone(w.editing_id)
         self.assertEqual(self.errors, [])
 
@@ -687,6 +681,99 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(float(w.rate.get_text()),30)
         self.assertEqual(w._supplemental_clocks,{"timeline":{"unit":"frame"}})
         self.assertEqual(empty.read_bytes(),original)
+
+
+    def test_inspector_context_key_selector_and_comparison_controls(self):
+        self.open_scene()
+        w = self.window
+        self.assertEqual([w.tabs.get_tab_label_text(w.tabs.get_nth_page(i)) for i in range(3)],
+                         ['Selection', 'Viewport', 'Document'])
+        self.assertTrue(any(row.get_title() == 'Coordinate system' for row in w.document_view.rows))
+        w.create_camera()
+        self.assertEqual(w.tabs.get_current_page(), 0)
+        self.assertTrue(w.camera_editor.get_visible())
+        w._scrub(.5)
+        self.pump_until(lambda: w.time == .5 and not w.frames.running)
+        w.record_key()
+        w.key_drop.set_selected(0)
+        self.pump_until(lambda: w.time == 0 and not w.frames.running)
+        self.assertEqual(w.timeline.selected_key, 0)
+        w.key_time.set_text('.25')
+        w.key_time.emit('activate')
+        self.pump_until(lambda: w.time == .25 and not w.frames.running)
+        self.assertEqual([key.time for key in w._track().keyframes], [.25,.5])
+        self.assertEqual(w.key_drop.get_selected_item().get_string(), '0.25')
+        w.compare_toggle.set_active(True)
+        self.pump_until(lambda: w._comparison_result is not None and not w.comparisons.running)
+        self.assertTrue(w.compare_bar.get_visible())
+        self.assertFalse(w.view_bar.get_sensitive())
+        self.assertFalse(w.viewport_controls.get_sensitive())
+        self.assertTrue(all(not control.get_sensitive() for control in w.preview_controls))
+        self.assertFalse(w.camera_editor.get_visible())
+        w.compare_toggle.set_active(False)
+        self.assertFalse(w.compare_bar.get_visible())
+        self.assertTrue(w.view_bar.get_sensitive())
+        self.assertTrue(w.camera_editor.get_visible())
+        self.assertEqual(self.errors, [])
+
+    def test_preview_rate_and_range_commit_only_after_enter(self):
+        self.open_scene()
+        w = self.window
+        w.rate.set_text('2')
+        w.rate.emit('activate')
+        self.assertEqual(w._play_bounds()[2], 2)
+        w.rate.set_text('incomplete')
+        self.assertEqual(w._play_bounds()[2], 2)
+        w.rate.emit('activate')
+        self.assertEqual(w._play_bounds()[2], 2)
+        w.range_start.set_text('.25')
+        w.range_end.set_text('.75')
+        w.range_enabled.set_active(True)
+        self.assertEqual(w._play_bounds()[:2], (.25,.75))
+        w.range_end.set_text('unfinished')
+        self.assertEqual(w._play_bounds()[:2], (.25,.75))
+        w.range_end.emit('activate')
+        self.assertFalse(w.range_enabled.get_active())
+        self.assertEqual(w._play_bounds()[:2], (0,1))
+        self.assertEqual(self.errors, [])
+
+    def test_camera_control_toggle_keeps_other_selection_primary(self):
+        self.open_scene()
+        w = self.window
+        w._pick('field', 2**60+3)
+        w._camera_pick('camera',0,True)
+        self.assertEqual(w.selected, {('field',2**60+3),('camera',0)})
+        self.assertEqual(w.primary_member, ('camera',0))
+        w._camera_pick('camera',0,True)
+        self.assertEqual(w.selected, {('field',2**60+3)})
+        self.assertEqual(w.primary_member, ('field',2**60+3))
+        self.assertEqual(w.primary, 'field')
+        self.assertIsNone(w.editing_id)
+
+    def test_rig_view_inspection_does_not_switch_viewing_camera(self):
+        path = Path(self.temp.name) / 'rig.gsv'
+        with Writer(path) as out:
+            K = np.tile(np.eye(3), (1,2,1,1))
+            K[0,:,0,0], K[0,:,1,1] = [100,200], [100,200]
+            pose = np.tile(np.eye(4), (1,2,1,1))
+            pose[0,1,0,3] = 3
+            add_camera(out,'rig',[0],K,pose,[[100,80],[200,160]],view_ids=['left','right'])
+        self.open_scene(path)
+        w = self.window
+        w.outliner.selection_model.select_item(w.outliner.position_for_member(('rig',None)), True)
+        self.pump_until(lambda: ('rig',0) in w._inspection_calibrations and not w.frames.running)
+        before = w.viewport.get_camera()[1].copy()
+        self.assertTrue(w.inspection_view.get_visible())
+        w.inspection_view.set_selected(1)
+        self.pump_until(lambda: ('rig',1) in w._inspection_calibrations and not w.frames.running)
+        self.assertEqual(w._inspection_calibrations['rig',1].width,200)
+        self.assertEqual(w._inspection_calibrations['rig',1].c2w[0,3],3)
+        self.assertEqual(w.camera_drop.get_selected(),0)
+        np.testing.assert_array_equal(w.viewport.get_camera()[1], before)
+        w._look_through()
+        self.pump_until(lambda: w.camera_drop.get_selected() == 2 and not w.frames.running)
+        self.assertEqual(w.viewport.get_camera()[1][0,3],3)
+        self.assertEqual(self.errors,[])
 
 
 if __name__ == "__main__":

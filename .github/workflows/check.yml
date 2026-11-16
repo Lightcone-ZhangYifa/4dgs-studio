@@ -47,6 +47,8 @@ jobs:
           persist-credentials: false
       - name: Build Studio and verify language catalogs
         run: bash viewer/build_native.sh
+      - name: Audit desktop action mappings
+        run: python3 viewer/tools/audit_studio_features.py
       - name: Check bundle architecture
         run: test "$(lipo -archs 'viewer/dist/4DGS Studio.app/Contents/MacOS/4DGSStudio')" = arm64
       - name: Run native CPU checks
@@ -79,6 +81,8 @@ jobs:
         run: xvfb-run -a -s '-screen 0 1920x1080x24' /usr/bin/python3 -m unittest discover -s viewer/ubuntu/tests -v
       - name: Validate desktop integration and build Debian package
         run: |
+          /usr/bin/python3 viewer/tools/audit_studio_features.py
+          /usr/bin/python3 viewer/tools/audit_localization.py
           desktop-file-validate viewer/ubuntu/data/io.github.LightconeZhangYifa.GSVStudio.desktop
           appstreamcli validate --no-net viewer/ubuntu/data/io.github.LightconeZhangYifa.GSVStudio.metainfo.xml
           /usr/bin/python3 viewer/tools/package_ubuntu.py

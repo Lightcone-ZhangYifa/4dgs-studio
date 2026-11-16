@@ -40,3 +40,13 @@ Changes to interaction or camera authoring should update the feature inventory i
 `viewer/ubuntu/PARITY.md`, reuse contract fixtures across frontends, and include
 behavioral tests for source immutability, exact timestamps and stale work disposal.
 Validate the Debian package with `python3 viewer/tools/package_ubuntu.py`.
+
+Run `python3 viewer/tools/audit_studio_features.py` when changing a desktop
+operation. The reviewed mapping in `viewer/ubuntu/feature-map.json` covers every
+macOS `@objc` action in the app/workspace and Studio controllers. Adding or
+removing an action fails CI until its Ubuntu entry and behavior are reviewed.
+This is a completeness check, not a functional test. Keep executable behavior
+evidence in `FEATURE_AUDIT.md`, shared mathematical fixtures and the relevant
+unit/GPU tests. Repeat the opted-in `--full` GNOME runner on the committed source
+for release evidence; preserve its reports, artifact hashes, renderer and timing
+boundaries instead of treating widget tests as physical desktop acceptance.

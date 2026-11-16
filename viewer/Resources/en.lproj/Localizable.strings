@@ -483,3 +483,13 @@
 "camera.exportOverwrite" = "Source reconstruction cannot be overwritten.";
 "ubuntu.submissionTiming" = "CPU frame submission time; GPU completion and display frame rate are not measured.";
 "ubuntu.graphicsInformation" = "Graphics Information";
+
+"timeline.speed" = "Playback speed";
+
+"navigation.orbitStyle" = "Orbit style";
+
+"ubuntu.cameraCapture" = "Camera capture";
+
+"ubuntu.completedTiming" = "GPU {gpu} · {active} / {total} IDs · {scale}%";
+
+"ubuntu.completedTimingDetail" = "GPU render: {render} ms · sort: {sort} ms\nCompleted GPU renders/s: {fps}\nEstimated GPU storage: {memory} MiB\nCPU submission: {cpu} ms\nGPU completion timing is not desktop presentation FPS or total process memory.";

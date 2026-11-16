@@ -483,3 +483,13 @@
 "camera.exportOverwrite" = "不能覆盖源重建文件。";
 "ubuntu.submissionTiming" = "CPU 帧提交耗时；未测量 GPU 完成耗时和显示帧率。";
 "ubuntu.graphicsInformation" = "图形信息";
+
+"timeline.speed" = "播放速度";
+
+"navigation.orbitStyle" = "环绕方式";
+
+"ubuntu.cameraCapture" = "相机捕获";
+
+"ubuntu.completedTiming" = "GPU {gpu} · {active} / {total} 个 ID · {scale}%";
+
+"ubuntu.completedTimingDetail" = "GPU 渲染：{render} ms · 排序：{sort} ms\n每秒 GPU 完成渲染：{fps}\n估算 GPU 存储：{memory} MiB\nCPU 提交：{cpu} ms\nGPU 完成计时不代表桌面呈现帧率或进程总内存。";
