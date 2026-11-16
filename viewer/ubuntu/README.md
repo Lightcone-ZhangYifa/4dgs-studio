@@ -47,7 +47,7 @@ sudo apt install './viewer/dist/4dgs-studio_2.3.0~ubuntu1_all.deb'
 This registers an application launcher, the `application/x-gsv` MIME type and
 an icon without changing your default application associations. Files can be
 opened from Files or by `4dgs-studio path.gsv`. Distro dependencies supply GTK,
-OpenGL and NumPy; the package bundles the exact shared SDK and translation
+OpenGL and NumPy; the package bundles this repository’s Python gsv SDK and shared translation
 catalogs used by this source tree. Product version metadata derives from the same
 `viewer/native/Info.plist` as macOS; no separate Linux version bump is needed. The SDK is private to the application and
 does not replace another installed `gsv` Python package. Uninstall with
@@ -220,8 +220,9 @@ retains the previous target and a lower preview resolution can recover.
 frontend, named regressions and actual-session check IDs. The CI
 `audit_studio_features.py` completeness guard covers all 80 current macOS desktop
 action callbacks in the source map; that is not runtime acceptance of every
-action. Both frontends retain the same SDK, translation resources,
-camera/render contracts and product version source.
+action. Both frontends follow the same GSV and camera/render specifications and share
+compatibility fixtures, translation catalogs and canonical product metadata.
+macOS uses its independent Swift loader/renderer; Ubuntu reuses the Python gsv SDK.
 
 A reproducible renderer benchmark is available at
 `viewer/ubuntu/tools/benchmark_viewport.py`. It separates CPU submission and

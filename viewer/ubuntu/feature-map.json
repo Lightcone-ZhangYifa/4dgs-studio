@@ -21,9 +21,9 @@
       ]
     },
     "StudioActions.authorTimeChanged": {
-      "behavior": "Commit exact native time without inventing capture FPS.",
+      "behavior": "Commit finite document time, pause playback and extend the session timeline for the active clock.",
       "ubuntu": [
-        "application.py:_scrub"
+        "application.py:_author_time_changed"
       ]
     },
     "StudioActions.backgroundChanged": {
@@ -33,14 +33,15 @@
       ]
     },
     "StudioActions.cameraFOVChanged": {
-      "behavior": "Edit horizontal FOV and preserve the camera raster.",
+      "behavior": "Edit inclusive 1–170 degree horizontal FOV, scaling focal Y and skew together while preserving raster, principal point and pose.",
       "ubuntu": [
         "application.py:_edit_track"
       ]
     },
     "StudioActions.cameraFront": {
-      "behavior": "Front perspective.",
+      "behavior": "Front perspective through the View menu or viewport 1 key.",
       "ubuntu": [
+        "application.py:_viewport_key",
         "viewport.py:preset"
       ]
     },
@@ -58,14 +59,16 @@
       ]
     },
     "StudioActions.cameraRight": {
-      "behavior": "Right perspective.",
+      "behavior": "Right perspective through the View menu or viewport 3 key.",
       "ubuntu": [
+        "application.py:_viewport_key",
         "viewport.py:preset"
       ]
     },
     "StudioActions.cameraTop": {
-      "behavior": "Top perspective.",
+      "behavior": "Top perspective through the View menu or viewport 7 key.",
       "ubuntu": [
+        "application.py:_viewport_key",
         "viewport.py:preset"
       ]
     },
@@ -118,7 +121,7 @@
       ]
     },
     "StudioActions.findID": {
-      "behavior": "Find the exact signed 64-bit identity in its owning object.",
+      "behavior": "Find an exact signed 64-bit identity in its owner; reject an ownerless identity that matches multiple objects.",
       "ubuntu": [
         "application.py:_find_id",
         "model.py:element"

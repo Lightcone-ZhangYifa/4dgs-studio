@@ -1484,8 +1484,9 @@ class StudioWindow(Adw.ApplicationWindow):
     def _inspect(self):
         if not self.document:
             return
-        self.document_view.document(self.document,self.frame,
-            object_count=len(self.document.objects)+len(self.history.tracks),sample_count=len(self.timeline.times))
+        object_count = len(self.document.objects)+len(self.history.tracks)
+        sample_count = len(self.timeline.times)
+        self.document_view.document(self.document,self.frame,object_count=object_count,sample_count=sample_count)
         self.create_from_selection.set_visible(not self.selected and not self.compare_toggle.get_active())
         self.camera_editor.set_visible(self._track() is not None and not self.compare_toggle.get_active())
         self.look_through.set_visible(self.primary is not None and any(e[0] == self.primary for e in self.camera_entries) and not self.compare_toggle.get_active())
@@ -1513,7 +1514,8 @@ class StudioWindow(Adw.ApplicationWindow):
         self.selection_label.set_text(tr("ubuntu.selected").format(count=len(self.selected)) + (" · "+caption if caption else ""))
         self.selection_label.set_tooltip_text(self.primary or "")
         properties = {(owner, None if self._is_camera(owner) else identity) for owner,identity in self.selected}
-        self.detail_view.update(self.document, self.primary, properties, self.frame, calibration, track, self.time, self.primary_member, elements=self._inspected_elements)
+        self.detail_view.update(self.document, self.primary, properties, self.frame, calibration, track, self.time,
+            self.primary_member,elements=self._inspected_elements,object_count=object_count,sample_count=sample_count)
 
     def _render_selected(self):
         if self._updating or not self.document:

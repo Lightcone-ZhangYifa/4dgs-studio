@@ -128,11 +128,15 @@ class Inspector(Gtk.Box):
         _,raw_text = self._descriptor_snapshot(document,None,None)
         self._show_raw(raw_text)
 
-    def update(self, document, primary, selected, frame, calibration, track, time, primary_member=None, elements=None):
+    def update(self, document, primary, selected, frame, calibration, track, time, primary_member=None, elements=None,
+               *, object_count=None, sample_count=None):
+        object_count = len(document.objects) if object_count is None else object_count
+        sample_count = len(document.times) if sample_count is None else sample_count
         is_element = any(i is not None for _, i in selected)
         signature = (id(document), primary, primary_member, frozenset(selected), time if is_element or calibration else None,
                      (id(track), id(track.keyframes), len(track.keyframes), track.label) if track else None,
-                     id(calibration), tuple(sorted((key, id(value)) for key,value in (elements or {}).items())))
+                     id(calibration), tuple(sorted((key, id(value)) for key,value in (elements or {}).items())),
+                     object_count,sample_count)
         if signature == self.signature:
             return
         self.signature = signature
@@ -174,8 +178,8 @@ class Inspector(Gtk.Box):
         else:
             self._title(tr("document.summary", "Document"))
             prop(tr("document.file", "File"), document.path.name)
-            prop(tr("document.objects", "Objects"), len(document.objects))
-            prop(tr("document.samples", "Time samples"), len(document.times))
+            prop(tr("document.objects", "Objects"), object_count)
+            prop(tr("document.samples", "Time samples"), sample_count)
             prop(tr("property.space", "Space"), document.space)
             prop(tr("property.clock", "Clock"), document.clock)
             prop(tr("property.units", "Units"), tr("unit."+document.clock_unit, document.clock_unit))

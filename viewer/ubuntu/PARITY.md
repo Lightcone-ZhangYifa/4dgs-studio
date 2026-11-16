@@ -6,7 +6,7 @@ Both frontends consume the normative [GSV specification](../../docs/gsv/README.m
 and [camera/render contract](../../docs/gsv/RENDER_CONTRACT.md).
 
 The recorded full Ubuntu regression ran **238 tests: 236 passed and two
-benchmark tests skipped**. The shared SDK suite passed **78 tests**. Actual GNOME
+benchmark tests skipped**. The Python SDK suite passed **78 tests**. Actual GNOME
 window regressions separately passed **31/31** application tests on NVIDIA
 Xwayland and **31/31** on software Wayland at source `8d54a00`, with chooser completion substituted.
 Those working-tree runs and the earlier clean `599ca1c` basic native-portal
@@ -21,7 +21,7 @@ These partial results do not upgrade the expanded workflow to accepted.
 
 | Area | Ubuntu implementation | Verification / boundary |
 | --- | --- | --- |
-| Container integrity | Shared SDK envelope/digest/semantic validation, with frontend-owned bounded `preadv` snapshots. A pinned regular-file descriptor rejects FIFO inputs and avoids live-mapping SIGBUS after truncation. Sources remain read-only; unknown vendor objects remain opaque. | SDK suite; model tests isolate source truncation in a subprocess and cover truncation during a read, source-mutation cache hits, cancellation and descriptor cleanup. No metadata entrypoint or deformation recipe is executed. |
+| Container integrity | Python SDK envelope/digest/semantic validation, with frontend-owned bounded `preadv` snapshots. A pinned regular-file descriptor rejects FIFO inputs and avoids live-mapping SIGBUS after truncation. Sources remain read-only; unknown vendor objects remain opaque. | SDK suite; model tests isolate source truncation in a subprocess and cover truncation during a read, source-mutation cache hits, cancellation and descriptor cleanup. No metadata entrypoint or deformation recipe is executed. |
 | Representation selection | Explicit render-view field order takes precedence. Otherwise one named space/clock cohort is selected. A linked persistent display cache does not render simultaneously with its native source. | Model domain and cache tests. The outliner retains hidden native peers. An unsupported bound evaluator cannot silently substitute another representation. |
 | Gaussian fields | Static, persistent-identity, spacetime-polynomial, covariance4D and SE3-basis fields use the SDK's safe numerical evaluators. | SDK evaluator suites and Linux static/persistent tests. Canonical/scaffold deformation recipes require their declared external evaluator or an explicitly linked evaluated display cache. |
 | Persistent interpolation | Linear position, scale, alpha and color; shortest-arc quaternion SLERP. An identity is active between samples only if both bounding states are valid. | Linux midpoint, identity and visibility-gap tests. This matches macOS browsing policy; the SDK reference evaluator's nearest-sample policy is unchanged. |

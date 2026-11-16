@@ -1007,27 +1007,46 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(self.errors,[])
 
     def test_document_and_header_counts_include_session_cameras_and_authored_times(self):
+        import json
         empty=Path(self.temp.name)/'empty-source.gsv'
         with Writer(empty):pass
         source_bytes=empty.read_bytes()
         self.open_scene(empty)
         w=self.window
+        source_manifest=json.dumps(w.document.manifest,sort_keys=True)
         w.create_camera()
+        camera_id=w._track().id
+        w._pick(None,None)
         w.time_entry.set_text('2.5');w.time_entry.emit('activate')
         self.pump_until(lambda:w.time==2.5 and not w.frames.running)
         w._inspect()
         rows=dict(w.document_view.plain_rows)
         self.assertEqual(rows[self.application.tr('document.objects')],'1')
         self.assertEqual(rows[self.application.tr('document.samples')],'2')
-        self.assertEqual(w.title_widget.get_subtitle(),self.application.tr('ubuntu.counts').format(objects=1,samples=2))
-        self.assertEqual(w.sample_label.get_text(),'2 / 2')
+        summary=dict(w.detail_view.plain_rows)
+        self.assertIsNone(w.primary)
+        self.assertEqual(summary[self.application.tr('document.objects')],rows[self.application.tr('document.objects')])
+        self.assertEqual(summary[self.application.tr('document.samples')],rows[self.application.tr('document.samples')])
+        w.time_entry.set_text('3.5');w.time_entry.emit('activate')
+        self.pump_until(lambda:w.time==3.5 and not w.frames.running)
+        self.assertEqual(dict(w.detail_view.plain_rows)[self.application.tr('document.samples')],'3')
+        self.assertEqual(dict(w.document_view.plain_rows)[self.application.tr('document.samples')],'3')
+        w.time_entry.set_text('2.5');w.time_entry.emit('activate')
+        self.pump_until(lambda:w.time==2.5 and not w.frames.running)
+        self.assertEqual(w.title_widget.get_subtitle(),self.application.tr('ubuntu.counts').format(objects=1,samples=3))
+        self.assertEqual(w.sample_label.get_text(),'2 / 3')
         self.assertEqual(len(w.document.objects),0)
         np.testing.assert_array_equal(w.document.times,[0])
         self.assertEqual(empty.read_bytes(),source_bytes)
+        self.assertEqual(json.dumps(w.document.manifest,sort_keys=True),source_manifest)
+        w.outliner.select_members([(camera_id,None)],emit=True)
         w.delete_camera()
+        w._pick(None,None)
         self.pump_until(lambda:not w.frames.running)
         w._inspect()
         self.assertEqual(dict(w.document_view.plain_rows)[self.application.tr('document.objects')],'0')
+        self.assertEqual(dict(w.detail_view.plain_rows)[self.application.tr('document.objects')],'0')
+        self.assertEqual(json.dumps(w.document.manifest,sort_keys=True),source_manifest)
         self.assertEqual(self.errors,[])
 
 

@@ -224,6 +224,10 @@ class Desktop:
 
     def click(self, node):
         """Click only a control with verified owned-window/output coordinates."""
+        # GTK popovers and portal transitions can relinquish input after their
+        # accessible state has changed. Resolve fresh geometry only once that
+        # transition has completed, before sending the native pointer sequence.
+        pump(.8)
         from desktop_coordinates import owned_target_point
         point = owned_target_point(self, node)
         if point is None:
@@ -356,6 +360,7 @@ class Desktop:
                           and n.get_attributes().get('placeholder-text') == 'TIME')
         if entry is None:
             raise RuntimeError('The native timeline entry is missing')
+        self.click(entry)
         # GTK 4's inner GtkText accessibility activate action does not forward
         # GtkEntry::activate on this desktop version. Use actual keyboard focus
         # traversal and Return, then verify the committed source timestamp.
