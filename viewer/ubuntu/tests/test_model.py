@@ -2,13 +2,15 @@
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 import numpy as np
 
 from gsv import GSVError, Scene, Writer, add_camera, add_persistent_gaussians
-from gs_studio.model import SceneDocument, density_rows
+from gs_studio.model import SceneDocument, PreparedFrame, density_rows
 from gs_studio.camera import (CameraHistory, CameraTrack, export_camera_animation,
                               import_camera_animation)
+from gs_studio import model
 
 
 def record(x=0., valid=True):
@@ -21,6 +23,19 @@ def record(x=0., valid=True):
     a[:, 12:15] = [[1, .1, .2], [.2, .3, 1]]
     a[:, 15] = -1
     return a
+
+
+def add_static(out, identifier='static', *, clock=None):
+    out.manifest['spaces'].setdefault('world', {'unit': 'meter', 'axes': ['x', 'y', 'z'], 'handedness': 'right'})
+    if clock:
+        out.manifest['clocks'][clock] = {'unit': 'normalized'}
+    values = {'ids': np.array([9], np.int64), 'means': np.array([[1., 2., 3.]]),
+              'scales': np.ones((1, 3)), 'quaternions': np.array([[1., 0., 0., 0.]]),
+              'opacity': np.array([.5]), 'colors': np.array([[2., -.5, .3]])}
+    data = {name: out.add_array(identifier + '/' + name, value) for name, value in values.items()}
+    data['color_space'] = 'srgb'
+    return out.add_object(identifier, 'gaussian', 'gsv.gaussian.static', data, space='world',
+                          **({'clock': clock} if clock else {}))
 
 
 def write(path, *, gap=False, clocks=False):
@@ -56,6 +71,186 @@ class ModelTests(unittest.TestCase):
             self.assertEqual(frame.object_ids.tolist(), ['field', 'field'])
             self.assertFalse(frame.means.flags.writeable)
             self.assertEqual(doc.times.tolist(), [0., 1., 2., 3., 4.])
+
+    def test_source_samples_are_reused_across_interpolated_seeks(self):
+        with SceneDocument(self.path) as doc:
+            with mock.patch.object(doc.scene, 'array', wraps=doc.scene.array) as read:
+                first = doc.evaluate(.25)
+                second = doc.evaluate(.4)
+                self.assertIs(doc.evaluate(.25), first)
+                self.assertIsNot(second, first)
+                frame_reads = [call.args[0] for call in read.call_args_list if '/frame/' in call.args[0]]
+                self.assertEqual(frame_reads, ['field/frame/0', 'field/frame/1'])
+            self.assertIs(doc.evaluate(-2), doc.evaluate(-1))
+            self.assertLessEqual(doc._cache_bytes, doc.cache_budget)
+
+    def test_prepared_frame_keeps_resident_endpoints_without_cpu_covariance(self):
+        with SceneDocument(self.path) as doc:
+            with mock.patch.object(model, 'quat_matrix', side_effect=AssertionError('unexpected CPU covariance')):
+                prepared = doc.prepare_frame(.25)
+                self.assertIsInstance(prepared, PreparedFrame)
+                self.assertIsNone(prepared.weights)
+                self.assertEqual(prepared.count, 2)
+                with mock.patch.object(doc.scene, 'array', wraps=doc.scene.array) as read:
+                    next_frame = doc.prepare_frame(.4)
+                self.assertEqual(read.call_count, 0)
+                self.assertIs(prepared.first, next_frame.first)
+                self.assertIs(prepared.second, next_frame.second)
+                self.assertEqual(prepared.endpoint_key, next_frame.endpoint_key)
+                self.assertFalse(prepared.first.flags.writeable)
+            cpu = doc.evaluate(.25)
+            actual = prepared.materialize()
+            np.testing.assert_allclose(actual.records, cpu.records)
+            np.testing.assert_allclose(actual.covariance, cpu.covariance)
+            selected = prepared.element('field', -2**60 - 7)
+            np.testing.assert_allclose(selected.position, cpu.means[0])
+            self.assertTrue(selected.valid)
+            self.assertIsNone(prepared.element('field', 123456))
+        # GPU snapshots and selected-row inspection do not own a live descriptor.
+        np.testing.assert_allclose(prepared.materialize().records, cpu.records)
+
+    def test_prepared_validity_preserves_inactive_identities_at_sample_boundaries(self):
+        path = Path(self.temp.name) / 'prepared-gaps.gsv'
+        write(path, gap=True)
+        with SceneDocument(path) as doc:
+            frame = doc.prepare_frame(3-1e-10)
+            self.assertEqual(frame.count, 2)
+            self.assertEqual(frame.valid_count, 1)
+            self.assertTrue(0 < frame.weight < 1)
+            self.assertFalse(frame.element('field', -2**60 - 7).valid)
+            self.assertEqual(len(frame.materialize()), 1)
+            self.assertEqual(doc.prepare_frame(3).valid_count, 2)
+            self.assertEqual(doc.prepare_frame(2).valid_count, 1)
+
+    def test_prepared_public_snapshot_storage_is_immutable_and_survives_source_replacement(self):
+        with SceneDocument(self.path) as doc:
+            frame = doc.prepare_frame(.25)
+            original = frame.materialize().records.copy()
+            for array in (frame.first, frame.second, frame.ids, frame.object_ids, *frame.bounds):
+                with self.assertRaises(ValueError):
+                    array.flat[0] = 'changed' if array.dtype.kind == 'O' else 0
+            element = frame.element('field', -2**60 - 7)
+            element.position[:] = 100
+            self.assertNotEqual(frame.element('field', -2**60 - 7).position[0], 100)
+        self.path.write_bytes(b'source replaced after close')
+        np.testing.assert_allclose(frame.materialize().records, original)
+
+    def test_prepared_mixed_fields_use_independent_native_intervals_and_global_source_order(self):
+        path = Path(self.temp.name) / 'prepared-mixed.gsv'
+        with Writer(path) as out:
+            ids = np.array([-2**60 - 7, 2**60 + 3], np.int64)
+            add_persistent_gaussians(out, 'one', ids, [0., 1.], [record(), record(1)])
+            add_persistent_gaussians(out, 'two', ids, [0., 2.], [record(), record(2)])
+            add_static(out, 'static-peer')
+        with SceneDocument(path) as doc:
+            order = ['two', 'static-peer', 'one']
+            frame = doc.prepare_frame(.5, order)
+            self.assertIsNone(frame.weight)
+            np.testing.assert_allclose(frame.weights, [.25, .25, 0., .5, .5])
+            self.assertEqual(frame.count, 5)
+            self.assertIsNone(frame.element(None, 2**60 + 3))
+            np.testing.assert_allclose(frame.materialize().records, doc.evaluate(.5, order).records)
+            later = doc.prepare_frame(.75, order)
+            self.assertEqual(frame.endpoint_key, later.endpoint_key)
+            self.assertNotEqual(frame.endpoint_key, doc.prepare_frame(1.5, order).endpoint_key)
+            self.assertLessEqual(doc._cache_bytes, doc.cache_budget)
+
+    def test_cancelled_load_checks_each_checksum_chunk_and_closes_descriptor(self):
+        path = Path(self.temp.name) / 'large-buffer.gsv'
+        count = 150_000  # A single frame exceeds the SDK's 8 MiB read chunk.
+        with Writer(path) as out:
+            add_persistent_gaussians(out, 'large', np.arange(count, dtype=np.int64), [0.],
+                                     [np.tile(record()[0], (count, 1))])
+        opened, stopped = [], [False]
+        real_scene, real_pread = model.Scene, model.os.pread
+        def open_scene(*args, **kwargs):
+            scene = real_scene(*args, **kwargs)
+            opened.append(scene)
+            return scene
+        def pread(fd, length, offset):
+            result = real_pread(fd, length, offset)
+            if length == 8 * 1024**2:
+                stopped[0] = True
+            return result
+        with mock.patch.object(model, 'Scene', side_effect=open_scene), mock.patch.object(model.os, 'pread', side_effect=pread):
+            with self.assertRaises(InterruptedError):
+                SceneDocument(path, cancelled=lambda: stopped[0])
+        self.assertTrue(stopped[0])
+        self.assertTrue(opened[0]._file.closed)
+
+    def test_loading_cancellation_does_not_poison_accepted_document(self):
+        stopped = [False]
+        with SceneDocument(self.path, cancelled=lambda: stopped[0]) as doc:
+            stopped[0] = True
+            self.assertEqual(len(doc.evaluate(.5)), 2)
+            with self.assertRaises(InterruptedError):
+                doc.evaluate(.75, cancelled=lambda: True)
+            self.assertEqual(len(doc.evaluate(.75)), 2)
+
+    def test_cancelled_interpolation_does_not_publish_a_partial_frame(self):
+        path = Path(self.temp.name) / 'cancel-interpolation.gsv'
+        count = 70_000
+        first = np.tile(record()[0], (count, 1))
+        second = first.copy()
+        second[:, 0] = 1
+        second[:, 8:12] = [np.sqrt(1-.01**2), .01, 0, 0]
+        with Writer(path) as out:
+            add_persistent_gaussians(out, 'large', np.arange(count, dtype=np.int64), [0., 1.], [first, second])
+        stopped = [False]
+        real_slerp = model.slerp
+        def completed_chunk(*args):
+            result = real_slerp(*args)
+            stopped[0] = True
+            return result
+        with SceneDocument(path) as doc:
+            with mock.patch.object(model, 'slerp', side_effect=completed_chunk):
+                with self.assertRaises(InterruptedError):
+                    doc.evaluate(.5, cancelled=lambda: stopped[0])
+            self.assertFalse(any(key[0] == 'frame' for key in doc._cache))
+            frame = doc.evaluate(.5)
+            self.assertEqual(len(frame), count)
+            np.testing.assert_allclose(frame.means[:, 0], .5)
+            self.assertLessEqual(doc._cache_bytes, doc.cache_budget)
+
+    def test_static_covariance_and_complete_frame_are_cached_across_time(self):
+        path = Path(self.temp.name) / 'static-cache.gsv'
+        with Writer(path) as out:
+            add_static(out)
+        with SceneDocument(path) as doc, mock.patch.object(model, 'quat_matrix', wraps=model.quat_matrix) as rotations:
+            frame = doc.evaluate(0)
+            self.assertIs(doc.evaluate(1000), frame)
+            self.assertEqual(rotations.call_count, 1)
+            self.assertFalse(frame.records.flags.writeable)
+            self.assertLessEqual(doc._cache_bytes, doc.cache_budget)
+
+    def test_static_first_field_does_not_hide_dynamic_native_clock(self):
+        path = Path(self.temp.name) / 'cohort.gsv'
+        k = np.array([[100., 0, 160], [0, 100., 120], [0, 0, 1]])
+        with Writer(path) as out:
+            add_static(out, clock='unrelated')
+            add_persistent_gaussians(out, 'moving', np.array([3, 9], np.int64), [0., 1.], [record(), record(1)])
+            add_camera(out, 'active-camera', [.2, .8], np.tile(k, (2, 1, 1, 1)),
+                       np.tile(np.eye(4), (2, 1, 1, 1)), [[320, 240]])
+            add_camera(out, 'foreign-camera', [-100., 100.], np.tile(k, (2, 1, 1, 1)),
+                       np.tile(np.eye(4), (2, 1, 1, 1)), [[320, 240]], space='elsewhere')
+        with SceneDocument(path) as doc:
+            self.assertEqual(doc.visible_ids, ['static', 'moving'])
+            self.assertEqual(doc.clock, 'scene')
+            np.testing.assert_array_equal(doc.times, [0., 1.])
+            self.assertEqual(len(doc.evaluate(.5)), 3)
+            doc.activate_domain('active-camera')
+            np.testing.assert_array_equal(doc.times, [0., .2, .8, 1.])
+
+    def test_static_scene_uses_compatible_camera_clock_without_invented_samples(self):
+        path = Path(self.temp.name) / 'static-clock.gsv'
+        k = np.array([[100., 0, 160], [0, 100., 120], [0, 0, 1]])
+        with Writer(path) as out:
+            add_static(out)
+            add_camera(out, 'camera', [3., 7.], np.tile(k, (2, 1, 1, 1)),
+                       np.tile(np.eye(4), (2, 1, 1, 1)), [[320, 240]], clock='capture')
+        with SceneDocument(path) as doc:
+            self.assertEqual(doc.clock, 'capture')
+            np.testing.assert_array_equal(doc.times, [3., 7.])
 
     def test_frame_survives_close_and_closed_access_fails(self):
         doc = SceneDocument(self.path)
@@ -276,6 +471,68 @@ class AuthoringTests(unittest.TestCase):
             with self.assertRaisesRegex(GSVError, 'manifest digest'):
                 import_camera_animation(target, other)
 
+    def test_exact_camera_keys_preserve_finite_far_despite_unbounded_neighbor(self):
+        self.assertEqual(self.track.at(2).far, 100)
+        self.assertIsNone(self.track.at(1).far)
+        self.assertIsNone(self.track.at(0).far)
+        target = Path(self.temp.name) / 'volume.gsv'
+        export_camera_animation(target, [self.track], self.doc)
+        with SceneDocument(target) as source:
+            self.assertEqual(source.camera(self.track.id, 2).far, 100)
+            self.assertIsNone(source.camera(self.track.id, 1).far)
+
+    def test_invalid_camera_edits_fail_before_mutating_the_track(self):
+        old = list(self.track.keyframes)
+        pose = np.eye(4)
+        pose[3, 3] = 1.000001
+        with self.assertRaisesRegex(GSVError, 'affine pose'):
+            self.track.record(4, self.track.at(0).K, pose)
+        self.assertEqual([f.time for f in self.track.keyframes], [f.time for f in old])
+        k = np.eye(3)
+        k[0, 0] = 1e308
+        with self.assertRaisesRegex(GSVError, 'numeric range'):
+            self.track.record(4, k, np.eye(4), width=1, height=1)
+        self.assertEqual([f.time for f in self.track.keyframes], [f.time for f in old])
+
+    def test_camera_only_reexport_retains_original_reconstruction_digest(self):
+        original = Path(self.temp.name) / 'original-cameras.gsv'
+        export_camera_animation(original, [self.track], self.doc)
+        with SceneDocument(original) as camera_only:
+            new = CameraTrack('Another view', self.track.space, self.track.clock, 640, 480)
+            new.record(0, self.track.at(0).K, np.eye(4))
+            target = Path(self.temp.name) / 'new-cameras.gsv'
+            export_camera_animation(target, [new], camera_only)
+        imported = import_camera_animation(target, self.doc)
+        self.assertEqual(imported[0].id, new.id)
+
+    def test_imported_supplemental_domain_descriptors_survive_reexport(self):
+        empty = Path(self.temp.name) / 'empty-descriptors.gsv'
+        with Writer(empty):
+            pass
+        with SceneDocument(empty) as source:
+            incoming = Path(self.temp.name) / 'external-camera.gsv'
+            with Writer(incoming, metadata={'source_document': {'manifest_sha256': source.digest}}) as out:
+                out.manifest['spaces']['world'] = {'unit': 'meter', 'axes': ['east', 'north', 'up'], 'handedness': 'right'}
+                out.manifest['clocks']['timeline'] = {'unit': 'frame', 'mapping': {'target': 'capture', 'scale': .04, 'offset': 1.}}
+                out.manifest['clocks']['capture'] = {'unit': 'second'}
+                add_camera(out, 'external', [10.], np.eye(3)[None, None], np.eye(4)[None, None], [[32, 24]],
+                           clock='timeline', pixel_center='half', metadata={'role': 'user'})
+            tracks = import_camera_animation(incoming, source)
+            outgoing = Path(self.temp.name) / 'preserved-camera.gsv'
+            export_camera_animation(outgoing, tracks, source)
+            with Scene(incoming) as before, Scene(outgoing) as after:
+                self.assertEqual(before.manifest['spaces'], after.manifest['spaces'])
+                self.assertEqual(before.manifest['clocks'], after.manifest['clocks'])
+                after.validate()
+
+    def test_malformed_source_provenance_is_a_validation_error(self):
+        incoming = Path(self.temp.name) / 'bad-provenance.gsv'
+        with Writer(incoming, metadata={'source_document': 'opaque vendor value'}) as out:
+            add_camera(out, 'camera-user', [0.], np.eye(3)[None, None], np.eye(4)[None, None], [[32, 24]],
+                       metadata={'role': 'user'})
+        with self.assertRaisesRegex(GSVError, 'matching source manifest'):
+            import_camera_animation(incoming, self.doc)
+
     def test_source_aliases_cannot_be_overwritten(self):
         symlink = Path(self.temp.name) / 'symlink.gsv'
         symlink.symlink_to(self.path)
@@ -325,6 +582,25 @@ class AuthoringTests(unittest.TestCase):
         history.tracks[0].remove(0)
         with self.assertRaisesRegex(GSVError, 'at least one'):
             history.tracks[0].remove(0)
+
+    def test_same_named_cameras_use_stable_identity_and_immutable_history(self):
+        second = self.track.clone()
+        second.id = 'another-camera'
+        history = CameraHistory([self.track, second])
+        self.assertEqual(history.tracks.index(second), 1)
+        self.assertNotEqual(self.track, second)
+        history.remember()
+        key = self.track.keyframes[0]
+        k = key.K.copy()
+        k[0, 0] *= 2
+        second.record(key.time, k, key.c2w)
+        self.assertEqual(second.keyframes[0].K[0, 0], 2 * key.K[0, 0])
+        self.assertTrue(history.undo())
+        self.assertEqual(history.tracks[1].keyframes[0].K[0, 0], key.K[0, 0])
+        with self.assertRaises(ValueError):
+            history.tracks[1].keyframes[0].K[0, 0] = 1
+        with self.assertRaises(GSVError):
+            CameraHistory(limit=0)
 
 
 if __name__ == '__main__':

@@ -5,7 +5,7 @@ import gi
 import numpy as np
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk
+from gi.repository import Gdk, Gtk
 from gsv.metrics import convert_rgb
 from .i18n import tr
 
@@ -16,10 +16,18 @@ class ComparisonCanvas(Gtk.DrawingArea):
         self.images = []
         self.zoom = 1.0
         self.pan = (0.0, 0.0)
+        self._pointer = None
         self.set_draw_func(self._draw)
-        scroll = Gtk.EventControllerScroll(flags=Gtk.EventControllerScrollFlags.VERTICAL)
+        scroll = Gtk.EventControllerScroll(flags=Gtk.EventControllerScrollFlags.BOTH_AXES)
         scroll.connect("scroll", self._scroll)
         self.add_controller(scroll)
+        motion = Gtk.EventControllerMotion()
+        motion.connect("motion", lambda _,x,y: setattr(self, "_pointer", (x,y)))
+        self.add_controller(motion)
+        zoom = Gtk.GestureZoom()
+        zoom.connect("begin", lambda gesture, _: setattr(self, "_zoom_last", 1.))
+        zoom.connect("scale-changed", self._pinch)
+        self.add_controller(zoom)
         drag = Gtk.GestureDrag()
         drag.connect("drag-begin", lambda *_: setattr(self, "_start_pan", self.pan))
         drag.connect("drag-update", self._drag)
@@ -71,9 +79,27 @@ class ComparisonCanvas(Gtk.DrawingArea):
         self.images = []
         self.queue_draw()
 
-    def _scroll(self, controller, dx, dy):
-        self.zoom = min(32, max(.1, self.zoom * math.exp(max(-2, min(2, -dy*.14)))))
+    def _change_zoom(self, factor):
+        previous = self.zoom
+        self.zoom = min(32, max(.25, previous * factor))
+        width = max(1, self.get_width()) / max(1, len(self.images))
+        x,y = self._pointer or (width/2, self.get_height()/2)
+        anchor = (x % width - width/2, y - 28 - (self.get_height()-28)/2)
+        ratio = self.zoom/previous
+        self.pan = tuple(a-(a-p)*ratio for a,p in zip(anchor, self.pan))
         self.queue_draw()
+
+    def _pinch(self, gesture, scale):
+        previous = getattr(self, "_zoom_last", 1.)
+        self._change_zoom(max(1e-6, scale)/previous)
+        self._zoom_last = max(1e-6, scale)
+
+    def _scroll(self, controller, dx, dy):
+        if controller.get_current_event_state() & Gdk.ModifierType.ALT_MASK:
+            self._change_zoom(math.exp(max(-2, min(2, -dy*.14))))
+        else:
+            self.pan = (self.pan[0]-dx*16, self.pan[1]-dy*16)
+            self.queue_draw()
         return True
 
     def _drag(self, gesture, dx, dy):

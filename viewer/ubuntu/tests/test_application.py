@@ -190,8 +190,8 @@ class ApplicationTests(unittest.TestCase):
         self.addCleanup(release.set)
         created = []
         constructor = self.application.SceneDocument
-        def delayed(path):
-            doc = constructor(path)
+        def delayed(path, **kwargs):
+            doc = constructor(path, **kwargs)
             created.append(doc)
             entered.set()
             release.wait(5)
@@ -379,6 +379,163 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(w.document.space, "a")
         self.assertIn("field-a", w.visible)
         self.assertNotIn("field-b", w.visible)
+        self.assertEqual(self.errors, [])
+
+    def test_source_and_geometry_selections_cannot_edit_previous_user_camera(self):
+        self.open_scene()
+        w = self.window
+        w.create_camera()
+        identifier = w.editing_id
+        source_index = next(i+1 for i, entry in enumerate(w.camera_entries) if entry[0] == "camera")
+        w.camera_drop.set_selected(source_index)
+        self.assertIsNone(w.editing_id)
+        w.delete_camera()
+        self.assertEqual([track.id for track in w.history.tracks], [identifier])
+        user_index = next(i+1 for i, entry in enumerate(w.camera_entries) if entry[0] == identifier)
+        w.camera_drop.set_selected(user_index)
+        self.assertEqual(w.editing_id, identifier)
+        w._pick("field", 2**60+3)
+        self.assertIsNone(w.editing_id)
+        w.delete_camera()
+        self.assertEqual([track.id for track in w.history.tracks], [identifier])
+        w.primary = identifier
+        w.selected = {(identifier, None)}
+        w._selection_changed()
+        row = w.outliner.get_first_child()
+        while row.object_id != "field":
+            row = row.get_next_sibling()
+        w.outliner.unselect_all()
+        w.outliner.select_row(row)
+        self.assertIsNone(w.editing_id)
+        self.assertEqual(self.errors, [])
+
+    def test_authored_paths_refresh_with_keys_and_editor_preserves_focused_text(self):
+        import math
+        self.open_scene()
+        w = self.window
+        w.create_camera()
+        identifier = w.editing_id
+        w.position.set_text("0, 0, 0")
+        w.rotation.set_text("1, 0, 0, 0")
+        w._edit_track("pose")
+        w.fov.set_text("40")
+        w._edit_track("fov")
+        w._scrub(1)
+        self.pump_until(lambda: w.time == 1 and not w.frames.running)
+        w.position.set_text("2, 4, 6")
+        w._edit_track("pose")
+        w.fov.set_text("70")
+        w._edit_track("fov")
+        self.pump_until(lambda: not w.frames.running and any(p.object_id == identifier for p in w.viewport.paths))
+        path = next(p for p in w.viewport.paths if p.object_id == identifier)
+        np.testing.assert_allclose(path.positions, [[0, 0, 0], [2, 4, 6]])
+        w.viewport.grab_focus()
+        w._scrub(.5)
+        self.pump_until(lambda: w.time == .5 and not w.frames.running)
+        np.testing.assert_allclose([float(x) for x in w.position.get_text().split(",")], [1, 2, 3])
+        camera = w._track().at(.5)
+        expected = math.degrees(2*math.atan(camera.width/(2*camera.K[0,0])))
+        self.assertAlmostEqual(float(w.fov.get_text()), expected, places=4)
+        w.position.grab_focus()
+        self.pump_until(lambda: w._entry_editing(w.position))
+        w.position.set_text("unfinished coordinate edit")
+        w._scrub(.75)
+        self.pump_until(lambda: w.time == .75 and not w.frames.running)
+        self.assertEqual(w.position.get_text(), "unfinished coordinate edit")
+        w._scrub(1)
+        self.pump_until(lambda: w.time == 1 and not w.frames.running)
+        w.position.set_text("6, 4, 2")
+        w._edit_track("pose")
+        self.pump_until(lambda: not w.frames.running and any(p.object_id == identifier and np.allclose(p.positions[-1], [6,4,2]) for p in w.viewport.paths))
+        w._retime(1, 1.5)
+        self.pump_until(lambda: w.time == 1.5 and not w.frames.running)
+        self.assertEqual([key.time for key in w._track().keyframes], [0, 1.5])
+        self.assertEqual(self.errors, [])
+
+    def test_static_source_transport_includes_authored_camera_duration(self):
+        path = Path(self.temp.name) / "static.gsv"
+        with Writer(path) as out:
+            out.manifest["spaces"]["world"] = {"unit": "meter", "handedness": "right", "axes": ["right", "down", "forward"]}
+            values = {"ids": np.array([7],np.int64), "means": np.array([[0,0,2]],np.float32),
+                      "scales": np.full((1,3),.08,np.float32), "quaternions": np.array([[1,0,0,0]],np.float32),
+                      "colors": np.array([[1,.4,.2]],np.float32), "opacity": np.array([.8],np.float32)}
+            data = {key: out.add_array("field/"+key,value) for key,value in values.items()}
+            data["color_space"] = "srgb"
+            out.add_object("field","gaussian","gsv.gaussian.static",data,space="world")
+        self.open_scene(path)
+        w = self.window
+        self.assertEqual(w.document.times.tolist(), [0])
+        w.create_camera()
+        w._scrub(2)
+        self.pump_until(lambda: w.time == 2 and not w.frames.running)
+        w.record_key()
+        self.assertEqual(w.timeline.times.tolist(), [0, 2])
+        self.assertEqual(w._play_bounds()[:2], (0, 2))
+        w._step(-1)
+        self.pump_until(lambda: w.time == 0 and not w.frames.running)
+        w._step(1)
+        self.pump_until(lambda: w.time == 2 and not w.frames.running)
+        w._scrub(0)
+        self.pump_until(lambda: w.time == 0 and not w.frames.running)
+        w.toggle_playback()
+        self.assertTrue(w.playing)
+        self.pump_until(lambda: w.time > .02)
+        w._set_playing(False)
+        self.assertEqual(self.errors, [])
+
+    def test_native_text_undo_preserves_camera_and_creation_undo_clears_selection(self):
+        self.open_scene()
+        w = self.window
+        w.create_camera()
+        identifier = w.editing_id
+        entry = w.track_name
+        entry.grab_focus()
+        self.pump_until(lambda: w._entry_editing(entry))
+        before = entry.get_text()
+        entry.set_position(-1)
+        # The keybinding signal creates a native user-action undo group;
+        # Gtk.Editable.insert_text() is a programmatic, irreversible mutation.
+        w.get_focus().emit("insert-at-cursor", " edited")
+        self.assertNotEqual(entry.get_text(), before)
+        w.lookup_action("undo").activate(None)
+        self.assertEqual(entry.get_text(), before)
+        w.lookup_action("redo").activate(None)
+        self.assertEqual(entry.get_text(), before+" edited")
+        self.assertEqual([track.id for track in w.history.tracks], [identifier])
+        self.assertNotIn("Home", self.app.get_accels_for_action("win.home"))
+        w.lookup_action("camera-undo").activate(None)
+        self.assertEqual(w.history.tracks, [])
+        self.assertEqual(w.selected, set())
+        self.assertIsNone(w.primary)
+        self.assertIsNone(w.editing_id)
+        self.assertEqual(self.errors, [])
+
+    def test_comparison_chooses_explicit_capture_and_switches_view_domain(self):
+        import importlib.util
+        fixture_file = Path(__file__).resolve().parents[2] / "native" / "tests" / "camera_render_fixtures.py"
+        spec = importlib.util.spec_from_file_location("studio_comparison_domains", fixture_file)
+        fixtures = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fixtures)
+        path = Path(self.temp.name) / "capture-domains.gsv"
+        fixtures.write_clock_domains(path)
+        self.open_scene(path)
+        w = self.window
+        w._scrub(.25)
+        self.pump_until(lambda: w.time == .25 and not w.frames.running)
+        w.compare_toggle.set_active(True)
+        self.pump_until(lambda: w.time == 0 and w._comparison_result is not None and not w.comparisons.running)
+        self.assertEqual(w.capture_entries[w.capture_drop.get_selected()].time, 0)
+        w.capture_drop.set_selected(1)
+        self.pump_until(lambda: w.time == 1 and w._comparison_result is not None and not w.comparisons.running)
+        w.render_drop.set_selected(w.render_entries.index("view-b"))
+        self.pump_until(lambda: w.document.clock == "b" and w.time == 10 and
+                        w._comparison_result is not None and w._comparison_result.label == "view-b" and
+                        not w.comparisons.running)
+        self.assertEqual(w.document.space, "b")
+        self.assertEqual(w.timeline.times.tolist(), [10, 20])
+        w.capture_drop.set_selected(1)
+        self.pump_until(lambda: w.time == 20 and w._comparison_result is not None and not w.comparisons.running)
+        self.assertEqual(w.capture_entries[w.capture_drop.get_selected()].time, 20)
         self.assertEqual(self.errors, [])
 
 

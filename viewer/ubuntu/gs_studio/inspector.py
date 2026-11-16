@@ -93,6 +93,21 @@ class Inspector(Gtk.Box):
             for owner, identity in selected:
                 if identity is None:
                     continue
+                if hasattr(frame, 'element'):
+                    from gsv.evaluate import quat_matrix
+                    element = frame.element(owner, identity)
+                    prop(tr("selection.exactID"), identity)
+                    if element is None or not element.valid:
+                        prop(tr("property.position"), tr("element.absent"))
+                        continue
+                    r = quat_matrix(element.quaternion)
+                    covariance = (r * element.scales[None,:]) @ (r * element.scales[None,:]).T
+                    for key, value in [("property.position",element.position), ("property.color",element.color),
+                                       ("property.opacity",element.opacity), ("property.sigma",element.scales),
+                                       ("property.quaternion",element.quaternion), ("ubuntu.covariance",covariance),
+                                       ("property.confidence",element.confidence if element.confidence >= 0 else tr("common.notProvided"))]:
+                        prop(tr(key), value)
+                    continue
                 matching = np.flatnonzero((frame.object_ids == owner) & (frame.ids == identity))
                 prop(tr("selection.exactID", "Exact element ID"), identity)
                 if not len(matching):

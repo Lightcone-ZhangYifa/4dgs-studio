@@ -11,6 +11,7 @@ import numpy as np
 from gsv import GSVError, Scene, Writer, add_camera
 from gsv.codecs import validate_object
 from gsv.evaluate import _time_weight, matrix_quat, quat_matrix
+from gsv.container import SHA_RE
 
 
 @dataclass(frozen=True)
@@ -55,9 +56,9 @@ def _validate_calibration(k, pose, width, height, near, far):
     if (np.shape(k) != (3, 3) or np.shape(pose) != (4, 4)
             or not np.isfinite(k).all() or not np.isfinite(pose).all()
             or k[0, 0] <= 0 or k[1, 1] <= 0
-            or not np.allclose(k[1:, 0], 0, atol=1e-9)
-            or not np.allclose(k[2], [0, 0, 1], atol=1e-9)
-            or not np.allclose(pose[3], [0, 0, 0, 1], atol=1e-9)):
+            or not np.allclose(k[1:, 0], 0, atol=1e-9, rtol=0)
+            or not np.allclose(k[2], [0, 0, 1], atol=1e-9, rtol=0)
+            or not np.allclose(pose[3], [0, 0, 0, 1], atol=1e-9, rtol=0)):
         raise GSVError('Camera requires finite pinhole intrinsics and an affine pose')
     rotation = pose[:3, :3]
     if not np.allclose(rotation.T @ rotation, np.eye(3), atol=1e-4) or not np.isclose(np.linalg.det(rotation), 1, atol=1e-4):
@@ -78,7 +79,7 @@ class CameraKeyframe:
     far: float | None = None
 
 
-@dataclass
+@dataclass(eq=False)
 class CameraTrack:
     label: str
     space: str
@@ -87,6 +88,27 @@ class CameraTrack:
     height: int
     keyframes: list[CameraKeyframe] = field(default_factory=list)
     id: str = field(default_factory=lambda: 'camera-' + str(uuid.uuid4()))
+    spaces: dict = field(default_factory=dict, repr=False)
+    clocks: dict = field(default_factory=dict, repr=False)
+
+    def __eq__(self, other):
+        # A camera's stable identity is independent of its editable name/pose.
+        # Dataclass array equality also makes list.index fail for same-named
+        # cameras before reaching the actual selected track.
+        return isinstance(other, CameraTrack) and self.id == other.id
+
+    def clone(self):
+        """Copy editable structure while sharing immutable keyframe arrays."""
+        out = copy.copy(self)
+        out.keyframes = []
+        for key in self.keyframes:
+            if key.K.flags.writeable or key.c2w.flags.writeable:
+                k, pose = np.array(key.K, copy=True), np.array(key.c2w, copy=True)
+                k.flags.writeable = pose.flags.writeable = False
+                key = CameraKeyframe(key.time, k, pose, key.near, key.far)
+            out.keyframes.append(key)
+        out.spaces, out.clocks = copy.deepcopy(self.spaces), copy.deepcopy(self.clocks)
+        return out
 
     def record(self, time, K, c2w, width=None, height=None, near=.001, far=None):
         time = float(time)
@@ -99,8 +121,13 @@ class CameraTrack:
         _validate_calibration(k, pose, self.width, self.height, near, far)
         # Viewport captures use half pixel coordinates. Scale whole rows,
         # including skew and principal point, into this camera's fixed raster.
-        k[0] *= self.width / width
-        k[1] *= self.height / height
+        try:
+            with np.errstate(over='raise', invalid='raise'):
+                k[0] *= self.width / width
+                k[1] *= self.height / height
+        except FloatingPointError as error:
+            raise GSVError('Scaled camera intrinsics exceed the authoring numeric range') from error
+        _validate_calibration(k, pose, self.width, self.height, near, far)
         pose[3] = [0, 0, 0, 1]
         k.flags.writeable = pose.flags.writeable = False
         key = CameraKeyframe(time, k, pose, float(near), None if far is None else float(far))
@@ -119,7 +146,8 @@ class CameraTrack:
         k = (1 - weight) * first.K + weight * second.K
         pose = interpolate_pose(first.c2w, second.c2w, weight)
         near = (1 - weight) * first.near + weight * second.near
-        far = None if first.far is None or second.far is None else (1 - weight) * first.far + weight * second.far
+        far = (first.far if weight == 0 else second.far if weight == 1 else None
+               if first.far is None or second.far is None else (1 - weight) * first.far + weight * second.far)
         return Calibration(k, pose, self.width, self.height, near=near, far=far)
 
     def retime(self, index, new_time):
@@ -146,26 +174,28 @@ class CameraTrack:
 class CameraHistory:
     """Bounded snapshots of authored cameras, independent of source document data."""
     def __init__(self, tracks=None, limit=100):
+        if type(limit) is not int or limit <= 0:
+            raise GSVError('Camera history limit must be a positive integer')
         self.tracks = list(tracks or [])
         self._undo, self._redo = [], []
         self.limit = limit
 
     def remember(self):
-        self._undo.append(copy.deepcopy(self.tracks))
+        self._undo.append([track.clone() for track in self.tracks])
         self._undo = self._undo[-self.limit:]
         self._redo.clear()
 
     def undo(self):
         if not self._undo:
             return False
-        self._redo.append(copy.deepcopy(self.tracks))
+        self._redo.append([track.clone() for track in self.tracks])
         self.tracks = self._undo.pop()
         return True
 
     def redo(self):
         if not self._redo:
             return False
-        self._undo.append(copy.deepcopy(self.tracks))
+        self._undo.append([track.clone() for track in self.tracks])
         self.tracks = self._redo.pop()
         return True
 
@@ -184,7 +214,9 @@ def export_camera_animation(path, tracks, source, *, overwrite=False):
     if len(set(ids)) != len(ids):
         raise GSVError('Camera identities must be unique')
     inherited = source.manifest.get('metadata', {}).get('source_document')
-    source_document = inherited if source.objects and all(o['type'] == 'camera' for o in source.objects) and inherited else {
+    valid_inherited = (isinstance(inherited, dict) and isinstance(inherited.get('manifest_sha256'), str)
+                       and SHA_RE.fullmatch(inherited['manifest_sha256']))
+    source_document = inherited if source.objects and all(o['type'] == 'camera' for o in source.objects) and valid_inherited else {
         'name': source.path.name, 'manifest_sha256': source.manifest_sha256}
     with Writer(path, overwrite=overwrite, metadata={
         'created_by': '4DGS Studio', 'source_document': source_document,
@@ -193,6 +225,12 @@ def export_camera_animation(path, tracks, source, *, overwrite=False):
         out.manifest['spaces'] = copy.deepcopy(source.manifest.get('spaces', {}))
         out.manifest['clocks'] = copy.deepcopy(source.manifest.get('clocks', {}))
         for track in tracks:
+            for field in ('spaces', 'clocks'):
+                for key, descriptor in getattr(track, field).items():
+                    existing = out.manifest[field].get(key)
+                    if existing is not None and existing != descriptor:
+                        raise GSVError('Authored camera ' + field + ' descriptor disagrees with the source document')
+                    out.manifest[field][key] = copy.deepcopy(descriptor)
             if not track.keyframes:
                 raise GSVError(f'Camera {track.label} has no keyframes')
             frames = sorted(track.keyframes, key=lambda f: f.time)
@@ -217,7 +255,8 @@ def import_camera_animation(path, source, existing_ids=()):
         objects = incoming.objects
         if not objects or any(o['encoding'] != 'gsv.camera.pinhole' or o['type'] != 'camera' for o in objects):
             raise GSVError('Import a camera-only animation GSV created for this source scene')
-        digest = incoming.manifest.get('metadata', {}).get('source_document', {}).get('manifest_sha256')
+        provenance = incoming.manifest.get('metadata', {}).get('source_document')
+        digest = provenance.get('manifest_sha256') if isinstance(provenance, dict) else None
         if digest != source.manifest_sha256:
             raise GSVError('Camera animation requires the matching source manifest digest')
         used = set(existing_ids) | {o['id'] for o in source.objects}
@@ -242,6 +281,17 @@ def import_camera_animation(path, source, existing_ids=()):
                     raise GSVError('Imported ' + field + ' descriptor disagrees with the source document')
             width, height = map(int, incoming.array(projection['image_sizes'])[0])
             track = CameraTrack(obj.get('label', obj['id']), obj['space'], obj['clock'], width, height, id=obj['id'])
+            track.spaces = {obj['space']: copy.deepcopy(incoming.manifest['spaces'][obj['space']])}
+            clock = obj['clock']
+            while clock not in track.clocks:
+                descriptor = incoming.manifest['clocks'][clock]
+                existing = source.manifest.get('clocks', {}).get(clock)
+                if existing is not None and existing != descriptor:
+                    raise GSVError('Imported clocks descriptor disagrees with the source document')
+                track.clocks[clock] = copy.deepcopy(descriptor)
+                if 'mapping' not in descriptor:
+                    break
+                clock = descriptor['mapping']['target']
             times = incoming.array(data['times'])
             k = incoming.array(projection['intrinsics'])
             poses = incoming.array(data['pose']['camera_to_world'])

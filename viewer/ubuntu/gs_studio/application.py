@@ -19,13 +19,14 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 from . import APPLICATION_ID, VERSION
 from .i18n import tr, read_preferences, save_preferences
 from .jobs import LatestJob, CommandJobs
-from .model import SceneDocument
+from .model import SceneDocument, Trajectory
 from .camera import CameraTrack, CameraHistory, export_camera_animation, import_camera_animation
 from .timeline import Timeline
 from .viewport import Viewport
 from .image_view import ComparisonCanvas
 from .inspector import Inspector
 from .comparison import compare_view
+from .capture_catalog import build_capture_catalog
 
 
 def box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6, **kwargs):
@@ -41,6 +42,22 @@ def button(text, callback, icon=None):
     widget.set_tooltip_text(text)
     widget.update_property([Gtk.AccessibleProperty.LABEL], [text])
     widget.connect("clicked", lambda *_: callback())
+    return widget
+
+
+def compact_dropdown(widget, width):
+    """Keep native selectors readable without letting long source names resize the workbench."""
+    def factory(chars):
+        result = Gtk.SignalListItemFactory()
+        result.connect("setup", lambda _, item: item.set_child(Gtk.Label(xalign=0, ellipsize=3, max_width_chars=chars)))
+        def bind(_, item):
+            value = item.get_item().get_string()
+            item.get_child().set_text(value)
+            item.get_child().set_tooltip_text(value)
+        result.connect("bind", bind)
+        return result
+    widget.set_factory(factory(width))
+    widget.set_list_factory(factory(60))
     return widget
 
 
@@ -69,6 +86,8 @@ class StudioWindow(Adw.ApplicationWindow):
         self.editing_id = None
         self.camera_entries = []
         self.render_entries = []
+        self.capture_catalog = {}
+        self.capture_entries = []
         self._calibrations = {}
         self._inspected_views = {}
         self._updating = False
@@ -77,6 +96,7 @@ class StudioWindow(Adw.ApplicationWindow):
         self._paths_revision += 1
         self._frame_scene = False
         self._domain_busy = False
+        self._domain_revision = 0
         self._file_busy = False
         self._chooser_generation = 0
         self._pending_confirm = False
@@ -160,6 +180,7 @@ class StudioWindow(Adw.ApplicationWindow):
         self.inner_paned.set_position(920)
         view_bar = box(spacing=6, margin_start=8, margin_end=8, margin_top=6, margin_bottom=6)
         self.camera_drop = Gtk.DropDown.new_from_strings([tr("view.free", "Free perspective")])
+        compact_dropdown(self.camera_drop, 30)
         self.camera_drop.set_hexpand(True)
         self.camera_drop.connect("notify::selected", self._camera_changed)
         view_bar.append(self.camera_drop)
@@ -200,13 +221,20 @@ class StudioWindow(Adw.ApplicationWindow):
         center.append(preview)
         compare_bar = box(spacing=6, margin_start=8, margin_end=8, margin_bottom=6)
         self.render_drop = Gtk.DropDown.new_from_strings([tr("render.noViews", "No render views")])
+        compact_dropdown(self.render_drop, 18)
         self.render_drop.set_hexpand(True)
         self.render_drop.connect("notify::selected", lambda *_: self._render_selected())
         compare_bar.append(self.render_drop)
         self.observation_drop = Gtk.DropDown.new_from_strings([tr("ubuntu.autoObservation", "Auto observation")])
+        compact_dropdown(self.observation_drop, 14)
         self.observation_entries = [None]
-        self.observation_drop.connect("notify::selected", lambda *_: self._request_comparison())
+        self.observation_drop.connect("notify::selected", lambda *_: self._observation_selected())
         compare_bar.append(self.observation_drop)
+        self.capture_drop = Gtk.DropDown.new_from_strings([tr("timeline.source")])
+        compact_dropdown(self.capture_drop, 20)
+        self.capture_drop.set_tooltip_text(tr("compare.observation"))
+        self.capture_drop.connect("notify::selected", lambda *_: self._capture_selected())
+        compare_bar.append(self.capture_drop)
         compare_bar.append(button(tr("compare.fit", "Fit images"), lambda: self.image_view.reset(), "zoom-fit-best-symbolic"))
         compare_bar.append(button(tr("compare.actualPixels", "Actual pixels"), lambda: self.image_view.actual_pixels(), "zoom-original-symbolic"))
         compare_bar.append(button(tr("compare.refresh", "Refresh comparison"), self._request_comparison, "view-refresh-symbolic"))
@@ -218,6 +246,7 @@ class StudioWindow(Adw.ApplicationWindow):
         self.timeline.on_seek = self._scrub
         self.timeline.on_key_select = self._select_key
         self.timeline.on_key_move = self._retime
+        self.timeline.on_play = self.toggle_playback
         center.append(self.timeline)
         center.append(self._transport())
         self.inspector = self._inspector()
@@ -226,7 +255,8 @@ class StudioWindow(Adw.ApplicationWindow):
         self.status.set_selectable(True)
         status_bar = box(spacing=10)
         status_bar.append(self.status)
-        self.performance_label = label("", xalign=1, margin_end=10)
+        self.performance_label = label("", xalign=1, margin_end=10, width_chars=36, max_width_chars=36, ellipsize=3)
+        self._last_stats_update = 0.
         self.performance_label.add_css_class("dim-label")
         status_bar.append(self.performance_label)
         root.append(status_bar)
@@ -259,9 +289,12 @@ class StudioWindow(Adw.ApplicationWindow):
         column.append(row)
         row2 = box(spacing=6)
         self.range_enabled = Gtk.CheckButton(label=tr("timeline.workRange", "Preview range"))
+        self.range_enabled.connect("toggled", lambda *_: self._preview_range_changed())
         row2.append(self.range_enabled)
         self.range_start = Gtk.Entry(width_chars=10, placeholder_text=tr("timeline.in", "In time"))
         self.range_end = Gtk.Entry(width_chars=10, placeholder_text=tr("timeline.out", "Out time"))
+        self.range_start.connect("activate", lambda *_: self._preview_range_changed())
+        self.range_end.connect("activate", lambda *_: self._preview_range_changed())
         row2.append(self.range_start)
         row2.append(self.range_end)
         row2.append(label(tr("timeline.previewLabel", "Preview")+" /s"))
@@ -354,7 +387,8 @@ class StudioWindow(Adw.ApplicationWindow):
             "open": lambda: self.choose_file("open"), "save": lambda: self.choose_file("save"),
             "create-camera": self.create_camera, "record": self.record_key,
             "import-camera": lambda: self.choose_file("import"),
-            "undo": lambda: self._undo(False), "redo": lambda: self._undo(True),
+            "undo": lambda: self._undo_or_text(False), "redo": lambda: self._undo_or_text(True),
+            "camera-undo": lambda: self._undo(False), "camera-redo": lambda: self._undo(True), "close": self.close,
             "previous-view": lambda: self._view_history(-1), "next-view": lambda: self._view_history(1),
             "screenshot": lambda: self.export_image(False), "workspace-snapshot": lambda: self.export_image(True),
             "toggle-outliner": lambda: self.outer_paned.get_start_child().set_visible(not self.outer_paned.get_start_child().get_visible()),
@@ -367,8 +401,21 @@ class StudioWindow(Adw.ApplicationWindow):
             action = Gio.SimpleAction.new(name, None)
             action.connect("activate", lambda a, p, fn=callback: self._guard(fn))
             self.add_action(action)
-        for name, keys in {"open": ["<Primary>o"], "save": ["<Primary>s"], "screenshot": ["<Primary><Shift>s"], "workspace-snapshot": ["<Primary><Alt><Shift>s"], "create-camera": ["<Primary><Shift>k"], "toggle-outliner": ["<Primary>1"], "toggle-inspector": ["<Primary>2"], "fullscreen": ["F11"], "record": ["<Primary>k"], "undo": ["<Primary>z"], "redo": ["<Primary><Shift>z"], "home": ["Home"]}.items():
+        for name, keys in {"open": ["<Primary>o"], "save": ["<Primary>s"], "screenshot": ["<Primary><Shift>s"], "workspace-snapshot": ["<Primary><Alt><Shift>s"], "create-camera": ["<Primary><Shift>k"], "toggle-outliner": ["<Primary>1"], "toggle-inspector": ["<Primary>2"], "fullscreen": ["F11"], "record": ["<Primary>k"], "undo": ["<Primary>z"], "redo": ["<Primary><Shift>z"], "camera-undo": ["<Primary><Alt>z"], "camera-redo": ["<Primary><Alt><Shift>z"], "close": ["<Primary>w"], "previous-view": ["<Primary><Alt>bracketleft"], "next-view": ["<Primary><Alt>bracketright"]}.items():
             self.get_application().set_accels_for_action("win."+name, keys)
+
+    def _entry_editing(self, entry):
+        focus = self.get_focus()
+        return focus is entry or (focus is not None and focus.is_ancestor(entry))
+
+    def _undo_or_text(self, redo):
+        focus = self.get_focus()
+        # Gtk.Entry's Gtk.Text child handles native undo without changing cameras.
+        if isinstance(focus, (Gtk.Editable, Gtk.TextView)):
+            action = "text.redo" if redo else "text.undo"
+            focus.activate_action(action, None)
+            return
+        self._undo(redo)
 
     def _guard(self, work):
         try:
@@ -430,7 +477,7 @@ class StudioWindow(Adw.ApplicationWindow):
                 elif source is not self.document:
                     raise ValueError(tr("ubuntu.changedDuringDialog", "Scene changed while the camera dialog was open."))
                 elif operation == "save":
-                    tracks = copy.deepcopy(self.history.tracks)
+                    tracks = [t.clone() for t in self.history.tracks]
                     edit_revision = self._edit_revision
                     self._file_busy = True
                     self._set_loading(tr("camera.saveTitle", "Saving camera animation…"), cancellable=False)
@@ -459,6 +506,9 @@ class StudioWindow(Adw.ApplicationWindow):
                             self.history.tracks.extend(tracks)
                             self.visible.update(t.id for t in tracks)
                             self.editing_id = tracks[0].id if tracks else self.editing_id
+                            if tracks:
+                                self.primary = tracks[0].id
+                                self.selected = {(self.primary, None)}
                             self._camera_edited()
                     existing_ids = [t.id for t in self.history.tracks]
                     self.file_jobs.submit(lambda: import_camera_animation(path, source, existing_ids=existing_ids), imported)
@@ -503,18 +553,29 @@ class StudioWindow(Adw.ApplicationWindow):
     def _open(self, path):
         self._set_playing(False)
         self._set_loading(tr("file.openGSV", "Opening GSV scene…"))
-        self.loader.submit(lambda: SceneDocument(path), self._loaded, lambda doc: doc.close())
+        revision = self.loader.revision + 1
+        def load():
+            document = SceneDocument(path, cancelled=lambda: self.closed or revision != self.loader.revision)
+            try:
+                catalog = build_capture_catalog(document)
+                return document, catalog
+            except BaseException:
+                document.close()
+                raise
+        self.loader.submit(load, self._loaded, lambda value: value[0].close())
 
-    def _loaded(self, document, error):
+    def _loaded(self, value, error):
         self._set_loading(None)
         if error:
             self.error(error)
             return
+        document, self.capture_catalog = value
         self.frames.invalidate()
         self.file_jobs.invalidate()
         self.comparisons.invalidate()
         self._compare_revision += 1
         self._domain_busy = False
+        self._domain_revision += 1
         self._calibrations = {}
         self._inspected_views = {}
         self.image_view.reset()
@@ -602,8 +663,7 @@ class StudioWindow(Adw.ApplicationWindow):
         rows = widget.get_selected_rows()
         identifiers = [r.object_id for r in rows]
         self.primary = self._outline_primary if self._outline_primary in identifiers else identifiers[-1] if identifiers else None
-        if self.primary in {t.id for t in self.history.tracks}:
-            self.editing_id = self.primary
+        self.editing_id = self.primary if self.primary in {t.id for t in self.history.tracks} else None
         self._selection_changed()
 
     def _object_activated(self, widget, row):
@@ -634,13 +694,17 @@ class StudioWindow(Adw.ApplicationWindow):
         self._request_frame(self.target_time)
 
     def _selection_changed(self):
+        editing = self.primary if self.primary in {t.id for t in self.history.tracks} else None
+        if editing != self.editing_id:
+            self.timeline.selected_key = None
+        self.editing_id = editing
         self.viewport.set_selection(self.selected)
         self.viewport.queue_render()
         self._path_signature = None
         self._paths_revision += 1
         self._request_frame(self.target_time)
         self._inspect()
-        self._refresh_camera_editor()
+        self._refresh_camera_editor(force=True)
 
     def _pick(self, object_id, identity, extend=False):
         item = (object_id, int(identity)) if object_id is not None else None
@@ -673,6 +737,8 @@ class StudioWindow(Adw.ApplicationWindow):
             if self.frame is None:
                 return
             indices = np.flatnonzero(self.frame.ids == identity)
+            if hasattr(self.frame, 'element'):
+                indices = [i for i in indices if self.frame.element(str(self.frame.object_ids[i]), identity).valid]
             if self.primary:
                 matching = [i for i in indices if self.frame.object_ids[i] == self.primary]
                 indices = matching or indices
@@ -689,20 +755,27 @@ class StudioWindow(Adw.ApplicationWindow):
             raise ValueError(tr("timeline.invalidTime", "Enter a finite document time."))
         self.target_time = requested_time
         doc, visible, selected = self.document, set(self.visible), set(self.selected)
-        signature = (frozenset(selected), float(self.viewport.path_density), doc.path)
+        signature = (frozenset(selected), frozenset(visible), float(self.viewport.path_density), self._edit_revision, doc.path)
         rebuild = signature != self._path_signature
         density = self.viewport.path_density
         paths_revision = self._paths_revision
+        frame_generation = self.frames.generation
+        authored = copy.deepcopy([t for t in self.history.tracks if (t.id, None) in selected]) if rebuild else []
         def evaluate():
-            frame = doc.evaluate(requested_time, object_ids=[id for id in dict.fromkeys([*doc.visible_ids, *doc.supported_ids]) if id in visible])
+            frame = doc.evaluate(requested_time, object_ids=[id for id in dict.fromkeys([*doc.visible_ids, *doc.supported_ids]) if id in visible], cancelled=lambda: self.closed or doc is not self.document or frame_generation != self.frames.generation)
             paths = None
             if rebuild:
                 paths = []
                 for identifier in {o for o, i in selected}:
                     obj = next((o for o in doc.objects if o["id"] == identifier), None)
-                    if obj and obj["type"] in ("gaussian", "scaffold", "camera"):
+                    if obj and identifier in visible and obj.get("space") == doc.space and (obj.get("clock") == doc.clock or obj["encoding"] == "gsv.gaussian.static") and obj["type"] in ("gaussian", "scaffold", "camera"):
                         ids = None if (identifier, None) in selected else [i for o, i in selected if o == identifier and i is not None]
                         paths.extend(doc.trajectories(identifier, ids=ids, density=density if ids is None else 0, cancelled=lambda: self.closed or doc is not self.document or paths_revision != self._paths_revision))
+                for track in authored:
+                    if track.id in visible and track.space == doc.space and track.clock == doc.clock and len(track.keyframes) > 1:
+                        points = np.stack([k.c2w[:3,3] for k in track.keyframes])
+                        times = np.array([k.time for k in track.keyframes], np.float64)
+                        paths.append(Trajectory(points, times, np.tile([.4,.7,1.], (len(times),1)), None, track.id))
             calibrations = {}
             for camera in doc.cameras:
                 if camera.get("space") != doc.space:
@@ -734,14 +807,15 @@ class StudioWindow(Adw.ApplicationWindow):
                 self.viewport.frame_scene()
                 self._frame_scene = False
             self._update_camera_pose()
+            self._refresh_camera_editor()
             self.timeline.time = actual_time
             self.timeline.queue_draw()
-            if not self.time_entry.has_focus():
+            if not self._entry_editing(self.time_entry):
                 self.time_entry.set_text(f"{actual_time:.17g}")
             index = int(np.clip(np.searchsorted(doc.times, actual_time), 0, len(doc.times)-1))
             self.sample_label.set_text(f"{index+1} / {len(doc.times)}")
             warnings = getattr(frame, "warnings", [])
-            self.status.set_text(tr("ubuntu.frame").format(count=f"{len(frame.ids):,}",time=f"{actual_time:.9g}") + (" · "+"; ".join(warnings) if warnings else ""))
+            self.status.set_text(tr("ubuntu.frame").format(count=f"{getattr(frame,'valid_count',len(frame.ids)):,}",time=f"{actual_time:.9g}") + (" · "+"; ".join(warnings) if warnings else ""))
             self._inspect()
             if self.compare_toggle.get_active():
                 self._request_comparison()
@@ -755,7 +829,7 @@ class StudioWindow(Adw.ApplicationWindow):
         if self.document is None:
             return
         self._set_playing(False)
-        times = self.document.times
+        times = self.timeline.times
         index = int(np.searchsorted(times, self.time, side="right" if direction > 0 else "left"))
         index += 0 if direction > 0 else -1
         if abs(direction) > 1:
@@ -768,7 +842,7 @@ class StudioWindow(Adw.ApplicationWindow):
         self.play_button.set_icon_name("media-playback-pause-symbolic" if playing else "media-playback-start-symbolic")
 
     def toggle_playback(self):
-        if self.document is None or len(self.document.times) < 2:
+        if self.document is None or len(self.timeline.times) < 2:
             return
         if not self.playing:
             try:
@@ -778,8 +852,18 @@ class StudioWindow(Adw.ApplicationWindow):
                 return
         self._set_playing(not self.playing)
 
+    def _preview_range_changed(self):
+        self.timeline.preview_range = None
+        if self.document and self.range_enabled.get_active():
+            try:
+                lower, upper, _ = self._play_bounds()
+                self.timeline.preview_range = (lower, upper)
+            except ValueError as error:
+                self.status.set_text(str(error))
+        self.timeline.queue_draw()
+
     def _play_bounds(self):
-        lower, upper = map(float, (self.document.times[0], self.document.times[-1]))
+        lower, upper = map(float, (self.timeline.times[0], self.timeline.times[-1]))
         if self.range_enabled.get_active():
             a, b = float(self.range_start.get_text()), float(self.range_end.get_text())
             if not (lower <= a < b <= upper):
@@ -840,12 +924,11 @@ class StudioWindow(Adw.ApplicationWindow):
         if index > 0:
             identifier, view, authored = self.camera_entries[index-1]
             self._inspected_views[identifier] = view
-            if authored:
-                self.editing_id = identifier
+            self.editing_id = identifier if authored else None
             self.primary = identifier
-            self._request_frame(self.target_time)
-            self._refresh_camera_editor()
-            self._inspect()
+            self.selected = {(identifier, None)}
+            self.timeline.selected_key = None
+            self._selection_changed()
         else:
             self.viewport.set_camera(None)
 
@@ -897,8 +980,7 @@ class StudioWindow(Adw.ApplicationWindow):
             if (id, v) == (identifier, view):
                 self.primary = id
                 self.selected = {(id, None)}
-                if authored:
-                    self.editing_id = id
+                self.editing_id = id if authored else None
                 self._selection_changed()
                 return
 
@@ -931,7 +1013,7 @@ class StudioWindow(Adw.ApplicationWindow):
             if (track.space, track.clock) != (self.document.space or "world", self.document.clock or "timeline"):
                 raise ValueError(tr("camera.recordDomainMismatch", "Camera and viewport domains differ."))
             k, pose, width, height = self.viewport.get_camera()
-            edited = copy.deepcopy(track)
+            edited = track.clone()
             edited.record(self.time, k, pose, width, height)
             self.history.remember()
             self.history.tracks[self.history.tracks.index(track)] = edited
@@ -939,6 +1021,8 @@ class StudioWindow(Adw.ApplicationWindow):
         self._guard(record)
 
     def _camera_edited(self):
+        self._path_signature = None
+        self._paths_revision += 1
         self._edit_revision += 1
         self.dirty = True
         self._rebuild_objects()
@@ -947,15 +1031,17 @@ class StudioWindow(Adw.ApplicationWindow):
         self._update_camera_pose()
         self._inspect()
         self._update_timeline()
+        self.viewport.set_selection(self.selected)
+        self._request_frame(self.time)
 
     def _update_timeline(self):
         if not self.document:
             return
-        extra = [k.time for t in self.history.tracks if t.clock == (self.document.clock or "timeline") for k in t.keyframes]
+        extra = [k.time for t in self.history.tracks if t.clock == (self.document.clock or "timeline") and t.space == self.document.space for k in t.keyframes]
         self.timeline.times = np.unique(np.concatenate([self.document.times, extra]))
         self.timeline.queue_draw()
 
-    def _refresh_camera_editor(self):
+    def _refresh_camera_editor(self, force=False):
         track = self._track()
         self.timeline.keys = [k.time for k in track.keyframes] if track else []
         self.timeline.queue_draw()
@@ -965,15 +1051,16 @@ class StudioWindow(Adw.ApplicationWindow):
             return
         from gsv.evaluate import matrix_quat
         calibration = track.at(self.time)
-        self.track_name.set_text(track.label)
         index = self.timeline.selected_key
         key = track.keyframes[index] if index is not None and index < len(track.keyframes) else None
-        if key:
-            calibration = track.at(key.time)
-        self.key_time.set_text(f"{key.time:.17g}" if key else "")
-        self.fov.set_text(f"{math.degrees(2*math.atan(track.width/(2*calibration.K[0,0]))):.7g}")
-        self.position.set_text(", ".join(f"{x:.9g}" for x in calibration.c2w[:3, 3]))
-        self.rotation.set_text(", ".join(f"{x:.9g}" for x in matrix_quat(calibration.c2w[:3, :3])))
+        values = [(self.track_name, track.label),
+                  (self.key_time, f"{key.time:.17g}" if key else ""),
+                  (self.fov, f"{math.degrees(2*math.atan(track.width/(2*calibration.K[0,0]))):.7g}"),
+                  (self.position, ", ".join(f"{x:.9g}" for x in calibration.c2w[:3,3])),
+                  (self.rotation, ", ".join(f"{x:.9g}" for x in matrix_quat(calibration.c2w[:3,:3])))]
+        for entry, value in values:
+            if force or not self._entry_editing(entry):
+                entry.set_text(value)
 
     def _select_key(self, index):
         track = self._track()
@@ -987,19 +1074,22 @@ class StudioWindow(Adw.ApplicationWindow):
             track = self._track()
             if track is None:
                 return
-            changed = copy.deepcopy(track)
+            changed = track.clone()
             changed.retime(index, value)
             self.history.remember()
             self.history.tracks[self.history.tracks.index(track)] = changed
             self.timeline.selected_key = next(i for i,k in enumerate(changed.keyframes) if k.time == value)
             self._camera_edited()
+            self._scrub(value)
         self._guard(edit)
 
     def _edit_track(self, operation):
         track = self._track()
         if not track:
             raise ValueError(tr("ubuntu.selectCamera", "Select an authored camera first."))
-        changed = copy.deepcopy(track)
+        if operation in ("pose", "fov") and (track.space, track.clock) != (self.document.space, self.document.clock):
+            raise ValueError(tr("camera.transformDomain"))
+        changed = track.clone()
         if operation == "name":
             name = self.track_name.get_text().strip()
             if not 1 <= len(name) <= 120:
@@ -1039,7 +1129,7 @@ class StudioWindow(Adw.ApplicationWindow):
             index = self.timeline.selected_key
             if track is None or index is None:
                 return
-            changed = copy.deepcopy(track)
+            changed = track.clone()
             changed.remove(index)
             self.history.remember()
             self.history.tracks[self.history.tracks.index(track)] = changed
@@ -1058,8 +1148,11 @@ class StudioWindow(Adw.ApplicationWindow):
 
     def _undo(self, redo):
         if (self.history.redo() if redo else self.history.undo()):
-            if self._track() is None:
-                self.editing_id = self.history.tracks[-1].id if self.history.tracks else None
+            existing = {o["id"] for o in self.document.objects} | {t.id for t in self.history.tracks}
+            self.selected = {(o,i) for o,i in self.selected if o in existing}
+            if self.primary not in existing:
+                self.primary = None
+            self.editing_id = self.primary if self.primary in {t.id for t in self.history.tracks} else None
             self.timeline.selected_key = None
             self._camera_edited()
 
@@ -1083,13 +1176,62 @@ class StudioWindow(Adw.ApplicationWindow):
             observations = self.document.object(self.render_entries[index])["links"].get("observations", [])
         self.observation_entries = [None, *observations]
         self._updating = True
-        self.observation_drop.set_model(Gtk.StringList.new([tr("ubuntu.autoObservation", "Auto observation"), *[self.document.object(id).get("label", id) for id in observations]]))
+        self.observation_drop.set_model(Gtk.StringList.new([tr("ubuntu.autoObservation"), *[self.document.object(id).get("label", id) for id in observations]]))
         self.observation_drop.set_selected(0)
         self._updating = False
-        self._request_comparison()
+        self._rebuild_capture_rows()
+        if self.compare_toggle.get_active():
+            self._activate_capture()
+
+    def _observation_selected(self):
+        if self._updating:
+            return
+        self._rebuild_capture_rows()
+        if self.compare_toggle.get_active():
+            self._activate_capture()
+
+    def _rebuild_capture_rows(self):
+        index = self.render_drop.get_selected()
+        view_id = self.render_entries[index] if index < len(self.render_entries) else None
+        observation = self.observation_entries[min(self.observation_drop.get_selected(), len(self.observation_entries)-1)]
+        self.capture_entries = [entry for entry in self.capture_catalog.get(view_id, [])
+                                if observation is None or entry.observation_id == observation]
+        exact = next((i for i,e in enumerate(self.capture_entries) if e.time == self.time), 0)
+        self._updating = True
+        self.capture_drop.set_model(Gtk.StringList.new([e.label for e in self.capture_entries] or [tr("render.previewAction")]))
+        self.capture_drop.set_selected(exact)
+        self.capture_drop.set_sensitive(bool(self.capture_entries))
+        self._updating = False
+
+    def _capture_selected(self):
+        if not self._updating and self.compare_toggle.get_active():
+            self._activate_capture()
+
+    def _activate_capture(self):
+        index = self.render_drop.get_selected()
+        if self.document is None or not index < len(self.render_entries):
+            self._request_comparison()
+            return
+        view_id = self.render_entries[index]
+        view = self.document.object(view_id)
+        def seek():
+            row = self.capture_drop.get_selected()
+            if row < len(self.capture_entries):
+                self._scrub(self.capture_entries[row].time)
+            else:
+                self._request_comparison()
+        if (view.get("space"), view.get("clock")) != (self.document.space, self.document.clock):
+            self._activate_domain(view_id, seek)
+        else:
+            self._set_playing(False)
+            seek()
 
     def _activate_domain(self, identifier, after=None):
+        self._domain_revision += 1
+        domain_revision = self._domain_revision
         self._domain_busy = True
+        self.editing_id = None
+        self.timeline.selected_key = None
         self._paths_revision += 1
         doc = self.document
         self._set_playing(False)
@@ -1102,7 +1244,7 @@ class StudioWindow(Adw.ApplicationWindow):
             except Exception as exc:
                 result, error = None, exc
             def publish():
-                if self.closed or doc is not self.document:
+                if self.closed or doc is not self.document or domain_revision != self._domain_revision:
                     return False
                 self._domain_busy = False
                 self._set_loading(None)
@@ -1110,7 +1252,8 @@ class StudioWindow(Adw.ApplicationWindow):
                     self.error(error)
                     return False
                 self.visible = set(result) | {o["id"] for o in doc.cameras if o.get("space") == doc.space}
-                self.timeline.times, self.timeline.unit = doc.times, doc.clock_unit
+                self.timeline.unit = doc.clock_unit
+                self._update_timeline()
                 self.timeline.fit()
                 self.target_time = self.time = float(doc.times[0])
                 self._path_signature = None
@@ -1130,7 +1273,7 @@ class StudioWindow(Adw.ApplicationWindow):
         future.add_done_callback(finished)
 
     def _request_comparison(self):
-        if self._updating or not self.document or not self.compare_toggle.get_active():
+        if self._updating or self._domain_busy or not self.document or not self.compare_toggle.get_active():
             return
         index = self.render_drop.get_selected()
         if not 0 <= index < len(self.render_entries):
@@ -1140,13 +1283,21 @@ class StudioWindow(Adw.ApplicationWindow):
         revision = self._compare_revision
         path, view_id, actual_time = self.document.path, self.render_entries[index], self.time
         observation_id = self.observation_entries[min(self.observation_drop.get_selected(), len(self.observation_entries)-1)]
+        row = self.capture_drop.get_selected()
+        matching = next((i for i,e in enumerate(self.capture_entries) if e.time == actual_time and
+                        (row >= len(self.capture_entries) or e.observation_id == self.capture_entries[row].observation_id)), None)
+        if matching is not None:
+            observation_id = self.capture_entries[matching].observation_id
+        self._updating = True
+        self.capture_drop.set_selected(matching if matching is not None else (1 << 32)-1)
+        self._updating = False
         self.image_view.clear()
         self._comparison_result = None
         self.detail_view.comparison(message=tr("ubuntu.rendering", "Rendering calibrated image…"))
         self.status.set_text(tr("ubuntu.rendering", "Rendering calibrated image…"))
         def capture():
             # Captures own their file descriptor, independent of scene replacement.
-            with SceneDocument(path) as source:
+            with SceneDocument(path, cancelled=lambda: self.closed or revision != self._compare_revision) as source:
                 return compare_view(source, view_id, actual_time, observation_id=observation_id, cancelled=lambda: self.closed or revision != self._compare_revision)
         def completed(result, error):
             if revision != self._compare_revision:
@@ -1175,14 +1326,16 @@ class StudioWindow(Adw.ApplicationWindow):
             self.performance_label.set_text("")
             self._set_playing(False)
             self.stack.set_visible_child_name("comparison")
-            self._request_comparison()
+            self._rebuild_capture_rows()
+            self._activate_capture()
         else:
             self.stack.set_visible_child_name("scene" if self.document else "empty")
             self.image_view.clear()
             self._inspect()
 
     def _render_stats(self, stats):
-        if not self.compare_toggle.get_active():
+        if not self.compare_toggle.get_active() and time.monotonic() - self._last_stats_update >= .25:
+            self._last_stats_update = time.monotonic()
             self.performance_label.set_text(f"CPU {stats['cpu_submission_ms']:.1f} ms · {stats['render_width']} × {stats['render_height']}")
             self.performance_label.set_tooltip_text(tr("ubuntu.submissionTiming", "CPU frame submission time; GPU completion and display frame rate are not measured."))
 
