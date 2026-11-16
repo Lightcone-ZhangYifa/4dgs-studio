@@ -249,6 +249,10 @@ def _drag(desktop, start, end, *, cancel=False, middle=False, expected_key_time=
         for step in range(1, 7):
             _move(desktop, node, start + (end-start)*step/6, .72 if not middle else .42)
         if cancel:
+            # Alt only bypasses pointer snapping. Release it before Escape:
+            # GNOME reserves Alt+Escape for window switching.
+            if alt:
+                _key(desktop, _ALT, False); alt = False
             _tap(desktop, _ESCAPE)
         _button(desktop, button, False); down = False
         completed = True
@@ -257,6 +261,8 @@ def _drag(desktop, start, end, *, cancel=False, middle=False, expected_key_time=
             # An interrupted key drag must be canceled before button release,
             # which would otherwise commit its visible ghost keyframe.
             if not middle and _focused(node):
+                if alt:
+                    _key(desktop, _ALT, False); alt = False
                 _tap(desktop, _ESCAPE)
             _button(desktop, button, False)
         if alt:
