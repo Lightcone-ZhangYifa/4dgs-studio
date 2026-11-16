@@ -1,0 +1,147 @@
+{
+  "format": "gsv.production-package-validation-summary/1",
+  "passed": true,
+  "source_commit": "e1b6f498b95d6c0ef3a9d4f7a6573eb71411acf9",
+  "source_commit_unchanged": true,
+  "clean_checkout_before_and_after": true,
+  "package": {
+    "bytes": 228296,
+    "sha256": "6e6cfb70ca103ff75144525f7ba1e8e3de5b98c559fc96b8ca7ab86488998164",
+    "source_modules_identical": true,
+    "retained_reports_identical": true
+  },
+  "scope": "Detached Debian payload in actual GNOME windows, 32 application unit tests per backend; chooser completion mocked. Not a system-wide dpkg installation or a repeat of all production portal workflows.",
+  "interpreter_and_dependencies": "Existing Python 3.12 virtual environment with Ubuntu system gi, an extracted Ubuntu gi-cairo bridge and Ubuntu PyOpenGL 3.1.7. App and SDK imports verified inside the detached payload, with no source-tree shadowing.",
+  "host_dependency_preflight": {
+    "system_python_attempt_passed": false,
+    "reason": "Host /usr/bin/python3 lacks declared python3-gi-cairo foreign bridge; failed during import before any test window. Original failure report retained locally. Successful rerun supplied the declared dependency through the already validated environment.",
+    "failed_report_sha256": "4904dbd496523de820a704208feda02da84ba2c477a4292b294c73bcbf431c73"
+  },
+  "raw_success_report_sha256": "d8aaed37a994c09ace29745c83e9e974d8b67ed4822643662510080cfbce1c60",
+  "runtime_code_sha256": {
+    "gs_studio/__init__.py": "7ae7486d3c96022fb219c133b1030d691d72aed0bc77d7019c5a4d6c2ceab63e",
+    "gs_studio/__main__.py": "c30c17c2d60a6cf70d5680cd218bc0f5632ba0b042e07b9bab9e7488c4945021",
+    "gs_studio/application.py": "3ab217ac12dfb6fc5c290d8931c0d3923670a6e23e394929a16b1294aa3b1a07",
+    "gs_studio/camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967",
+    "gs_studio/capture_catalog.py": "c71805e7b6ad73fb06c70a9ebef09da2fa736c9dfa96091f10672ed67671cc57",
+    "gs_studio/comparison.py": "75152ab8f808d9492cf22780ca2b840dc0827721928fde4c40490d9c5c667a1a",
+    "gs_studio/gl_renderer.py": "86d69b376f9fdaaa13b2689d57fe08eb476f532d350dac7d83b9a35673d208cd",
+    "gs_studio/gpu_sort.py": "1e336b92fd7a4dc728398a32747be5a46cdff522f43b5c7f3bcf91d51036cf10",
+    "gs_studio/gpu_visibility.py": "bae39d7e8bbdcee72de792210454302d026c967513f0622c4f76abfc4fbf5ffe",
+    "gs_studio/i18n.py": "7b12218879de0e9fda662ae0f64f9bb27be7556776b6a89fafdcf4fdb40b06cd",
+    "gs_studio/image_view.py": "4acf8f7cc3254d0f2911f843ddb07f4205f9324670f871c75d81626b156dc47f",
+    "gs_studio/inspector.py": "d809370287dd82b97088c09c19f7dac4c3c2ae71bdc9a99b3016a2a3c06e18ad",
+    "gs_studio/jobs.py": "b2814538d702029a21316bc65696e1ab3d0fa65ed5954d036e1e6627425b2180",
+    "gs_studio/model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+    "gs_studio/navigation.py": "903805f8472c765e0d6a2577d96908ee08fafc00f4b6ac417656238bf6007f99",
+    "gs_studio/outliner.py": "c22b9888064a90792457fc9f1f5b958997f265c487905b55ad9eb6ab2c4b9c3c",
+    "gs_studio/snapshots.py": "fddaf9e47491c2eea1b59de2975a741ec6daff80b184fdf58b7cd391107656e0",
+    "gs_studio/timeline.py": "9c9487d889d33d7dc9281367b58aa64ee1d34ee7bd59b444595d5d64abed38d7",
+    "gs_studio/viewport.py": "2eb8cfa2c0ce8fcb0cab40c9f046f3777dddb8809ceb6cf9d907c4a01f829364",
+    "gsv/__init__.py": "a856d55e10b7be9631710b45406f414437a15d25550b08e4df72a0096334aca2",
+    "gsv/camera_render.py": "ade3a100c007f71d45de937d9ce55a1c348664c8099021ecf27714dd93ee3b37",
+    "gsv/cli.py": "e40c9e4fb3049deb972a2bd39099853d78ad86ef031c95226c1f9c07e6069922",
+    "gsv/codecs.py": "f18e710f398849d4a16b75aa4330e5f43b4a41a7e6d1174a09550a5567b35079",
+    "gsv/container.py": "e55d446a868a3e9830f0696f9b4cbad7d4ecc2beec0dcbaa07f8a6b8c1e4c573",
+    "gsv/evaluate.py": "1652ef5f467b64cb984d48630fdca1effbabce9e8448f685eb32e7799210b88d",
+    "gsv/metrics.py": "8c62d29608aec4ede9c5af82ebec91b117d788658c6a526c03386d9084c3c1a2"
+  },
+  "window_regressions": [
+    {
+      "backend": "x11",
+      "passed": true,
+      "tests_run": 32,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 42.72711417602841,
+      "actual_graphics": [
+        {
+          "display_backend": "x11",
+          "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+          "vendor": "NVIDIA Corporation",
+          "version": "4.6.0 NVIDIA 620.70.06"
+        }
+      ],
+      "runtime_versions": {
+        "version": "2.3.0",
+        "python": "3.12.3",
+        "PyOpenGL": "3.1.7",
+        "numpy": "1.26.4",
+        "Gtk": [
+          4,
+          14,
+          5
+        ],
+        "Adw": [
+          1,
+          5,
+          0
+        ]
+      },
+      "payload_origins_verified": true,
+      "imported_runtime_modules": 24,
+      "diagnostics": {
+        "critical_entries": 0,
+        "python_traceback_entries": 0,
+        "warning_free_claim": false
+      },
+      "log_sha256": "a1fa8b42a7078595fd1633ed15fbb94773e9ec5cdc46d11051df65fe0e27d365"
+    },
+    {
+      "backend": "wayland",
+      "passed": true,
+      "tests_run": 32,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 15.593664715997875,
+      "actual_graphics": [
+        {
+          "display_backend": "wayland",
+          "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+          "vendor": "Mesa",
+          "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4"
+        }
+      ],
+      "runtime_versions": {
+        "version": "2.3.0",
+        "python": "3.12.3",
+        "PyOpenGL": "3.1.7",
+        "numpy": "1.26.4",
+        "Gtk": [
+          4,
+          14,
+          5
+        ],
+        "Adw": [
+          1,
+          5,
+          0
+        ]
+      },
+      "payload_origins_verified": true,
+      "imported_runtime_modules": 24,
+      "diagnostics": {
+        "critical_entries": 0,
+        "python_traceback_entries": 0,
+        "warning_free_claim": false
+      },
+      "log_sha256": "f34c0f717cd0ac72a041d0470172667d412a89a6702c5d38b9d0e3bfed3cf67c"
+    }
+  ],
+  "input_session_created": false,
+  "monitor_created_by_package_runner": false,
+  "monitors_during_package_run": [
+    1,
+    1
+  ],
+  "final_session_cleanup": {
+    "initial_logical_monitors": 0,
+    "temporary_output": "Controlled native Mutter/PipeWire 1920x1080 output",
+    "final_logical_monitors": 0,
+    "remaining_studio_owner": null,
+    "own_keeper_stopped": true
+  },
+  "artifact_note": "This report was created after testing and is external to the exact tested package; the package already contains the other seven production validation summaries."
+}
