@@ -310,6 +310,10 @@ class Desktop:
         try:
             wait_for(lambda: self.portal(title) is None, 'native open completion', 5)
             self.debug_portal = None
+            # The portal unmaps before Mutter completes its modal-close
+            # transition. Let the compositor return input to the owned window
+            # before a subsequent native click (especially on scaled Xwayland).
+            pump(.8)
         except RuntimeError as error:
             raise RuntimeError(f'{error}; location={text(entry)!r}; app_status={self.status()!r}') from error
 
@@ -352,7 +356,6 @@ class Desktop:
                           and n.get_attributes().get('placeholder-text') == 'TIME')
         if entry is None:
             raise RuntimeError('The native timeline entry is missing')
-        self.click(entry)
         # GTK 4's inner GtkText accessibility activate action does not forward
         # GtkEntry::activate on this desktop version. Use actual keyboard focus
         # traversal and Return, then verify the committed source timestamp.
@@ -382,6 +385,7 @@ class Desktop:
         action(self.button('Save', dialog))
         wait_for(lambda: path.is_file(), 'native save: ' + path.name, 30)
         wait_for(lambda: self.portal(title) is None, 'native save chooser dismissal')
+        pump(.8)
 
     def close(self):
         if self.pid and self.owner_pid() == self.pid and self.allow_close:
@@ -574,12 +578,22 @@ def run(args):
         wait_for(lambda: desktop.current_time() == 0, 'first source sample')
         desktop.window_action('create-camera')
         desktop.allow_discard = True
+        def camera_target(stage):
+            entry = desktop.find(lambda n: n.get_name() == 'Camera name' and 'EditableText' in n.get_interfaces()
+                                 and n.get_state_set().contains(Atspi.StateType.SHOWING))
+            value = text(entry) if entry is not None else None
+            report.setdefault('camera_target_trace', []).append({'stage':stage,'camera_name':value})
+            if value != 'Camera 1':
+                raise AssertionError('The authored camera editing target changed during '+stage+': '+str(value))
+        camera_target('camera creation')
         test_orbit = bool(desktop.pointer_stream) and (args.backend == 'x11' or args.test_orbit)
         report['orbit_input_tested'] = False
         if test_orbit:
             desktop.orbit(args.backend)
             report['pointer_target'] = desktop.pointer_target
+            camera_target('native viewport orbit')
         desktop.seek(.5)
+        camera_target('native TIME entry commit')
         desktop.window_action('record')
         camera = output / 'authored-cameras.gsv'
         desktop.native_save('save', 'Save Camera Animation', camera)
