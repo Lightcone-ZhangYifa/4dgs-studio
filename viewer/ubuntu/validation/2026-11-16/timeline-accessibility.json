@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "pid": 2411036,
+  "interfaces": [
+    "Accessible",
+    "Action",
+    "Component",
+    "Value"
+  ],
+  "minimum": -2.0,
+  "maximum": 3.5,
+  "callbacks": [
+    1.25,
+    -2.0,
+    3.5
+  ],
+  "current": 3.5,
+  "input_backend_created": false,
+  "synthetic_keyboard_or_pointer": false
+}

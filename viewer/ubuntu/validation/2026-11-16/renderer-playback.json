@@ -1,0 +1,59 @@
+{
+  "vendor": "NVIDIA Corporation",
+  "display_backend": "x11",
+  "context_type": "GdkX11GLContextGLX",
+  "operation": "playback",
+  "requested_sort_mode": "auto",
+  "gpu_sort_available": true,
+  "gpu_sort_reason": "GPU stable Float32 depth radix sort",
+  "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+  "version": "4.6.0 NVIDIA 620.70.06",
+  "measurements": [
+    {
+      "pick_median_ms": null,
+      "pick_p95_ms": null,
+      "splats": 100000,
+      "first_upload": {
+        "submission_ms": 38.96879800595343,
+        "completed_ms": 39.462449989514425,
+        "sort_submission_ms": 12.317619984969497,
+        "sort_reused": false
+      },
+      "orbit_median_submission_ms": 0.8353930024895817,
+      "orbit_median_completed_ms": 1.1471589969005436,
+      "p95_completed_ms": 4.1245540051022545,
+      "median_sort_submission_ms": 0.547928997548297,
+      "sort_backend": "gpu-radix",
+      "sort_reason": "GPU stable Float32 depth radix sort",
+      "reused_order_frames": 0,
+      "geometry_bytes": 12800000,
+      "resident_order_bytes": 400000,
+      "orbit_index_upload_bytes": 0
+    },
+    {
+      "pick_median_ms": null,
+      "pick_p95_ms": null,
+      "splats": 1000000,
+      "first_upload": {
+        "submission_ms": 195.3548530000262,
+        "completed_ms": 202.8968700033147,
+        "sort_submission_ms": 1.513216004241258,
+        "sort_reused": false
+      },
+      "orbit_median_submission_ms": 0.7775480044074357,
+      "orbit_median_completed_ms": 7.0141530013643205,
+      "p95_completed_ms": 7.079471499309875,
+      "median_sort_submission_ms": 0.5016770155634731,
+      "sort_backend": "gpu-radix",
+      "sort_reason": "GPU stable Float32 depth radix sort",
+      "reused_order_frames": 0,
+      "geometry_bytes": 128000000,
+      "resident_order_bytes": 4000000,
+      "orbit_index_upload_bytes": 0
+    }
+  ],
+  "resolution": [
+    1280,
+    720
+  ]
+}

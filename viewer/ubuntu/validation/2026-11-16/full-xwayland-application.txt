@@ -1,0 +1,8 @@
+
+(__main__.py:2491375): Gtk-CRITICAL **: 06:27:07.889: gtk_window_get_focus: assertion 'GTK_IS_WINDOW (window)' failed
+
+(__main__.py:2491375): Gtk-CRITICAL **: 06:27:29.277: gtk_window_get_focus: assertion 'GTK_IS_WINDOW (window)' failed
+
+(__main__.py:2491375): Gdk-CRITICAL **: 06:28:51.350: gdk_monitor_get_geometry: assertion 'GDK_IS_MONITOR (monitor)' failed
+
+(__main__.py:2491375): Gdk-CRITICAL **: 06:29:06.322: gdk_monitor_get_geometry: assertion 'GDK_IS_MONITOR (monitor)' failed

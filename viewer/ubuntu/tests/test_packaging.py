@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import re
 import shutil
 import subprocess
 import sys
@@ -44,8 +45,12 @@ class DebianPackageTests(unittest.TestCase):
         self.assertTrue((app / 'Resources/en.lproj/Localizable.strings').is_file())
         self.assertTrue((app / 'Resources/zh-Hans.lproj/Localizable.strings').is_file())
         doc = self.stage / 'usr/share/doc/4dgs-studio'
-        for filename in ('README.md', 'PARITY.md', 'copyright'):
+        for filename in ('README.md', 'PARITY.md', 'DESKTOP_VALIDATION.md', 'FEATURE_AUDIT.md', 'copyright'):
             self.assertTrue((doc / filename).is_file())
+        reports = re.findall(r'\]\((validation/[^)]+)\)', (doc / 'DESKTOP_VALIDATION.md').read_text())
+        self.assertTrue(reports, 'The validation guide should link its retained reports')
+        for relative in reports:
+            self.assertTrue((doc / relative).is_file(), 'Packaged validation link is broken: '+relative)
         names = [str(p.relative_to(self.stage)) for p in self.stage.rglob('*')]
         self.assertFalse(any('__pycache__' in name or '.venv' in name or name.endswith('.gsv') for name in names))
         self.assertFalse(any('/tests/' in name or '/.git/' in name for name in names))

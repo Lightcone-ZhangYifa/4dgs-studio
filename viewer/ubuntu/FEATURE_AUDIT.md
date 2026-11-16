@@ -16,34 +16,41 @@ The reviewed sources include `viewer/native/GSVDocument.swift`,
 points were cross-checked against `App.swift` and `StudioActions.swift`. Ubuntu
 paths below are relative to `viewer/ubuntu`.
 
-**Implemented** means the entry point and behavior exist in the current source.
-**Automated** means an assertion exists in the named test; it does not imply
-physical input delivery. The recorded complete Ubuntu run executed 238 tests
-successfully, with two benchmark tests skipped; the SDK suite passed 78 tests.
-Named tests below are individual assertions within that evidence, not native
-input acceptance. GTK tests use real allocations under Xvfb. A separate working-
-tree run at source `8d54a00` also passed all 31 application tests under actual GNOME
-Xwayland/RTX 4090 and Wayland/llvmpipe. Those application tests substitute file
-chooser completion with a selected path, including when run on real GNOME.
-They do not validate native portal keyboard/mouse delivery. The existing GNOME
-display remained present throughout, with logical-monitor count 1→1; no desktop
-input was injected by this regression harness.
+**Implemented** means the current source contains a reachable entry and
+behavior. **Automated** means the named assertion ran; it does not by itself
+establish native device delivery. The recorded suite ran **245 tests: 243 passed,
+two benchmark tests skipped**, and the Python SDK suite passed **78 tests**.
+Source `ec35705` freezes runtime changes; `6583689` is the final input-driver
+revision. The 80-action mapping is a review-completeness guard, not runtime
+proof of every mapped action.
 
-**Desktop ID** refers to `steps` or `full_checks[].id` in the JSON report from
-[tools/test_desktop_session.py](tools/test_desktop_session.py) and
-[tools/desktop_parity.py](tools/desktop_parity.py). The latter runs with `--full`.
-This document records the available checks, **not their execution status**. A
-current actual GNOME report with `passed: true` is required before marking a
-desktop row accepted. **The expanded current-source `--full` workflow has not
-completed acceptance.** Clean `599ca1c` basic portal results remain historical
-evidence with their recorded source and scope in [DESKTOP_VALIDATION.md](DESKTOP_VALIDATION.md).
-Newer working-tree EIS runs passed five parity groups, three comparison groups
-and three lifecycle groups. The last preferences check stopped on a runner
-ComboRow name/value mismatch; the tool is corrected, but no complete final
-clean-source `--full` result has yet superseded that partial evidence.
-These scripts use the normal application, AT-SPI actions,
-native dialogs and exported artifacts; they reject Xvfb. Rows marked “uncovered”
-still need a dedicated desktop gesture or assertion.
+**Desktop ID** means the exact ID and group in a retained runner report. Read
+[DESKTOP_VALIDATION.md](DESKTOP_VALIDATION.md#final-report-status) for final status
+and provenance. A final row is accepted only after `passed: true`, the complete
+requested groups, a clean source tree and source-integrity/cleanup evidence are
+verified. Clean `6583689` Wayland full03 and Xwayland full33 reports each passed
+eight basic steps and 24 extended checks: eight parity, six timeline, three
+navigation, three comparison and four lifecycle. Both preserved source hashes
+and monitor count 1→1, without cleanup errors. Actual renderers were Mesa
+llvmpipe OpenGL 4.5 on Wayland and NVIDIA RTX 4090 OpenGL 4.6 on Xwayland.
+The extracted Debian payload passed 31 actual-window application tests on each
+backend, with chooser completion mocked. A separate fresh packaged Wayland
+process loaded a `zh-Hans` preference fixture over `LANGUAGE=en_US`, exposed
+Chinese inspector tabs and saved a native-portal workspace PNG. That restart
+check used no keyboard/pointer injection and does not establish all 24 checks
+in Chinese; native GUI preference writes are covered separately by lifecycle IDs.
+Complete-run application logs retain two GTK critical focus assertions per
+backend, plus two GDK critical monitor-geometry assertions on Xwayland; neither
+contained a Python traceback. Their origin remains unconfirmed. Passing checks
+and artifact hashes do not establish a warning-free runtime.
+
+Earlier real GNOME application regressions passed 31/31 per backend at
+`8d54a00`, with chooser completion mocked. Historical clean `599ca1c` basic
+native-dialog reports are linked separately. Current focused evidence additionally
+includes seven Range/timeline tests and a real AT-SPI Value probe, fourteen
+snapshot tests plus a real 3288×2084 backing-scale workspace export, and the
+inspector minimum-width test/Wayland probe. These checks do not establish
+physical touchpad or macOS hardware behavior.
 
 Test names in the tables are in `tests/`. Method names identify production code,
 not test-only application interfaces.
@@ -56,7 +63,7 @@ not test-only application interfaces.
 | `StreamingScene`, `CompositeScene`: active source cohort, peers, complete identity table | `model.SceneDocument` selects compatible source domains/display caches without double rendering; CPU and prepared frames retain source-count/layout metadata and all-time framing bounds | Domain/cache tests; `test_prepared_validity_preserves_inactive_identities_at_sample_boundaries`, `test_scaffold_glyphs_and_edges_obey_source_validity` | Real scene/cohort switching at scale requires application measurements |
 | `WorkspaceModels`, Outliner: canonical categories, multi-view rigs, visibility and mixed selection | `outliner.SceneOutliner` is a direct ScrolledWindow/ListView with TreeListModel, TreeExpander and MultiSelection; seven counted groups, only multi-view camera children; rig/view membership remains exact | `test_outliner` covers grouping, nonselectable categories, Ctrl membership, search/collapse state, keyboard expansion, visibility and 2,000-object virtualization | Current full desktop hierarchy/accessibility traversal is not yet accepted |
 | `StudioSelection`, `StudioActions`: viewing and selection are independent | The View camera dropdown changes `_viewed_entry`, not `selected`, `primary` or the authored editing target. Outliner/viewport selection determines inspection and editing; source viewing can be recorded into an already selected authored camera | `test_application.test_camera_view_preserves_selection_and_rejects_a_foreign_domain`, `test_rig_view_inspection_does_not_switch_viewing_camera`, `test_source_and_geometry_selections_cannot_edit_previous_user_camera` | Latest view-versus-selection assertions are automated; earlier basic camera workflows do not establish this complete current semantics |
-| `StudioInspector`: Selection / Viewport / Document and raw source values | `inspector.document` displays coordinates, clock mappings/units and storage; `update(elements=...)` inspects inactive/foreign-domain identities without activating them, preserves raw RGB and distinguishes scaffold glyph styling | Document/inactive/scaffold model tests; `test_model.test_playback_updates_values_in_place_without_rebuilding_accessible_rows` | Full current inspector interaction and screen-reader traversal remain pending |
+| `StudioInspector`: Selection / Viewport / Document and raw source values | `inspector.document` displays coordinates, clock mappings/units and storage; `update(elements=...)` inspects inactive/foreign-domain identities without activating them, preserves raw RGB and distinguishes scaffold glyph styling | Document/inactive/scaffold model tests; `test_model.test_playback_updates_values_in_place_without_rebuilding_accessible_rows` | `selection-viewport-document-inspector` passed in both native desktop reports; general screen-reader traversal remains untested |
 | `Shaders.metal.projectGaussians`: visible/total statistics | `gpu_visibility` reuses the render projection and asynchronously counts eligible Gaussian bounding boxes at at most 10 Hz. Source/cohort changes reject old epochs; empty geometry is exactly zero; query failure displays unavailable, not active count | All `test_gpu_visibility` cases: baseline GL3.3, ready-only reads, bounded queue, clipping, opacity/scale, mixed weights, epochs, empty/inactive and failure recovery | A sampled count has age/source-time metadata; it is not an occlusion/pixel count or desktop presentation FPS |
 | `GSVCameraWriter`, authored inspection: large key tracks | `CameraTrack.times` caches immutable Float64 times; steady seek is logarithmic. Inspector shows a count, retaining every key in cached raw JSON; imports build one validated list, not repeatedly sorted prefixes | Large-seek/cache, stable-Inspector and large-import/invalid-middle/cancellation tests in `test_model` | CPU scaling measurements below; 100,000-key native portal import/playback is not yet a desktop acceptance result |
 
@@ -64,12 +71,12 @@ not test-only application interfaces.
 
 | macOS source and user operation | Ubuntu entry and behavior | Automated assertions | Desktop ID / remaining evidence |
 | --- | --- | --- | --- |
-| `App`, `StudioActions`: Open Scene; cancel loading; failed or superseded open | File menu/open button; `application.open_path`, asynchronous validated read-only `SceneDocument`; cancellation keeps the accepted document | `test_application.test_cancelled_load_disposes_then_replacement_uses_new_scene`, `test_failed_open_keeps_document_and_close_cancels_capture` | `native-open-dialog`; cancel/failure/replacement interactions uncovered |
+| `App`, `StudioActions`: Open Scene; cancel loading; failed or superseded open | File menu/open button; `application.open_path`, asynchronous validated read-only `SceneDocument`; cancellation keeps the accepted document | `test_application.test_cancelled_load_disposes_then_replacement_uses_new_scene`, `test_failed_open_keeps_document_and_close_cancels_capture` | `native-open-dialog`, `native-open-cancel-preserves-source-time-and-camera` and `corrupt-native-open-retains-accepted-source-and-camera`: Wayland and Xwayland passed; superseded-load cancellation remains automated-only |
 | `StudioActions`: object selection and native-time playback | Outliner and viewport callbacks; first/previous/next/last, play/pause and Time field; source Float64 times retained | `test_application.test_scene_selection_playback_camera_animation_and_comparison`, `test_static_source_transport_includes_authored_camera_duration` | `outliner-field-selection-and-path-request`, `play-pause`, `all-sample-transport-commands` |
-| `StudioInspector`: Selection / Viewport / Document pages | Three native notebook pages; contextual selection controls and document/domain rows | `test_application.test_inspector_context_key_selector_and_comparison_controls` | `selection-viewport-document-inspector` |
+| `StudioInspector`: Selection / Viewport / Document pages | Three native notebook pages; contextual selection controls and document/domain rows | `test_application.test_inspector_context_key_selector_and_comparison_controls` | `selection-viewport-document-inspector`: Wayland and Xwayland full reports passed |
 | `StudioInspector`: exact identity, mixed selection and primary member; Copy attributes | Exact signed-ID entry, native primary-member dropdown, owner-qualified identity; clipboard action | `test_application.test_mixed_primary_member_keeps_duplicate_ids_bound_to_owners`, `test_camera_control_toggle_keeps_other_selection_primary`; model int64 test | `exact-int64-inspection-and-copy`; mixed-primary switching uncovered |
-| `App`, `StudioActions`: Frame scene/selection, Top/Front/Right/Isometric, previous/next view | View menu and viewport controls; navigation history independent of camera edit history | `test_viewport.test_presets_are_proper_world_up_rotations_and_preserve_orbit`, `test_center_selection_preset_and_free_view_preserve_required_state`, `test_history_restores_up_axis_and_ignores_inactive_focus_loss` | `all-presets-frame-and-view-history` |
-| `App`: sidebar, inspector, fullscreen and navigation guide | Workbench menu actions and normal GTK window state | No dedicated assertion for the complete toggle/help sequence | `panels-fullscreen-navigation-help` |
+| `App`, `StudioActions`: Frame scene/selection, Top/Front/Right/Isometric, previous/next view | View menu and viewport controls; navigation history independent of camera edit history | `test_viewport.test_presets_are_proper_world_up_rotations_and_preserve_orbit`, `test_center_selection_preset_and_free_view_preserve_required_state`, `test_history_restores_up_axis_and_ignores_inactive_focus_loss` | `all-presets-frame-and-view-history`, `physical-1-matches-menu-front`, `physical-3-matches-menu-right` and `physical-7-matches-menu-top`: Wayland and Xwayland full reports passed |
+| `App`: sidebar, inspector, fullscreen and navigation guide | Workbench menu actions and normal GTK window state | No dedicated assertion for the complete toggle/help sequence | `panels-fullscreen-navigation-help`: Wayland and Xwayland full reports passed |
 | `App`: native text Undo/Redo versus camera Undo/Redo | Focused GTK text history receives ordinary Ctrl-Z; camera history has dedicated actions; Home remains local | `test_application.test_native_text_undo_preserves_camera_and_creation_undo_clears_selection` | Camera history is included in `native-camera-undo-redo-delete-import-roundtrip`; focused text history uncovered |
 | `StudioActions`, camera inspector: create, record, rename, transform/FOV, select/retime/delete key, delete camera, import/export | Camera menu and contextual Selection inspector; Enter/Apply commit fields, separate authored tracks, camera-only export; recorded keys capture the current interactive near clip | `test_application.test_scene_selection_playback_camera_animation_and_comparison`, `test_authored_paths_refresh_with_keys_and_editor_preserves_focused_text`, `test_apply_camera_field_is_equivalent_to_enter_and_can_be_undone`, `test_authored_keys_capture_the_current_interactive_near_clip`; model roundtrip tests | `two-key-camera-authoring-and-native-save`, `native-camera-undo-redo-delete-import-roundtrip`, `camera-name-transform-fov-key-choice-retime-delete-undo` |
 | `StudioActions`: asynchronous accepted saves survive later work | `jobs.CommandJobs` serializes accepted writes; source replacement invalidates UI callbacks, not chosen writes | `test_jobs.test_accepted_writes_survive_source_replacement_and_new_command`, `test_close_drains_every_accepted_command_without_gtk_callbacks` | Source SHA256 retained by desktop runner; concurrent source replacement during save uncovered |
@@ -94,14 +101,19 @@ and EIS acceptance remains separately scoped below.
 
 ## Timeline and transport
 
+The timeline is a GTK AccessibleRange with a native AT-SPI Value interface.
+Seven timeline/range tests and an actual GNOME AT-SPI probe verify finite native
+values, bounds, exact unsnapped setting and the single-sample case. This is
+separate from EIS pointer/wheel/key check IDs below.
+
 | macOS source and user operation | Ubuntu entry and behavior | Automated assertions | Desktop ID / remaining evidence |
 | --- | --- | --- | --- |
-| `StudioTimeline`: scrub, native sample snap; Option bypass | `timeline.Timeline`, Snap toggle; Alt temporarily bypasses snapping, without changing preference; gutter labels do not seek | `test_inspection_controls.test_alt_scrub_temporarily_bypasses_snap_without_changing_preference`, `test_label_gutter_does_not_seek_and_key_can_retime_beyond_source_end` | Time entry checked by `all-sample-transport-commands`; physical drag/Alt delivery uncovered |
-| `StudioTimeline`: vertical scroll/pinch zoom; horizontal/Shift scroll or middle drag pan | Pointer-anchored scroll/pinch zoom, horizontal/Shift pan, middle-drag pan; source timestamps unchanged | `test_timeline_scroll_and_pinch_keep_pointer_time_fixed`, `test_horizontal_and_shift_scroll_pan_without_changing_time_scale` in `test_inspection_controls` | Physical wheel, touchpad and middle-drag timeline gestures uncovered |
-| `StudioTimeline`: select and drag a camera key; Escape/focus loss cancel | Key lane, selected-key highlight and ghost; commits only a completed drag, can retime beyond source endpoints; source/key replacement cancels stale gesture | `test_inspection_controls.test_escape_cancels_drag_without_committing_key_retime`, `test_changed_camera_keys_or_focus_loss_cancel_the_old_drag`, `test_label_gutter_does_not_seek_and_key_can_retime_beyond_source_end` | Retime text action checked by `camera-name-transform-fov-key-choice-retime-delete-undo`; physical key drag/cancellation uncovered |
-| `StudioTimeline`: Home fit, Left/Right samples; playback shortcut | Focusable accessible timeline; Home fits; arrows step native times; Space invokes transport | `test_inspection_controls.test_timeline_keyboard_steps_native_samples_home_fits_and_space_plays` | Menu sample commands checked; timeline-focused keys uncovered |
+| `StudioTimeline`: scrub, native sample snap; Option bypass | `timeline.Timeline`, Snap toggle; Alt temporarily bypasses snapping, without changing preference; gutter labels do not seek | `test_inspection_controls.test_alt_scrub_temporarily_bypasses_snap_without_changing_preference`, `test_label_gutter_does_not_seek_and_key_can_retime_beyond_source_end` | `all-sample-transport-commands` and `physical-scrub-near-tick-snap-and-alt-bypass`: Wayland and Xwayland full EIS reports passed; physical touchpad untested |
+| `StudioTimeline`: vertical scroll/pinch zoom; horizontal/Shift scroll or middle drag pan | Pointer-anchored scroll/pinch zoom, horizontal/Shift pan, middle-drag pan; source timestamps unchanged | `test_timeline_scroll_and_pinch_keep_pointer_time_fixed`, `test_horizontal_and_shift_scroll_pan_without_changing_time_scale` in `test_inspection_controls` | `physical-wheel-zoom-shift-wheel-and-middle-pan-home-fit`: Wayland and Xwayland full EIS reports passed; physical touchpad remains untested |
+| `StudioTimeline`: select and drag a camera key; Escape/focus loss cancel | Key lane, selected-key highlight and ghost; commits only a completed drag, can retime beyond source endpoints; source/key replacement cancels stale gesture | `test_inspection_controls.test_escape_cancels_drag_without_committing_key_retime`, `test_changed_camera_keys_or_focus_loss_cancel_the_old_drag`, `test_label_gutter_does_not_seek_and_key_can_retime_beyond_source_end` | `selected-key-physical-drag-escape-cancel` and `selected-key-physical-retime-and-native-undo`: Wayland and Xwayland full EIS reports passed |
+| `StudioTimeline`: Home fit, Left/Right samples; playback shortcut | Focusable accessible timeline; Home fits; arrows step native times; Space invokes transport | `test_inspection_controls.test_timeline_keyboard_steps_native_samples_home_fits_and_space_plays` | `focused-home-left-right-space-keyboard`: Wayland and Xwayland full EIS reports passed |
 | `StudioTimeline`: automatic extent, named key lane and native units | New key extents auto-fit until user pans/zooms; selected camera label shown; second/frame/custom units and Float64 clock math retained | `test_inspection_controls.test_new_authored_extent_autofits_until_user_changes_timeline_window`; all four `test_timeline` extreme-clock tests; `test_application.test_empty_source_import_retains_frame_clock_and_rejects_session_conflict` | Normal second clock covered by runner; extreme/frame clocks and auto-fit uncovered |
-| `StudioActions`: preview range, loop, speed and preview rate | In/Out fields, explicit enable, loop toggle, speed dropdown and rate field; edits commit on Enter, independent of capture metadata | `test_inspection_controls.test_preview_range_shades_only_its_native_time_interval`, `test_application.test_preview_rate_and_range_commit_only_after_enter` | `preview-range-rate-speed-loop` |
+| `StudioActions`: preview range, loop, speed and preview rate | In/Out fields, explicit enable, loop toggle, speed dropdown and rate field; edits commit on Enter, independent of capture metadata | `test_inspection_controls.test_preview_range_shades_only_its_native_time_interval`, `test_application.test_preview_rate_and_range_commit_only_after_enter` | `preview-range-rate-speed-loop`: Wayland and Xwayland full reports passed |
 
 The timeline and comparison canvas have ordinary accessible names and keyboard
 focus. They are not hidden behind test-only interfaces. Screen-reader traversal
@@ -111,10 +123,10 @@ and physical multi-touch acceptance are still separate desktop checks.
 
 | macOS source and user operation | Ubuntu entry and behavior | Automated assertions | Desktop ID / remaining evidence |
 | --- | --- | --- | --- |
-| `StudioComparison`: toggle Render / GT, select a render view/capture, Return to 3D | Render / GT toggle; comparison-only render, observation and capture selectors; Return to 3D button; 3D navigation/preview controls disabled while comparing | `test_application.test_inspector_context_key_selector_and_comparison_controls`, `test_comparison_chooses_explicit_capture_and_switches_view_domain` | `render-reference-metrics-and-native-resolution-png`; selector/Return flow uncovered |
-| `StudioComparison`, `StudioInspector`: Compare selected observation | Selection-inspector button calls `application._compare_selected_observation`; locates an explicitly linked view/collection, selects its capture | Context/selector implementation inspected; matching and membership assertions in `test_comparison.test_observation_membership_and_ambiguous_images` | Direct selected-observation button uncovered |
-| `StudioComparison`, `StudioInspector`: Preview selected render view | Selection-inspector button calls `_preview_selected_render`; explicit preview choice remains available when the same view links observations | `test_application.test_explicit_calibrated_preview_never_scores_linked_reference_images`, `test_comparison.test_render_only_without_observations` | Direct selected-render button and preview-only image export uncovered |
-| `StudioComparison`: pan/scroll, pinch/Option zoom shared image inspection; Fit and 1:1 | `image_view.ComparisonCanvas`: plain drag/scroll pan, Alt-scroll/pinch pointer-anchor zoom, shared transform; Fit and backing-pixel 1:1; image updates preserve transform | `test_inspection_controls.test_plain_image_scroll_pans_and_alt_zoom_preserves_both_pane_anchors`, `test_image_pinch_is_cumulative_fit_and_actual_pixels_keep_raw_pair` | Physical image gestures and HiDPI 1:1 uncovered |
+| `StudioComparison`: toggle Render / GT, select a render view/capture, Return to 3D | Render / GT toggle; comparison-only render, observation and capture selectors; Return to 3D button; 3D navigation/preview controls disabled while comparing | `test_application.test_inspector_context_key_selector_and_comparison_controls`, `test_comparison_chooses_explicit_capture_and_switches_view_domain` | `render-reference-metrics-and-native-resolution-png`, `selected-render-preview-single-native-png-and-return` and `exact-capture-selector-second-and-first-native-rasters`: Wayland and Xwayland passed |
+| `StudioComparison`, `StudioInspector`: Compare selected observation | Selection-inspector button calls `application._compare_selected_observation`; locates an explicitly linked view/collection, selects its capture | Context/selector implementation inspected; matching and membership assertions in `test_comparison.test_observation_membership_and_ambiguous_images` | `selected-observation-linked-inspection-pair-and-workspace-png`: Wayland and Xwayland passed |
+| `StudioComparison`, `StudioInspector`: Preview selected render view | Selection-inspector button calls `_preview_selected_render`; explicit preview choice remains available when the same view links observations | `test_application.test_explicit_calibrated_preview_never_scores_linked_reference_images`, `test_comparison.test_render_only_without_observations` | `selected-render-preview-single-native-png-and-return`: Wayland and Xwayland passed; 640×480 raw preview and absent scores verified |
+| `StudioComparison`: pan/scroll, pinch/Option zoom shared image inspection; Fit and 1:1 | `image_view.ComparisonCanvas`: plain drag/scroll pan, Alt-scroll/pinch pointer-anchor zoom, shared transform; Fit and backing-pixel 1:1; image updates preserve transform | `test_inspection_controls.test_plain_image_scroll_pans_and_alt_zoom_preserves_both_pane_anchors`, `test_image_pinch_is_cumulative_fit_and_actual_pixels_keep_raw_pair` | `selected-observation-linked-inspection-pair-and-workspace-png`: Wayland and Xwayland EIS drag/Alt-wheel changed the displayed crop while raw export hash stayed equal; physical pinch and HiDPI 1:1 remain untested |
 | `StudioComparison`: declared RGB display and reference role | Display-only linear-sRGB transfer, clamping of HDR preview display copies; render/reference scientific arrays unchanged; role-specific right title | `test_inspection_controls.test_linear_hdr_preview_clamps_only_display_copy_and_is_focusable`; comparison affine/domain tests | Desktop runner locates computed metrics; role/linear/HDR display fixtures uncovered |
 | `StudioComparison`: metrics, details and policy disclosure | Selection inspector reports PSNR, SSIM, MSE, MAE, valid pixels/windows plus expandable contract details; explicit preview has no reference or scores | `test_comparison.test_masked_metrics_have_no_false_perfect_score`, `test_strip_metrics_match_sdk_without_double_counting_halos`; UI explicit-preview test | `render-reference-metrics-and-native-resolution-png`; details expansion and masked fixture uncovered |
 | `GSVObservation`, `GSVRender`: exact camera/view/time/field/observation linkage | `capture_catalog.build_capture_catalog` preserves separate manifest collection rows; `comparison.compare_view` never substitutes nearest observation/calibration or interpolated geometry; activates required domain | `test_comparison.test_static_camera_dynamic_field_exact_time`, `test_dynamic_camera_exact_calibration`, `test_observation_membership_and_ambiguous_images`; UI capture/domain test | Normal matched capture covered; ambiguous collections/cross-domain cases uncovered |
@@ -132,12 +144,19 @@ data, with calibrated rendering rejected explicitly.
 
 ## Preview controls and image export
 
+Fourteen snapshot tests passed, including a separate `GDK_SCALE=2` GTK/GL run.
+Ordinary GTK workspace snapshots use backing pixels, bounded to 16,384 per side
+and 64 Mi pixels. The actual 1644×1042 logical window exported 3288×2084 pixels;
+completed GL framebuffers and comparison native rasters are not rescaled by this
+path. The inspector minimum-width layout test and an actual Wayland allocation
+probe also passed; no Mac Retina hardware measurement is implied.
+
 | macOS source and user operation | Ubuntu entry and behavior | Automated assertions | Desktop ID / remaining evidence |
 | --- | --- | --- | --- |
 | `StudioPreviewControls`: resolution, grid, cameras, paths, trails | Native footer toggles and quality dropdown, persistent footer with controls disabled during comparison | `test_application.test_inspector_context_key_selector_and_comparison_controls`, `test_viewport.test_real_shader_blending_picking_resolution_and_disposal`, `test_grid_frustum_size_and_zero_interval_trails_match_native` | `all-preview-settings-toggles-and-resolution-exports` |
 | `StudioPreviewControls`, `StudioInspector`: density, path opacity, trail history; size, opacity, exposure, near and background | Footer and Viewport inspector; controls change browsing only, not comparison policy; exact ranges below | `test_application.test_trajectory_capacity_error_keeps_scene_seek_and_playback_working`, `test_viewport.test_preview_controls_affect_shader_and_pick_consistently` | `all-preview-settings-toggles-and-resolution-exports`; min/max value rejection still requires boundary desktop checks |
 | `StudioSnapshot`, screenshot action: viewport PNG | `application.export_image(False)` captures completed GL output at selected raster resolution; comparison mode exports native image(s), independent of pan/zoom | `test_application.test_ui_png_exports_preview_resolution_workspace_and_full_comparison`, `test_snapshots.test_gl_snapshot_has_preview_pixels_and_preserves_bindings`, `test_queued_gl_frame_cannot_export_previous_resolution` | `all-preview-settings-toggles-and-resolution-exports`, `render-reference-metrics-and-native-resolution-png` |
-| `StudioSnapshot`: workspace PNG before save dialog dims content | `snapshots.capture_png_when_ready` waits for completed GTK/GL paint without blocking; immutable PNG prepared before native Save dialog; visible comparison remains visible | `test_snapshots.test_async_capture_waits_for_first_real_paint_and_finishes_once`, `test_async_capture_includes_new_layout_and_real_pixels`, `test_native_widget_snapshot_preserves_raster_and_color`; application PNG test | `native-workspace-png-save`; comparison-workspace versus hidden viewport desktop export uncovered |
+| `StudioSnapshot`: workspace PNG before save dialog dims content | `snapshots.capture_png_when_ready` waits for completed GTK/GL paint without blocking; immutable PNG prepared before native Save dialog; visible comparison remains visible | `test_snapshots.test_async_capture_waits_for_first_real_paint_and_finishes_once`, `test_async_capture_includes_new_layout_and_real_pixels`, `test_native_widget_snapshot_preserves_raster_and_color`; application PNG test | `native-workspace-png-save`; actual workspace backing export 3288×2084 verified; Wayland and Xwayland full comparison checks passed |
 | `StudioSnapshot`: capture cancellation/error and safe output | Snapshot callback/GLib sources disconnect on cancellation/unmap/unrealize; bounded readiness timeout; PNG writes atomic with symlink/source protection | `test_snapshots.test_async_cancel_and_unrealize_disconnect_without_late_completion`, `test_async_readiness_timeout_is_bounded_and_event_loop_runs`, `test_atomic_write_unicode_path_and_failure_preserves_previous`, `test_symlink_export_cannot_modify_referenced_source` | Native dialog tested; timeout/unmap and hostile output aliases remain automated-only |
 
 Native and Ubuntu numeric settings, checked directly in the current source:
@@ -306,11 +325,14 @@ controls during comparison. Those entry points must remain covered separately
 from backend ability: a callable capture function alone does not provide a
 desktop operation.
 
-Outstanding evidence is explicit in the Desktop column: physical image/timeline
-gestures, HiDPI behavior, screen-reader use, cancellation/error dialogs, and
-several comparison selectors are not covered by the current desktop scripts.
-The eight `--full` categories also require a successful current-source
-actual-session report; no such complete passing report is claimed here.
+Outstanding evidence is explicit in the Desktop column and final report table.
+Current EIS check IDs can establish native generated input delivery for the
+owned application; they do not establish physical touchpad behavior or general
+screen-reader acceptance. Completed HiDPI workspace and inspector-width probes
+are scoped to this GTK session. Full Wayland and Xwayland acceptance is recorded
+for the current clean source. Extracted-package actual-window tests and the
+fixture-based Chinese restart/native-save check have their own recorded scopes;
+chooser completion remains mocked in the 31-test application suite.
 Cross-platform camera exchange requires running the macOS application, not just
 loading a schema-equivalent fixture. macOS-vs-Ubuntu rendered pixel and performance
 comparisons require measured artifacts from both backends on identified hardware.

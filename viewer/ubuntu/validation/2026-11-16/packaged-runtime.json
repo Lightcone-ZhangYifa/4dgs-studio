@@ -1,0 +1,60 @@
+{
+  "kind": "detached Debian payload, real GNOME windows",
+  "package_root": "/home/zhangyifa/4dgs-studio/viewer/dist/desktop-validation/6583689/package-root/usr/share/4dgs-studio/ubuntu",
+  "source_commit": "65836898384dee6f0982540e336a1c405feb1a51",
+  "working_tree_changes": [],
+  "initial_logical_monitors": 1,
+  "input_session_created": false,
+  "window_regressions": [
+    {
+      "backend": "x11",
+      "returncode": 0,
+      "elapsed_seconds": 15.340387342032045,
+      "libraries": {
+        "app": "/home/zhangyifa/4dgs-studio/viewer/dist/desktop-validation/6583689/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/__init__.py",
+        "sdk": "/home/zhangyifa/4dgs-studio/viewer/dist/desktop-validation/6583689/package-root/usr/share/4dgs-studio/ubuntu/gsv/__init__.py",
+        "PyOpenGL": "3.1.7",
+        "version": "2.3.0"
+      },
+      "log": "/home/zhangyifa/4dgs-studio/viewer/dist/desktop-validation/6583689/packaged-runtime/x11-application.log"
+    },
+    {
+      "backend": "wayland",
+      "returncode": 0,
+      "elapsed_seconds": 13.786297889018897,
+      "libraries": {
+        "app": "/home/zhangyifa/4dgs-studio/viewer/dist/desktop-validation/6583689/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/__init__.py",
+        "sdk": "/home/zhangyifa/4dgs-studio/viewer/dist/desktop-validation/6583689/package-root/usr/share/4dgs-studio/ubuntu/gsv/__init__.py",
+        "PyOpenGL": "3.1.7",
+        "version": "2.3.0"
+      },
+      "log": "/home/zhangyifa/4dgs-studio/viewer/dist/desktop-validation/6583689/packaged-runtime/wayland-application.log"
+    }
+  ],
+  "chooser_completion": "mocked only in application unittest; Chinese normal-app screenshot uses the actual portal",
+  "passed": true,
+  "chinese_restart": {
+    "passed": true,
+    "preference_setup": "packaged save_preferences fixture; native preference writes tested separately by full desktop reports",
+    "observed_tabs": [
+      "选中内容",
+      "视口",
+      "文档"
+    ],
+    "language_override_environment": "en_US (preference must take precedence)",
+    "workspace_png": "/home/zhangyifa/4dgs-studio/viewer/dist/desktop-validation/6583689/packaged-runtime/中文工作区.png",
+    "png_dimensions": [
+      3288,
+      2084
+    ],
+    "window_logical_dimensions": [
+      1644,
+      1042
+    ],
+    "source_unchanged": true,
+    "native_save_portal": true,
+    "synthetic_keyboard_or_pointer": false
+  },
+  "final_logical_monitors": 1,
+  "remaining_studio_owner": null
+}

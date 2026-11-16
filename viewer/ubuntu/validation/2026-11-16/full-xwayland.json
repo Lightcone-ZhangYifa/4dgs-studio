@@ -1,0 +1,856 @@
+{
+  "backend": "x11",
+  "started_utc": "2026-11-16T11:19:42Z",
+  "source_commit": "65836898384dee6f0982540e336a1c405feb1a51",
+  "working_tree_changes": [],
+  "initial_logical_monitors": 1,
+  "temporary_virtual_output": false,
+  "steps": [
+    "native-open-dialog",
+    "play-pause",
+    "outliner-field-selection-and-path-request",
+    "native-middle-drag-orbit-proved-by-exported-poses",
+    "two-key-camera-authoring-and-native-save",
+    "native-camera-undo-redo-delete-import-roundtrip",
+    "native-workspace-png-save",
+    "render-reference-metrics-and-native-resolution-png"
+  ],
+  "artifacts": {
+    "parity-after-views.gsv": {
+      "bytes": 134802,
+      "sha256": "2da7b15274a21a76264dae3276d9a832329dc66f9a0d2aa14073e8b93f4b6684"
+    },
+    "parity-before-views.gsv": {
+      "bytes": 134802,
+      "sha256": "b1ce2db2a3fe697e2af70e6c29bd526f979df82c864eb9812da8038ec48e1b9b"
+    },
+    "parity-deleted-key.gsv": {
+      "bytes": 134815,
+      "sha256": "b72b18e438e257d1498ae72588a2468f2be2455a2c9a7c7ccbc2da541521cca2"
+    },
+    "parity-edited-camera.gsv": {
+      "bytes": 134819,
+      "sha256": "ad29dd96bd512c46381358beaa21e1bf75f9485f16eedc4118663c3e66d8f366"
+    },
+    "parity-front.gsv": {
+      "bytes": 134802,
+      "sha256": "b292bc8aaee5ad226b3ff5b0c74ecde62639a70353ca86afe72ccc941c533058"
+    },
+    "parity-resolution-100.png": {
+      "bytes": 69230,
+      "sha256": "9a49a44a645174a96022750f9cdf5b618682b4759dfc86e38a19cc81e9897edd"
+    },
+    "parity-resolution-50.png": {
+      "bytes": 30067,
+      "sha256": "88414009bcf1487b6947e943d23630e93139f5714e0a3beec25cb2544c985e5d"
+    },
+    "parity-resolution-75.png": {
+      "bytes": 49271,
+      "sha256": "fab8af7d38483856970ce45e6700e1a7e1c60015328072ae316c7775694a483e"
+    },
+    "parity-restored-key.gsv": {
+      "bytes": 134819,
+      "sha256": "0f6634c34f44a5f9d90a966ea9a2288a1a5c94bec427c3cc844b708bdaec13a9"
+    },
+    "parity-retimed-camera.gsv": {
+      "bytes": 134819,
+      "sha256": "0f6634c34f44a5f9d90a966ea9a2288a1a5c94bec427c3cc844b708bdaec13a9"
+    },
+    "timeline-camera-after-drag.gsv": {
+      "bytes": 134819,
+      "sha256": "99eb4c97fc5a6ba299c6e24c0c5c0940c7c45e750ebfdb9cff54562f2bb62d70"
+    },
+    "timeline-camera-after-escape.gsv": {
+      "bytes": 134819,
+      "sha256": "0f6634c34f44a5f9d90a966ea9a2288a1a5c94bec427c3cc844b708bdaec13a9"
+    },
+    "timeline-camera-after-undo.gsv": {
+      "bytes": 134819,
+      "sha256": "0f6634c34f44a5f9d90a966ea9a2288a1a5c94bec427c3cc844b708bdaec13a9"
+    },
+    "timeline-camera-before.gsv": {
+      "bytes": 134819,
+      "sha256": "0f6634c34f44a5f9d90a966ea9a2288a1a5c94bec427c3cc844b708bdaec13a9"
+    },
+    "timeline-camera-restoration-check.gsv": {
+      "bytes": 134819,
+      "sha256": "0f6634c34f44a5f9d90a966ea9a2288a1a5c94bec427c3cc844b708bdaec13a9"
+    },
+    "navigation-keys-before-1.gsv": {
+      "bytes": 134819,
+      "sha256": "3c6c1f8f62cff1b5bb1efad97a09abe650e33e170a7b007097b563f04d134802"
+    },
+    "navigation-keys-before-3.gsv": {
+      "bytes": 134819,
+      "sha256": "3c6c1f8f62cff1b5bb1efad97a09abe650e33e170a7b007097b563f04d134802"
+    },
+    "navigation-keys-before-7.gsv": {
+      "bytes": 134819,
+      "sha256": "3c6c1f8f62cff1b5bb1efad97a09abe650e33e170a7b007097b563f04d134802"
+    },
+    "navigation-keys-camera-before.gsv": {
+      "bytes": 134819,
+      "sha256": "0f6634c34f44a5f9d90a966ea9a2288a1a5c94bec427c3cc844b708bdaec13a9"
+    },
+    "navigation-keys-camera-restored.gsv": {
+      "bytes": 134819,
+      "sha256": "0f6634c34f44a5f9d90a966ea9a2288a1a5c94bec427c3cc844b708bdaec13a9"
+    },
+    "navigation-keys-initial-view.gsv": {
+      "bytes": 134819,
+      "sha256": "d76d8340ec57c213eb4709e5198627706b73ca03abf466d4cc7f8571cb5aca02"
+    },
+    "navigation-keys-menu-front.gsv": {
+      "bytes": 134819,
+      "sha256": "b67a050f9ebf1a64412d8927248e251ced0f7b0c8e6016cf3069bf7e17f74275"
+    },
+    "navigation-keys-menu-right.gsv": {
+      "bytes": 134819,
+      "sha256": "ed4b36f7c88584b1454fbe5b587a057ef51d8e8c8714d958ebe41a2030285335"
+    },
+    "navigation-keys-menu-top.gsv": {
+      "bytes": 134819,
+      "sha256": "a51f6dce0dec20e8ebfeaa28b94982b1d238b36f3ca27f4b735093ebdfce7573"
+    },
+    "navigation-keys-physical-1.gsv": {
+      "bytes": 134819,
+      "sha256": "b67a050f9ebf1a64412d8927248e251ced0f7b0c8e6016cf3069bf7e17f74275"
+    },
+    "navigation-keys-physical-3.gsv": {
+      "bytes": 134819,
+      "sha256": "ed4b36f7c88584b1454fbe5b587a057ef51d8e8c8714d958ebe41a2030285335"
+    },
+    "navigation-keys-physical-7.gsv": {
+      "bytes": 134819,
+      "sha256": "a51f6dce0dec20e8ebfeaa28b94982b1d238b36f3ca27f4b735093ebdfce7573"
+    },
+    "navigation-keys-restoration-check.gsv": {
+      "bytes": 134819,
+      "sha256": "0f6634c34f44a5f9d90a966ea9a2288a1a5c94bec427c3cc844b708bdaec13a9"
+    },
+    "navigation-keys-restored-view.gsv": {
+      "bytes": 134819,
+      "sha256": "d76d8340ec57c213eb4709e5198627706b73ca03abf466d4cc7f8571cb5aca02"
+    },
+    "comparison-first-capture-restored.png": {
+      "bytes": 10279,
+      "sha256": "33e90a717dee420ba30d10b2b2acd99f88c43535e19f2d9d74e0ff0055680378"
+    },
+    "comparison-pair-inspected.png": {
+      "bytes": 10279,
+      "sha256": "33e90a717dee420ba30d10b2b2acd99f88c43535e19f2d9d74e0ff0055680378"
+    },
+    "comparison-pair-original.png": {
+      "bytes": 10279,
+      "sha256": "33e90a717dee420ba30d10b2b2acd99f88c43535e19f2d9d74e0ff0055680378"
+    },
+    "comparison-preview.png": {
+      "bytes": 5810,
+      "sha256": "cdb09d257257e50c34d143d8f9f32dcdbca67ab58c3d38499e6e22c65052db80"
+    },
+    "comparison-second-capture.png": {
+      "bytes": 10387,
+      "sha256": "10c502c8f7c01ae8ca9928d69ca860d5e7de0ed5d4f3001a62188c4784ca2847"
+    },
+    "comparison-workspace-before-input.png": {
+      "bytes": 365034,
+      "sha256": "0337c0a0ebeee57861d72da5fb5d9042a5f4159153249e842ee32aff581bc9b5"
+    },
+    "comparison-workspace.png": {
+      "bytes": 392522,
+      "sha256": "d14a8b740ee7eedde79abe4492e33e036e2f5788792f9020bdebbe187840c940"
+    },
+    "lifecycle-camera-after-close-cancel.gsv": {
+      "bytes": 134821,
+      "sha256": "52a2eedee3f25e69be8c5bbbbd0b308bc20eb05c84aeb6076b859624f73b2eae"
+    },
+    "lifecycle-camera-after-failed-open.gsv": {
+      "bytes": 134819,
+      "sha256": "0f6634c34f44a5f9d90a966ea9a2288a1a5c94bec427c3cc844b708bdaec13a9"
+    },
+    "lifecycle-camera-after-open-cancel.gsv": {
+      "bytes": 134819,
+      "sha256": "0f6634c34f44a5f9d90a966ea9a2288a1a5c94bec427c3cc844b708bdaec13a9"
+    },
+    "lifecycle-camera-before.gsv": {
+      "bytes": 134819,
+      "sha256": "0f6634c34f44a5f9d90a966ea9a2288a1a5c94bec427c3cc844b708bdaec13a9"
+    },
+    "lifecycle-camera-name-restored.gsv": {
+      "bytes": 134819,
+      "sha256": "0f6634c34f44a5f9d90a966ea9a2288a1a5c94bec427c3cc844b708bdaec13a9"
+    },
+    "lifecycle-corrupt.gsv": {
+      "bytes": 2137406,
+      "sha256": "2e25b03cc00d9d8545385d1e4a1917e57a1dc64d222c35552e24f991d239911c"
+    },
+    "lifecycle-dark-workspace.png": {
+      "bytes": 457572,
+      "sha256": "7555fa2ee07029017ead57b570047935a96a4afdee970e93a304d912131c3ac3"
+    },
+    "lifecycle-light-workspace.png": {
+      "bytes": 386730,
+      "sha256": "987d8dd6a3af42f2538dfcf66ff1ef40684345a0dab4c0214d7d0f1b2ed6ac99"
+    },
+    "synthetic.gsv": {
+      "bytes": 2137406,
+      "sha256": "5a70cc062e17e5676e4103299ec11d967023c964af436fe689b9911af34aba89"
+    },
+    "authored-cameras.gsv": {
+      "bytes": 134802,
+      "sha256": "b1ce2db2a3fe697e2af70e6c29bd526f979df82c864eb9812da8038ec48e1b9b"
+    },
+    "roundtrip-cameras.gsv": {
+      "bytes": 134802,
+      "sha256": "b1ce2db2a3fe697e2af70e6c29bd526f979df82c864eb9812da8038ec48e1b9b"
+    },
+    "workspace.png": {
+      "bytes": 457511,
+      "sha256": "4848824d7ee27159ee62a1a1381cbd68d79eabfa235dc891532a8b1442ad9451"
+    },
+    "comparison.png": {
+      "bytes": 10279,
+      "sha256": "33e90a717dee420ba30d10b2b2acd99f88c43535e19f2d9d74e0ff0055680378"
+    }
+  },
+  "input_backend": "eis",
+  "input_events_synthetic": true,
+  "input_scope": "Real Mutter compositor events and public accessibility actions on the owned test application; no manual hardware-input claim",
+  "input_devices": {
+    "connected": true,
+    "disconnected": false,
+    "events": [
+      1,
+      3,
+      5,
+      8,
+      5,
+      8,
+      5,
+      8
+    ],
+    "devices": [
+      {
+        "name": "4DGS Studio desktop test shared virtual absolute pointer",
+        "capabilities": [
+          2,
+          16,
+          32
+        ],
+        "resumed": true,
+        "emulating": true,
+        "keymap": false,
+        "regions": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 3420,
+            "height": 2148,
+            "mapping_id": null,
+            "physical_scale": 2.0
+          }
+        ]
+      },
+      {
+        "name": "4DGS Studio desktop test virtual pointer",
+        "capabilities": [
+          1,
+          16,
+          32
+        ],
+        "resumed": true,
+        "emulating": true,
+        "keymap": false,
+        "regions": []
+      },
+      {
+        "name": "4DGS Studio desktop test virtual keyboard",
+        "capabilities": [
+          4
+        ],
+        "resumed": true,
+        "emulating": true,
+        "keymap": true,
+        "regions": []
+      }
+    ]
+  },
+  "existing_output_mapping": {
+    "profile": "existing-eis",
+    "output": {
+      "monitor_spec": [
+        "Meta-0",
+        "MetaVendor",
+        "Virtual remote monitor",
+        "0x000033"
+      ],
+      "physical_size": [
+        3420,
+        2148
+      ],
+      "scale": 2.0,
+      "layout_mode": 2,
+      "legacy_ui_scale": 2.0
+    },
+    "xroot_geometry": [
+      0,
+      0,
+      3420,
+      2148
+    ],
+    "ei_region": {
+      "device_id": 662565504,
+      "device_generation": 4,
+      "region_index": 0,
+      "x": 0,
+      "y": 0,
+      "width": 3420,
+      "height": 2148,
+      "mapping_id": null,
+      "physical_scale": 2.0
+    },
+    "equivalent_absolute_devices": 2,
+    "xroot_to_eis_scale": [
+      1.0,
+      1.0
+    ],
+    "coordinate_space": "Published EIS region; physical_scale is metadata, not an extra multiplier",
+    "temporary_output_created": false
+  },
+  "runtime_libraries": {
+    "python": "3.12.3",
+    "PyOpenGL": "3.1.7",
+    "PyOpenGL_file": "/tmp/gsv-distro-opengl/usr/lib/python3/dist-packages/OpenGL/__init__.py",
+    "numpy": "1.26.4",
+    "Gtk": [
+      4,
+      14,
+      5
+    ],
+    "Adw": [
+      1,
+      5,
+      0
+    ]
+  },
+  "pid": 2491375,
+  "initial_window_activated": true,
+  "camera_target_trace": [
+    {
+      "stage": "camera creation",
+      "camera_name": "Camera 1"
+    },
+    {
+      "stage": "native viewport orbit",
+      "camera_name": "Camera 1"
+    },
+    {
+      "stage": "native TIME entry commit",
+      "camera_name": "Camera 1"
+    }
+  ],
+  "orbit_input_tested": true,
+  "pointer_target": {
+    "rect": [
+      231,
+      93,
+      1113,
+      658
+    ],
+    "start": [
+      1707.0,
+      908.0
+    ],
+    "end": [
+      1840.56,
+      986.96
+    ]
+  },
+  "requested_full_checks": [
+    "parity",
+    "timeline",
+    "navigation",
+    "comparison",
+    "lifecycle"
+  ],
+  "full_checks": [
+    {
+      "id": "selection-viewport-document-inspector",
+      "passed": true,
+      "elapsed_seconds": 1.556,
+      "observed": [
+        "Selection",
+        "Viewport",
+        "Document"
+      ]
+    },
+    {
+      "id": "all-sample-transport-commands",
+      "passed": true,
+      "elapsed_seconds": 6.309,
+      "observed": "First/previous/next/last and fractional TIME entry retain native timestamps"
+    },
+    {
+      "id": "preview-range-rate-speed-loop",
+      "passed": true,
+      "elapsed_seconds": 24.718,
+      "observed": {
+        "range": [
+          0.25,
+          0.75
+        ],
+        "non_loop_stop": 0.75,
+        "speed_choices": [
+          "4×",
+          "1×"
+        ]
+      }
+    },
+    {
+      "id": "all-presets-frame-and-view-history",
+      "passed": true,
+      "elapsed_seconds": 14.351,
+      "observed": {
+        "preset_rotation_determinant": 1.0,
+        "unchanged_track_identity": true
+      }
+    },
+    {
+      "id": "camera-name-transform-fov-key-choice-retime-delete-undo",
+      "passed": true,
+      "elapsed_seconds": 31.626,
+      "observed": {
+        "position": [
+          0.1,
+          0.2,
+          0.3
+        ],
+        "quaternion": [
+          1,
+          0,
+          0,
+          0
+        ],
+        "fov_degrees": 70,
+        "retimed_keys": [
+          0.0,
+          0.75
+        ],
+        "undo_restored_key": true
+      }
+    },
+    {
+      "id": "exact-int64-inspection-and-copy",
+      "passed": true,
+      "elapsed_seconds": 5.052,
+      "observed": {
+        "exact_identity": 1152921504606846979,
+        "copy_attributes_invoked": true
+      }
+    },
+    {
+      "id": "all-preview-settings-toggles-and-resolution-exports",
+      "passed": true,
+      "elapsed_seconds": 48.066,
+      "observed": {
+        "preview_png_dimensions": {
+          "50%": [
+            1113,
+            658
+          ],
+          "75%": [
+            1670,
+            987
+          ],
+          "100%": [
+            2226,
+            1316
+          ]
+        },
+        "settings_restored": true
+      }
+    },
+    {
+      "id": "panels-fullscreen-navigation-help",
+      "passed": true,
+      "elapsed_seconds": 3.066,
+      "observed": "Sidebar, inspector, fullscreen and navigation guide commands completed"
+    }
+  ],
+  "timeline_checks": [
+    {
+      "id": "owned-physical-timeline-focus",
+      "passed": true,
+      "tested": true,
+      "elapsed_seconds": 1.6,
+      "observed": "Verified owned coordinate click established actual timeline FOCUSED state"
+    },
+    {
+      "id": "physical-scrub-near-tick-snap-and-alt-bypass",
+      "passed": true,
+      "tested": true,
+      "elapsed_seconds": 14.295,
+      "observed": {
+        "public_source_samples": [
+          0.0,
+          0.25,
+          0.5,
+          0.75,
+          1.0
+        ],
+        "physical_probe_times": [
+          0.3656852466563887,
+          0.6385786802030455
+        ],
+        "snap_time": 0.5,
+        "same_point_alt_time": 0.5031979695431471,
+        "alt_expected": 0.5031980948499549
+      }
+    },
+    {
+      "id": "focused-home-left-right-space-keyboard",
+      "passed": true,
+      "tested": true,
+      "elapsed_seconds": 67.583,
+      "observed": {
+        "arrow_samples": [
+          0.0,
+          0.25,
+          0.5
+        ],
+        "space_start": 0.1999238253365918,
+        "space_paused_time": 0.8684261493645324
+      }
+    },
+    {
+      "id": "physical-wheel-zoom-shift-wheel-and-middle-pan-home-fit",
+      "passed": true,
+      "tested": true,
+      "elapsed_seconds": 46.627,
+      "observed": {
+        "fit_probe_times": [
+          0.3656852466563887,
+          0.6385786802030455
+        ],
+        "zoom_probe_times": [
+          0.386726616320841,
+          0.6192710607672881
+        ],
+        "shift_wheel_probe_times": [
+          0.39671875922699323,
+          0.6292632036734405
+        ],
+        "middle_drag_probe_times": [
+          0.325865382256097,
+          0.5584098267025444
+        ],
+        "home_restored_probe_times": [
+          0.3656852466563887,
+          0.6385786802030455
+        ]
+      }
+    },
+    {
+      "id": "selected-key-physical-drag-escape-cancel",
+      "passed": true,
+      "tested": true,
+      "elapsed_seconds": 12.346,
+      "observed": {
+        "key_index": 1,
+        "original_time": 0.75,
+        "drag_destination": 0.65,
+        "escape_before_button_release": true,
+        "all_native_exported_camera_arrays_unchanged": true
+      }
+    },
+    {
+      "id": "selected-key-physical-retime-and-native-undo",
+      "passed": true,
+      "tested": true,
+      "elapsed_seconds": 15.834,
+      "observed": {
+        "key_index": 1,
+        "before": 0.75,
+        "after": 0.6497715736040608,
+        "all_other_camera_arrays_unchanged": true,
+        "native_undo_restored_all_arrays": true
+      }
+    }
+  ],
+  "timeline_restoration": {
+    "passed": true,
+    "source_sha256": "5a70cc062e17e5676e4103299ec11d967023c964af436fe689b9911af34aba89",
+    "original_time": 0.75,
+    "errors": []
+  },
+  "navigation_key_checks": [
+    {
+      "id": "physical-1-matches-menu-front",
+      "passed": true,
+      "tested": true,
+      "elapsed_seconds": 16.898,
+      "observed": {
+        "physical_keysym": 49,
+        "menu_preset": "front",
+        "recorded_owner": "camera-533a6ccb-e2bf-4da2-bfed-2e15d7b7cd82",
+        "recorded_native_time": 0.75,
+        "matching_native_camera_arrays": true,
+        "editing_target_retained": true
+      }
+    },
+    {
+      "id": "physical-3-matches-menu-right",
+      "passed": true,
+      "tested": true,
+      "elapsed_seconds": 16.678,
+      "observed": {
+        "physical_keysym": 51,
+        "menu_preset": "right",
+        "recorded_owner": "camera-533a6ccb-e2bf-4da2-bfed-2e15d7b7cd82",
+        "recorded_native_time": 0.75,
+        "matching_native_camera_arrays": true,
+        "editing_target_retained": true
+      }
+    },
+    {
+      "id": "physical-7-matches-menu-top",
+      "passed": true,
+      "tested": true,
+      "elapsed_seconds": 16.841,
+      "observed": {
+        "physical_keysym": 55,
+        "menu_preset": "top",
+        "recorded_owner": "camera-533a6ccb-e2bf-4da2-bfed-2e15d7b7cd82",
+        "recorded_native_time": 0.75,
+        "matching_native_camera_arrays": true,
+        "editing_target_retained": true
+      }
+    }
+  ],
+  "navigation_key_restoration": {
+    "passed": true,
+    "errors": [],
+    "history_steps_restored": 9,
+    "original_tool": "Select",
+    "original_time": 0.75,
+    "source_sha256": "5a70cc062e17e5676e4103299ec11d967023c964af436fe689b9911af34aba89"
+  },
+  "comparison_checks": [
+    {
+      "id": "selected-render-preview-single-native-png-and-return",
+      "passed": true,
+      "elapsed_seconds": 21.324,
+      "observed": {
+        "status": "reference-view · render · CPU reference · ",
+        "png_dimensions": [
+          640,
+          480
+        ],
+        "metrics_absent": true,
+        "preview_controls_enabled": {
+          "Coordinate grid": false,
+          "Cameras": false,
+          "Paths": false,
+          "Trails": false,
+          "Viewport quality": false,
+          "Camera": false,
+          "Orbit style": false,
+          "Gaussian size": false,
+          "Opacity multiplier": false,
+          "Exposure multiplier": false,
+          "Near clip in scene units": false,
+          "Preview background": false
+        },
+        "returned_to_3d": true
+      }
+    },
+    {
+      "id": "selected-observation-linked-inspection-pair-and-workspace-png",
+      "passed": true,
+      "elapsed_seconds": 22.106,
+      "observed": {
+        "pair_sha256": "33e90a717dee420ba30d10b2b2acd99f88c43535e19f2d9d74e0ff0055680378",
+        "inspected_pair_sha256": "33e90a717dee420ba30d10b2b2acd99f88c43535e19f2d9d74e0ff0055680378",
+        "workspace_dimensions": [
+          3288,
+          2084
+        ],
+        "native_input": {
+          "tested": true,
+          "backend": "x11",
+          "canvas_rect": [
+            231,
+            93,
+            1113,
+            618
+          ],
+          "start": [
+            2152.2,
+            929.8000000000001
+          ],
+          "end": [
+            2263.5,
+            991.6000000000001
+          ],
+          "alt_wheel_steps": 2,
+          "changed_reference_crop_pixels": 319796
+        },
+        "preview_controls_enabled": {
+          "Coordinate grid": false,
+          "Cameras": false,
+          "Paths": false,
+          "Trails": false,
+          "Viewport quality": false,
+          "Camera": false,
+          "Orbit style": false,
+          "Gaussian size": false,
+          "Opacity multiplier": false,
+          "Exposure multiplier": false,
+          "Near clip in scene units": false,
+          "Preview background": false
+        },
+        "comparison_canvas_read_only": true
+      }
+    },
+    {
+      "id": "exact-capture-selector-second-and-first-native-rasters",
+      "passed": true,
+      "elapsed_seconds": 17.262,
+      "observed": {
+        "capture_times": [
+          1.0,
+          0.0
+        ],
+        "second_capture_status": "reference-view · reference · CPU reference · PSNR 5.15018 · SSIM 0.0082454 · MSE 0.305479 · MAE 0.474027",
+        "first_capture_status": "reference-view · reference · CPU reference · PSNR 5.15735 · SSIM 0.00715091 · MSE 0.304975 · MAE 0.473774",
+        "native_observations_verified": true,
+        "returned_to_3d": true
+      }
+    }
+  ],
+  "lifecycle_checks": [
+    {
+      "id": "native-open-cancel-preserves-source-time-and-camera",
+      "passed": true,
+      "elapsed_seconds": 9.849,
+      "observed": {
+        "source_title": "synthetic.gsv — 4DGS Studio",
+        "time_text": "0",
+        "camera_arrays_unchanged": true
+      }
+    },
+    {
+      "id": "corrupt-native-open-retains-accepted-source-and-camera",
+      "passed": true,
+      "elapsed_seconds": 15.116,
+      "observed": {
+        "error_dialog_visible": true,
+        "visible_error_labels": [
+          "synthetic.gsv",
+          "6 objects · 5 time samples",
+          "Scene Outliner",
+          "4D representations (1)",
+          "moving-points",
+          "gaussian",
+          "Cameras (2)",
+          "reference-camera",
+          "camera",
+          "Desktop acceptance camera",
+          "camera · user",
+          "Observations (1)",
+          "reference-images",
+          "image",
+          "Rendering (2)",
+          "ewa-profile",
+          "render",
+          "reference-view",
+          "render",
+          "Free perspective",
+          "Select",
+          "Coordinate grid",
+          "Cameras",
+          "Paths",
+          "Trails",
+          "Viewport quality",
+          "100%",
+          "Render / GT",
+          "Space: world · Clock: scene · second",
+          "Loop",
+          "Snap to samples",
+          "1×",
+          "Preview range",
+          "Preview /s",
+          "1 / 5",
+          "1 selected · reference-images",
+          "Selection",
+          "Viewport",
+          "Document",
+          "reference-images",
+          "Identity",
+          "reference-images",
+          "Type",
+          "image",
+          "Encoding",
+          "gsv.observation.camera-rgb",
+          "Space",
+          "world",
+          "Clock",
+          "scene",
+          "Role",
+          "reference",
+          "Linked objects",
+          "{\n  \"camera\": \"reference-camera\"\n}",
+          "Read-only source object",
+          "Source reconstruction data is read-only. Display settings do not change stored values.",
+          "View object descriptor…",
+          "Frame selection",
+          "Copy attributes",
+          "Compare render with camera observation",
+          "Not a GSV scene container",
+          "GPU 0.3 ms · 2 / 2 IDs · 100%",
+          "Scene operation failed",
+          "Not a GSV scene container",
+          "OK"
+        ],
+        "accepted_source_retained": true,
+        "camera_arrays_unchanged": true
+      }
+    },
+    {
+      "id": "dirty-window-close-cancel-retains-unsaved-camera",
+      "passed": true,
+      "elapsed_seconds": 19.358,
+      "observed": {
+        "close_canceled": true,
+        "unsaved_name_retained_in_native_export": "Lifecycle acceptance camera",
+        "camera_arrays_unchanged": true,
+        "original_name_restored": true
+      }
+    },
+    {
+      "id": "isolated-native-language-and-live-appearance-preferences",
+      "passed": true,
+      "elapsed_seconds": 32.731,
+      "observed": {
+        "isolated_config": "/tmp/gsv-parity-full-x11-33/test-config/4dgs-studio/preferences.json",
+        "language_choices_persisted": [
+          "zh-Hans",
+          "en"
+        ],
+        "language_change_requires_restart_and_retains_source": true,
+        "dark_mean_rgb": 35.18469929038766,
+        "light_mean_rgb": 229.31311089940272,
+        "changed_workspace_pixels": 6362675,
+        "original_preferences_restored": true
+      }
+    }
+  ],
+  "comparison_metrics": "reference-view · reference · CPU reference · PSNR 5.15735 · SSIM 0.00715091 · MSE 0.304975 · MAE 0.473774",
+  "graphics_information": [
+    "GPU render: 0.35 ms · sort: 0.00 ms\nCompleted GPU renders/s: 0.00\nEstimated GPU storage: 69.85 MiB\nCPU submission: 3.82 ms\nGPU completion timing is not desktop presentation FPS or total process memory.\nNVIDIA GeForce RTX 4090/PCIe/SSE2\nStable CPU depth sort for small scenes or explicit benchmark override\nNonblocking GL_TIME_ELAPSED and GL_TIMESTAMP queries\nVisible IDs are the latest completed GPU frustum sample, not an occlusion count. Source time: 0.0. Age at publication: 594.55 ms.\nAsynchronous GL 3.3 projection/geometry query; at most 10 samples per second",
+    "vendor: NVIDIA Corporation\n\nrenderer: NVIDIA GeForce RTX 4090/PCIe/SSE2\n\nversion: 4.6.0 NVIDIA 620.70.06\n\ndisplay_backend: x11\n\nsorting: cpu\n\nsorting_details: Stable CPU depth sort for small scenes or explicit benchmark override"
+  ],
+  "source_unchanged": true,
+  "passed": true,
+  "final_logical_monitors": 1
+}

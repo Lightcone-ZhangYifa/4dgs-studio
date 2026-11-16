@@ -50,7 +50,7 @@ opened from Files or by `4dgs-studio path.gsv`. Distro dependencies supply GTK,
 OpenGL and NumPy; the package bundles this repository’s Python gsv SDK and shared translation
 catalogs used by this source tree. Product version metadata derives from the same
 `viewer/native/Info.plist` as macOS; no separate Linux version bump is needed. The SDK is private to the application and
-does not replace another installed `gsv` Python package. Uninstall with
+does not replace another installed `gsv` Python package. The parity inventory and retained validation reports also install under `/usr/share/doc/4dgs-studio`. Uninstall with
 `sudo apt remove 4dgs-studio`.
 
 ## Workspace and interaction
@@ -101,7 +101,9 @@ Exact signed 64-bit IDs can be entered in the inspector without floating-point
 rounding. Paths split at validity gaps; a picked identity retains its path even
 at zero field density. Trails follow native source intervals.
 
-The timeline scrubs document-native time. Scroll to zoom, middle-drag to pan,
+The timeline exposes GTK's native AccessibleRange / AT-SPI Value interface for
+exact document-time inspection and setting, including finite/bounds checks; it
+does not reinterpret time as a frame index. The timeline scrubs document-native time. Scroll to zoom, middle-drag to pan,
 or use Fit. Playback has explicit native-units/s, speed, loop and in/out range
 controls; source FPS is never inferred. Click a camera key diamond to inspect
 it, drag to retime it, or enter an exact time in the Camera inspector. Camera
@@ -158,7 +160,10 @@ publish PSNR, SSIM, MSE and MAE only when compatible. Without observations the
 same action shows a calibrated image. Both panes share drag/scroll pan and Alt-scroll/pinch zoom, with Fit Both and one-image-pixel-per-display-pixel controls.
 Image inspection transforms persist across time changes. Screenshot export saves
 the completed viewport or calibrated pair; workspace export includes native
-controls. Both capture before the save dialog appears. Confirmed file exports run in a
+controls at their display backing scale. A 1644×1042 logical workspace at scale
+2 exports 3288×2084 pixels. GTK widget export is bounded to 16,384 pixels per
+side and 64 Mi pixels; this scaling does not alter the completed GL framebuffer
+or calibrated comparison's native source raster. Both capture before the save dialog appears. Confirmed file exports run in a
 serialized FIFO queue and finish even when a scene is replaced or the window closes.
 Obsolete scene evaluation and capture results cannot replace the current display.
 
@@ -231,20 +236,41 @@ the software reference. Resident playback timing does not include source-file
 reads, first endpoint uploads or desktop presentation. Run the same benchmark
 and manual acceptance checklist for each target driver before release.
 
-## Actual GNOME desktop acceptance
+## Current verification scope
 
-The [desktop acceptance record](DESKTOP_VALIDATION.md) distinguishes the clean
-`599ca1c` basic native-portal runs from later working-tree window regressions.
-The recorded Ubuntu suite ran 238 tests successfully, with two benchmark tests
-skipped; the SDK suite passed 78 tests. A separate actual GNOME window run passed
-31 application tests on each of NVIDIA Xwayland and software Wayland at
-`8d54a00`, with chooser completion still substituted. **The current expanded `--full` desktop
-workflow has not completed acceptance.** These results do not establish current
-full portal, physical-input or cross-platform acceptance.
-Later working-tree EIS runs passed five parity groups, three comparison groups
-and three lifecycle groups; the preferences check stopped on a test-tool
-ComboRow name/value mismatch. That tool correction still awaits a complete clean
-run, so these are partial results, not a full pass.
+Runtime source is frozen at `ec35705`; the final input-driver revision is
+`6583689`. The Ubuntu suite ran **245 tests: 243 passed and two benchmark tests
+skipped**; the Python SDK suite passed **78 tests**. Seven timeline/range tests
+and a real AT-SPI Value probe verify the native time interface. Fourteen snapshot
+tests cover backing-scale workspace export, scale-1 behavior and unchanged
+GL/comparison rasters. A mapped inspector-layout test and an actual Wayland
+probe verify the inspector's minimum width during divider resizing.
+
+The [desktop validation table](DESKTOP_VALIDATION.md#final-report-status) is the
+authority for complete source and extracted-package runs. For future reruns, accept only retained reports whose `passed` flag, requested check groups, source
+revision, clean working tree, artifact hashes and cleanup have been inspected.
+Complete native Wayland and Xwayland runs passed at clean `6583689`, each with
+eight basic steps and 24 extended checks (eight parity, six timeline, three
+navigation, three comparison and four lifecycle). Both retained source hashes,
+monitor count 1→1 and error-free cleanup. Xwayland used the NVIDIA RTX 4090,
+OpenGL 4.6; Wayland used Mesa llvmpipe OpenGL 4.5 software rendering. The extracted
+Debian payload also passed 31 real-window application tests per backend, with
+chooser completion mocked. A separate fresh packaged Wayland process honored
+saved `zh-Hans` preferences over `LANGUAGE=en_US`, showed Chinese inspector tabs
+and saved a 3288×2084 workspace PNG through the actual native portal. This used
+a preference fixture and public accessibility actions, without keyboard/pointer
+injection; it was not a repeat of all 24 checks in Chinese.
+Complete-run logs retain GTK/GDK critical diagnostics without Python tracebacks;
+passing functional/artifact checks does not establish a warning-free runtime.
+Their origin remains unconfirmed; see the validation record for exact counts.
+Earlier `8d54a00` real-window tests passed 31/31 per backend with
+chooser completion mocked; that does not substitute for a current native-portal
+run. Historical clean `599ca1c` basic portal evidence remains linked in the
+validation record.
+
+Mac application-to-application camera exchange, physical touchpad delivery,
+screen-reader acceptance and hardware-accelerated Wayland remain unverified.
+The 80-action map checks source-review coverage, not execution of every action.
 
 `tools/test_desktop_session.py` requires explicit
 `--allow-desktop-input`; it never runs from unit-test discovery or CI by accident.

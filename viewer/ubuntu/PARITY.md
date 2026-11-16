@@ -5,17 +5,33 @@ It is not a claim of pixel-identical rendering or hardware-independent performan
 Both frontends consume the normative [GSV specification](../../docs/gsv/README.md)
 and [camera/render contract](../../docs/gsv/RENDER_CONTRACT.md).
 
-The recorded full Ubuntu regression ran **238 tests: 236 passed and two
-benchmark tests skipped**. The Python SDK suite passed **78 tests**. Actual GNOME
-window regressions separately passed **31/31** application tests on NVIDIA
-Xwayland and **31/31** on software Wayland at source `8d54a00`, with chooser completion substituted.
-Those working-tree runs and the earlier clean `599ca1c` basic native-portal
-acceptance have different scopes. The expanded current-source `--full` desktop
-workflow is **not yet accepted**; see [DESKTOP_VALIDATION.md](DESKTOP_VALIDATION.md).
-Subsequent working-tree EIS evidence covers five parity groups, three comparison
-groups and three lifecycle groups. A preferences check stopped on a runner
-ComboRow-name/value mismatch; its correction awaits the final clean-source run.
-These partial results do not upgrade the expanded workflow to accepted.
+## Current verification scope
+
+Runtime source `ec35705` and desktop input-driver revision `6583689` are the
+final-run baseline. Automated results are **245 tests: 243 passed, two benchmark
+tests skipped**, plus **78 Python SDK tests passed**. macOS uses its independent
+Swift/Metal loader and renderer; shared specifications, fixtures, translation
+catalogs and canonical product metadata do not imply one runtime SDK.
+
+[The final report table](DESKTOP_VALIDATION.md#final-report-status) separates
+full native-portal/EIS runs from application tests with chooser completion
+mocked, and separates checkout runs from extracted `.deb` payload runs. The table is
+report-gated: a backend is not accepted until `report.passed`, the complete
+requested group set, clean source provenance, source hashes and cleanup all
+agree. Both clean `6583689` native desktop reports passed eight basic steps and
+24 extended checks each: eight parity, six timeline, three navigation, three
+comparison and four lifecycle. Each preserved source hashes and monitor count
+1→1, with no cleanup error. Xwayland used RTX 4090 OpenGL 4.6; Wayland used Mesa
+llvmpipe OpenGL 4.5 software rendering. The extracted Debian payload passed
+31 actual-window application tests per backend with chooser completion mocked.
+A separate fresh packaged Wayland process loaded a saved Chinese preference,
+displayed Chinese inspector tabs and exported a 3288×2084 workspace through the
+actual portal; no keyboard/pointer injection was used. This fixture-based restart
+check does not repeat all full-run checks in Chinese. Complete-run logs retain GTK/GDK critical
+diagnostics without Python tracebacks; their origin is not yet backtrace-confirmed.
+Passing functional/artifact checks does not establish a warning-free runtime.
+Historical `599ca1c` basic portal reports and `8d54a00` 31-case window regressions
+retain their original scope, not automatic acceptance of newer source.
 
 ## Shared data and editing behavior
 
@@ -226,6 +242,21 @@ limits. Transformed output can be previewed but cannot acquire a native-raster
 reference score. The image limit is 16 megapixels and 16,384 pixels per axis.
 
 ## Validation and remaining hardware acceptance
+
+The native time widget implements GTK AccessibleRange / AT-SPI Value: seven
+range/timeline tests and an actual AT-SPI probe verify exact document time,
+finite/bounds rejection and single-sample behavior. Fourteen snapshot tests
+include an independent scale-2 GTK/GL process. The actual 1644×1042 logical
+workspace exported 3288×2084 backing pixels; GL framebuffer and scientific
+comparison export keep their original raster policies. Snapshot allocation is
+checked before rendering: maximum side 16,384 and total 64 Mi pixels. Mac Retina
+hardware output has not been measured, so these results do not establish
+cross-platform Retina pixel equivalence.
+
+The inspector uses its measured natural minimum width rather than allowing a
+divider request to clip camera controls offscreen. One mapped layout regression
+and an actual Wayland allocation probe passed. Resizing checks concern control
+reachability, not identical AppKit/GTK font metrics.
 
 `tests/test_model.py` covers scene ownership, interpolation, domain switching,
 identity, paths, graph topology and camera authoring. `tests/test_comparison.py`
