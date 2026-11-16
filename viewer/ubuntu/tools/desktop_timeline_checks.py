@@ -319,7 +319,7 @@ def run_timeline_checks(desktop, output, report):
         # Capture the original TIME before the required physical focus click,
         # since clicking the timeline itself intentionally scrubs the playhead.
         original_time = _read_time(desktop)
-        original_controls = {name: _checked(desktop, name) for name in ('Snap', 'Loop', 'Preview range')}
+        original_controls = {name: _checked(desktop, name) for name in ('Snap to samples', 'Loop', 'Preview range')}
         check('owned-physical-timeline-focus', preflight)
         ready = True
         baseline = _export_camera(desktop, output, 'timeline-camera-before.gsv')
@@ -334,7 +334,7 @@ def run_timeline_checks(desktop, output, report):
         select_object(desktop, camera_label)
         _set_checked(desktop, 'Preview range', False)
         _set_checked(desktop, 'Loop', True)
-        _set_checked(desktop, 'Snap', True)
+        _set_checked(desktop, 'Snap to samples', True)
         _focus(desktop); _tap(desktop, _HOME)
         fit = _mapping(desktop)
         canvas = _canvas(desktop)
