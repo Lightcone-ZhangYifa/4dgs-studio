@@ -214,6 +214,7 @@ class StudioWindow(Adw.ApplicationWindow):
         center = box(Gtk.Orientation.VERTICAL, 0, width_request=400)
         self.inner_paned.set_start_child(center)
         self.inner_paned.set_resize_end_child(False)
+        self.inner_paned.set_shrink_end_child(False)
         self.inner_paned.set_position(920)
         view_bar = box(spacing=6, margin_start=8, margin_end=8, margin_top=6, margin_bottom=6)
         self.view_bar = view_bar
