@@ -51,3 +51,34 @@ jobs:
         run: test "$(lipo -archs 'viewer/dist/4DGS Studio.app/Contents/MacOS/4DGSStudio')" = arm64
       - name: Run native CPU checks
         run: python3 viewer/tools/test_native.py --suite cpu
+
+  ubuntu-studio:
+    name: Studio / Ubuntu Desktop
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install native desktop runtime and test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-gi python3-gi-cairo python3-numpy python3-opengl gir1.2-gtk-4.0 gir1.2-adw-1 libgl1-mesa-dri xvfb desktop-file-utils appstream
+      - name: Check shared SDK
+        env:
+          PYTHONPATH: packages/gsv/src
+        run: /usr/bin/python3 -m unittest discover -s packages/gsv/tests -v
+      - name: Check GTK workflows, OpenGL and contracts with Mesa
+        env:
+          PYTHONPATH: viewer/ubuntu:packages/gsv/src
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          GDK_BACKEND: x11
+          GDK_DEBUG: no-vsync
+          GTK_A11Y: none
+          GIO_USE_VFS: local
+        run: xvfb-run -a -s '-screen 0 1920x1080x24' /usr/bin/python3 -m unittest discover -s viewer/ubuntu/tests -v
+      - name: Validate desktop integration and build Debian package
+        run: |
+          desktop-file-validate viewer/ubuntu/data/io.github.LightconeZhangYifa.GSVStudio.desktop
+          appstreamcli validate --no-net viewer/ubuntu/data/io.github.LightconeZhangYifa.GSVStudio.metainfo.xml
+          /usr/bin/python3 viewer/tools/package_ubuntu.py

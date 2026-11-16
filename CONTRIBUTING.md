@@ -29,3 +29,14 @@ Run the native CPU checks with `python3 viewer/tools/test_native.py --suite cpu`
 ## Release packages
 
 On an Apple silicon Mac, run `python3 viewer/tools/package_app.py` to build and verify the signed application ZIP. In a Python environment with `build` installed, run `python tools/build_sdk.py dist` to create the GSV source and wheel distributions. The wheel is built from the source archive, whose tar entries use neutral ownership metadata.
+
+## Ubuntu Desktop
+
+See [the Ubuntu guide](viewer/ubuntu/README.md) for distro dependencies, launch and
+Xvfb/Mesa acceptance commands. Keep shared format, encoding and metric semantics in
+`packages/gsv`; keep platform widgets and GPU APIs in their own viewer directories.
+Both platforms consume the same `viewer/Resources/*/Localizable.strings` catalogs.
+Changes to interaction or camera authoring should update the feature inventory in
+`viewer/ubuntu/PARITY.md`, reuse contract fixtures across frontends, and include
+behavioral tests for source immutability, exact timestamps and stale work disposal.
+Validate the Debian package with `python3 viewer/tools/package_ubuntu.py`.
