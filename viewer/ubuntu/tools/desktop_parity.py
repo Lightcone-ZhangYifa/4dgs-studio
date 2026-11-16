@@ -61,10 +61,16 @@ def focus(desktop, node):
 
 def edit(desktop, name, value):
     node = named(desktop, name, 'EditableText')
-    focus(desktop, node)
+    apply = desktop.find(lambda n: n.get_name() == name+' · Apply' and showing(n)
+                         and n.get_role_name() == 'push button')
+    if apply is None:
+        focus(desktop, node)
     if not Atspi.EditableText.set_text_contents(node, str(value)):
         raise RuntimeError('Native text editing failed: '+name)
-    desktop.chord(0xff0d)
+    if apply is not None:
+        action(apply)
+    else:
+        desktop.chord(0xff0d)
     pump(.25)
     return node
 
@@ -72,18 +78,9 @@ def edit(desktop, name, value):
 def activate(desktop, node):
     if desktop.click(node):
         return
-    if 'Action' in node.get_interfaces() and Atspi.Action.get_n_actions(node):
-        action(node)
-    else:
-        child = next((child for child in walk(node) if child is not node and showing(child)
-                      and child.get_role_name() in ('push button','toggle button','check box','combo box','list item')
-                      and 'Action' in child.get_interfaces() and Atspi.Action.get_n_actions(child)), None)
-        if child is not None:
-            action(child)
-            return
-        focus(desktop, node)
-        desktop.chord(0x20)
-        pump(.15)
+    focus(desktop, node)
+    desktop.chord(0x20)
+    pump(.15)
 
 
 def set_checked(desktop, name, checked):
@@ -120,7 +117,9 @@ def choose(desktop, name, index, expected):
     pump(.2)
     node.clear_cache()
     displayed = [child.get_name() for child in walk(node) if showing(child)]
-    if (node.get_role_name() == 'combo box' and node.get_name() != expected) or expected not in displayed:
+    # GtkDropDown names its current value; AdwComboRow retains its field title
+    # and exposes the committed value in its single visible summary child.
+    if (node.get_role_name() == 'combo box' and node.get_name() not in (expected, name)) or expected not in displayed or node.get_state_set().contains(Atspi.StateType.EXPANDED):
         raise AssertionError(f'{name}: expected {expected!r}, actual selected value {node.get_name()!r}')
 
 
@@ -137,9 +136,19 @@ def spin(desktop, name, value):
 def select_object(desktop, name):
     row = wait_for(lambda: desktop.find(lambda n: n.get_role_name() == 'list item' and any(
         c.get_role_name() == 'label' and c.get_name() == name for c in walk(n))), 'outliner: '+name)
-    if not Atspi.Selection.select_child(row.get_parent(), row.get_index_in_parent()):
-        raise RuntimeError('Outliner selection failed: '+name)
+    parent = row.get_parent()
+    if not desktop.click(row):
+        if not Atspi.Selection.clear_selection(parent):
+            raise RuntimeError('Outliner exclusive selection could not clear old membership: '+name)
+        pump(.1)
+        if not Atspi.Selection.select_child(parent, row.get_index_in_parent()):
+            raise RuntimeError('Outliner selection failed: '+name)
     pump(.3)
+    def selected():
+        row.clear_cache()
+        return (row.get_state_set().contains(Atspi.StateType.SELECTED)
+                and Atspi.Selection.get_n_selected_children(parent) == 1)
+    wait_for(selected, 'exclusive outliner row selection: '+name, 5)
 
 
 def save_camera(desktop, output, name):

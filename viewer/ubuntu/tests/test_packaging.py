@@ -5,6 +5,7 @@ import io
 import json
 import os
 from pathlib import Path
+import plistlib
 import shutil
 import subprocess
 import sys
@@ -62,6 +63,7 @@ class DebianPackageTests(unittest.TestCase):
         script = ('import sys,json; sys.path.insert(0,sys.argv[1]); '
                   'import gsv,gs_studio; from gs_studio.i18n import resources,Translator; '
                   'print(json.dumps({"sdk":gsv.__file__,"app":gs_studio.__file__, '
+                  '"version":gs_studio.VERSION,"identity":gs_studio.PRODUCT_IDENTITY, '
                   '"resources":str(resources()),"en":len(Translator("en").catalog), '
                   '"zh":len(Translator("zh-Hans").catalog)}))')
         result = subprocess.run([sys.executable, '-I', '-B', '-c', script, str(app)],
@@ -72,6 +74,12 @@ class DebianPackageTests(unittest.TestCase):
         self.assertEqual(Path(data['resources']), app.parent / 'Resources')
         self.assertGreater(data['en'], 100)
         self.assertGreater(data['zh'], 100)
+        with (ROOT / 'viewer/native/Info.plist').open('rb') as stream:
+            source_identity = plistlib.load(stream)
+        self.assertEqual(data['version'], source_identity['CFBundleShortVersionString'])
+        for key in ('CFBundleDisplayName', 'CFBundleName', 'CFBundleVersion',
+                    'NSHumanReadableCopyright', 'GSVStudioAuthor'):
+            self.assertEqual(data['identity'][key], source_identity[key])
 
     def test_metadata_dependencies_and_root_archive_ownership(self):
         fields = subprocess.run(['dpkg-deb', '--field', str(self.package)],

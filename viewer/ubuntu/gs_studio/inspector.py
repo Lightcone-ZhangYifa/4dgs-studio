@@ -65,6 +65,11 @@ class Inspector(Gtk.Box):
             self.raw.get_buffer().set_text(text)
             self._raw_text = text
 
+    @property
+    def plain_rows(self):
+        """Exact source/display strings, independent of Adwaita markup getters."""
+        return tuple(zip(self._row_titles,self._subtitles))
+
     def _descriptor_snapshot(self, document, primary, track):
         """Serialize unchanged source/authored descriptors once, outside ticks."""
         key = (id(document),primary,id(track),id(track.keyframes) if track else None,
@@ -84,16 +89,20 @@ class Inspector(Gtk.Box):
             self._descriptor_references = document,track,track.keyframes if track else None
         return self._descriptor_value,self._descriptor_text
 
-    def document(self, document, frame=None):
+    def document(self, document, frame=None, *, object_count=None, sample_count=None):
         """Independent document pane, matching the native workspace contract."""
-        count = getattr(frame, 'count', None)
+        count = getattr(frame, 'source_count', None)
+        if count is None:
+            count = getattr(frame, 'count', None)
         if count is None:
             count = sum(document.manifest['arrays'].get(document.object(identifier)['data'].get('ids'), {})
                         .get('shape', [0])[0] for identifier in document.visible_ids)
         space = document.manifest.get('spaces', {}).get(document.space, {})
         clock = document.manifest.get('clocks', {}).get(document.clock, {})
+        object_count = len(document.objects) if object_count is None else object_count
+        sample_count = len(document.times) if sample_count is None else sample_count
         signature = ('document', id(document), document.space, document.clock, count,
-                     len(document.times), tuple(document.visible_ids), json.dumps(space, sort_keys=True),
+                     object_count,sample_count,tuple(document.visible_ids),json.dumps(space, sort_keys=True),
                      json.dumps(clock, sort_keys=True))
         if signature == self.signature:
             return
@@ -109,8 +118,8 @@ class Inspector(Gtk.Box):
             clock_note = tr('clock.mapping')
             for value in (clock['mapping']['target'], str(clock['mapping']['scale']), str(clock['mapping']['offset'])):
                 clock_note = clock_note.replace('%@', value, 1)
-        values = [('document.file', document.path.name), ('document.objects', len(document.objects)),
-                  ('document.primitives', count), ('document.samples', len(document.times)),
+        values = [('document.file', document.path.name), ('document.objects', object_count),
+                  ('document.primitives', count), ('document.samples', sample_count),
                   ('property.space', document.space), ('document.coordinates', coordinate if space else '—'),
                   ('property.clock', document.clock), ('property.units', tr('unit.'+document.clock_unit, document.clock_unit)),
                   ('document.clock', clock_note+'\n\n'+tr('document.clockNote')),

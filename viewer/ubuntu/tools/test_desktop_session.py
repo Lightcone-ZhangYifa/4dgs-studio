@@ -98,6 +98,8 @@ class Desktop:
         self.backend = None
         self.virtual_size = None
         self.maximized = False
+        self.eis = None
+        self.pointer_mapping_id = None
 
     def call(self, destination, path, interface, method, value=None):
         return self.bus.call_sync(destination, path, interface, method, value, None,
@@ -192,6 +194,9 @@ class Desktop:
             self.remote_started = True
 
     def keyboard_stop(self):
+        if self.eis is not None:
+            self.eis.close()
+            self.eis = None
         if self.remote:
             try:
                 if self.remote_started:
@@ -200,6 +205,8 @@ class Desktop:
                 self.remote, self.remote_started = None, False
 
     def key_call(self, method, value=None):
+        if self.eis is not None and method.startswith('Notify'):
+            return self.eis.notify(method, value, mapping_id=self.pointer_mapping_id)
         return self.call('org.gnome.Mutter.RemoteDesktop', self.remote,
                          'org.gnome.Mutter.RemoteDesktop.Session', method, value)
 
@@ -216,22 +223,22 @@ class Desktop:
                 pump(.035)
 
     def click(self, node):
-        """Click a real control on this runner's single, maximized output.
-
-        GTK 4.14 reports zero SCREEN origins; WINDOW coordinates retain the
-        correct widget allocation. The maximized work area leaves GNOME's dock
-        on the left and panel above. No pointer action uses an unowned output.
-        """
-        if self.virtual_size is None or not self.maximized or self.monitor_count() != 1:
+        """Click only a control with verified owned-window/output coordinates."""
+        from desktop_coordinates import owned_target_point
+        point = owned_target_point(self, node)
+        if point is None:
             return False
-        rect = Atspi.Component.get_extents(node, Atspi.CoordType.WINDOW)
-        window = Atspi.Component.get_extents(self.window(), Atspi.CoordType.WINDOW)
-        x, y = rect.x+rect.width*.5, rect.y+rect.height*.5
-        if rect.width <= 0 or rect.height <= 0 or not (0 <= x < window.width and 0 <= y < window.height):
-            raise RuntimeError('The accessible target is outside the owned maximized window')
-        x += self.virtual_size[0]-window.width
-        y += self.virtual_size[1]-window.height
-        if self.backend == 'x11':
+        x, y = point
+        if self.pointer_stream:
+            # Route clicks through Mutter, including Xwayland windows. XTEST
+            # can deliver GTK events without moving the compositor's seat focus,
+            # which leaves a subsequently opened Wayland portal without keys.
+            self.key_call('NotifyPointerMotionAbsolute', GLib.Variant('(sdd)', (self.pointer_stream, x, y)))
+            pump(.15)
+            self.key_call('NotifyPointerButton', GLib.Variant('(ib)', (272, True)))
+            pump(.08)
+            self.key_call('NotifyPointerButton', GLib.Variant('(ib)', (272, False)))
+        elif self.backend == 'x11':
             xlib = ctypes.CDLL(ctypes.util.find_library('X11'))
             xtst = ctypes.CDLL(ctypes.util.find_library('Xtst'))
             xlib.XOpenDisplay.argtypes, xlib.XOpenDisplay.restype = [ctypes.c_char_p], ctypes.c_void_p
@@ -249,17 +256,25 @@ class Desktop:
                 xlib.XFlush(display)
             finally:
                 xlib.XCloseDisplay(display)
-        else:
-            self.key_call('NotifyPointerMotionAbsolute', GLib.Variant('(sdd)', (self.pointer_stream, x, y)))
-            self.key_call('NotifyPointerButton', GLib.Variant('(ib)', (272, True)))
-            self.key_call('NotifyPointerButton', GLib.Variant('(ib)', (272, False)))
         pump(.2)
         return True
 
     def native_open(self, operation, path):
         title = 'Open GSV Scene' if operation == 'open' else 'Import Camera Animation'
-        self.window_action('open' if operation == 'open' else 'import-camera')
+        from desktop_coordinates import activate_owned_x11
+        activate_owned_x11(self)
+        opened = self.button('Open Scene…') if operation == 'open' else None
+        clicked = opened is not None and self.click(opened)
+        if clicked:
+            try:
+                wait_for(lambda: self.portal(title), 'clicked native '+title, 2)
+            except RuntimeError:
+                clicked = False
+        if not clicked:
+            self.window_action('open' if operation == 'open' else 'import-camera')
         dialog = wait_for(lambda: self.portal(title), 'native ' + title)
+        self.debug_portal = dialog
+        pump(.5)
         self.chord(ord('l'), control=True)
         def location_entry():
             entries = [n for n in walk(dialog) if 'EditableText' in n.get_interfaces()]
@@ -294,70 +309,40 @@ class Desktop:
                     self.chord(0xff0d)
         try:
             wait_for(lambda: self.portal(title) is None, 'native open completion', 5)
+            self.debug_portal = None
         except RuntimeError as error:
             raise RuntimeError(f'{error}; location={text(entry)!r}; app_status={self.status()!r}') from error
 
     def orbit(self, backend):
-        # Only called on the session-owned, single virtual output. Maximizing
-        # our own window makes the origin deterministic without reading another
-        # window or taking a desktop screenshot.
-        window = self.window()
-        action(window, 'window.toggle-maximized')
-        self.maximized = True
+        """Drag only the current owned viewport with a verified EIS mapping."""
+        from desktop_coordinates import owned_target_point
         leaves = []
         for node in self.app_nodes():
             if (node.get_role_name() in ('panel', 'filler', 'drawing area') and node.get_child_count() == 0
                     and node.get_state_set().contains(Atspi.StateType.SHOWING)
                     and node.get_state_set().contains(Atspi.StateType.FOCUSABLE)
                     and 'Component' in node.get_interfaces()):
-                rect = Atspi.Component.get_extents(node, Atspi.CoordType.SCREEN)
+                rect = Atspi.Component.get_extents(node, Atspi.CoordType.WINDOW)
                 if rect.width > 300 and rect.height > 180:
-                    leaves.append((rect.width*rect.height, rect))
-        if not leaves:
-            raise RuntimeError('Cannot identify the owned visible viewport for the native drag')
-        rect = max(leaves, key=lambda value: value[0])[1]
-        x, y = float(rect.x+rect.width*.5), float(rect.y+rect.height*.5)
-        self.pointer_target = {'rect': [rect.x, rect.y, rect.width, rect.height], 'center': [x, y]}
-        if backend == 'x11':
-            xlib = ctypes.CDLL(ctypes.util.find_library('X11'))
-            xtst = ctypes.CDLL(ctypes.util.find_library('Xtst'))
-            xlib.XOpenDisplay.argtypes = [ctypes.c_char_p]
-            xlib.XOpenDisplay.restype = ctypes.c_void_p
-            xlib.XFlush.argtypes = [ctypes.c_void_p]
-            xlib.XCloseDisplay.argtypes = [ctypes.c_void_p]
-            xtst.XTestFakeMotionEvent.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_ulong]
-            xtst.XTestFakeButtonEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_int, ctypes.c_ulong]
-            display = xlib.XOpenDisplay(None)
-            if not display:
-                raise RuntimeError('Cannot open the owned Xwayland display for native XTEST input')
-            try:
-                xtst.XTestFakeMotionEvent(display, -1, int(x), int(y), 0)
-                xlib.XFlush(display)
-                pump(.15)
-                xtst.XTestFakeButtonEvent(display, 2, True, 0)
-                xlib.XFlush(display)
-                pump(.1)
-                for i in range(1, 6):
-                    xtst.XTestFakeMotionEvent(display, -1, int(x+i*10), int(y+i*4), 0)
-                    xlib.XFlush(display)
-                    pump(.04)
-            finally:
-                xtst.XTestFakeButtonEvent(display, 2, False, 0)
-                xlib.XFlush(display)
-                xlib.XCloseDisplay(display)
-            pump(.3)
-            return
-        if not self.pointer_stream:
-            raise RuntimeError('A native stream coordinate mapping is required for a safe pointer test')
-        self.key_call('NotifyPointerMotionAbsolute', GLib.Variant('(sdd)', (self.pointer_stream, x, y)))
+                    leaves.append((rect.width*rect.height, node, rect))
+        if not leaves or not self.pointer_stream:
+            raise RuntimeError('Cannot verify the owned viewport and native pointer mapping')
+        _, node, rect = max(leaves, key=lambda value: value[0])
+        start = owned_target_point(self, node)
+        end = owned_target_point(self, node, x_fraction=.56, y_fraction=.56)
+        if start is None or end is None:
+            raise RuntimeError('The owned viewport coordinates are ambiguous')
+        self.pointer_target = {'rect': [rect.x, rect.y, rect.width, rect.height],
+                               'start': list(start), 'end': list(end)}
+        self.key_call('NotifyPointerMotionAbsolute', GLib.Variant('(sdd)', (self.pointer_stream, *start)))
         pump(.15)
         self.key_call('NotifyPointerButton', GLib.Variant('(ib)', (274, True)))
         try:
             pump(.1)
-            for i in range(1, 6):
-                self.key_call('NotifyPointerMotionAbsolute', GLib.Variant('(sdd)',
-                              (self.pointer_stream, x+i*10, y+i*4)))
-                pump(.035)
+            for i in range(1, 7):
+                x, y = [a+(b-a)*i/6 for a,b in zip(start,end)]
+                self.key_call('NotifyPointerMotionAbsolute', GLib.Variant('(sdd)', (self.pointer_stream, x, y)))
+                pump(.04)
         finally:
             self.key_call('NotifyPointerButton', GLib.Variant('(ib)', (274, False)))
         pump(.3)
@@ -367,6 +352,7 @@ class Desktop:
                           and n.get_attributes().get('placeholder-text') == 'TIME')
         if entry is None:
             raise RuntimeError('The native timeline entry is missing')
+        self.click(entry)
         # GTK 4's inner GtkText accessibility activate action does not forward
         # GtkEntry::activate on this desktop version. Use actual keyboard focus
         # traversal and Return, then verify the committed source timestamp.
@@ -447,6 +433,13 @@ class VirtualOutput:
             'org.gnome.Mutter.ScreenCast.Stream', 'PipeWireStreamAdded', stream, None,
             Gio.DBusSignalFlags.NONE, lambda *args: nodes.append(args[5].unpack()[0]))
         d.pointer_stream = stream
+        parameters = d.call('org.gnome.Mutter.ScreenCast', stream, 'org.freedesktop.DBus.Properties',
+                            'Get', GLib.Variant('(ss)', ('org.gnome.Mutter.ScreenCast.Stream','Parameters'))).unpack()[0]
+        if isinstance(parameters,GLib.Variant):
+            parameters = parameters.unpack()
+        d.pointer_mapping_id = parameters.get('mapping-id')
+        if isinstance(d.pointer_mapping_id,GLib.Variant):
+            d.pointer_mapping_id = d.pointer_mapping_id.unpack()
         d.keyboard_start()
         node = wait_for(lambda: nodes[0] if nodes else None, 'temporary native output stream')
         self.pipeline = Gst.parse_launch(f'pipewiresrc path={node} ! video/x-raw,format=BGRx,'
@@ -464,6 +457,7 @@ class VirtualOutput:
             if self.session:
                 self.desktop.keyboard_stop()
                 self.desktop.pointer_stream = None
+                self.desktop.pointer_mapping_id = None
                 self.session = None
             if self.subscription is not None:
                 self.desktop.bus.signal_unsubscribe(self.subscription)
@@ -513,6 +507,15 @@ def run(args):
                 raise RuntimeError('The GNOME session has no active output and keyboard focus. Connect a desktop display or explicitly pass --virtual-output.')
             virtual.start()
             report['temporary_virtual_output'] = True
+        desktop.keyboard_start()
+        report['input_backend'] = args.input_backend
+        if args.input_backend == 'eis':
+            from desktop_eis import EISInput
+            desktop.eis = EISInput.from_remote_session(desktop.bus, desktop.remote)
+            report['input_devices'] = desktop.eis.diagnostics()
+            if not report['temporary_virtual_output']:
+                from desktop_coordinates import configure_existing_output
+                report['existing_output_mapping'] = configure_existing_output(desktop)
         fixture = output / 'synthetic.gsv'
         make_fixture(fixture)
         source_digest = hashlib.sha256(fixture.read_bytes()).hexdigest()
@@ -543,6 +546,12 @@ def run(args):
         wait_for(lambda: desktop.owner_pid() == desktop.pid and desktop.window(), 'normal application launch')
         report['pid'] = desktop.pid
         desktop.keyboard_start()
+        if not existing:
+            action(desktop.window(), 'window.toggle-maximized')
+            desktop.maximized = True
+            pump(.5)
+        from desktop_coordinates import activate_owned_x11
+        report['initial_window_activated'] = activate_owned_x11(desktop)
         desktop.native_open('open', fixture)
         desktop.allow_close = True
         wait_for(lambda: desktop.current_time() == 0, 'source scene loaded')
@@ -563,7 +572,7 @@ def run(args):
         wait_for(lambda: desktop.current_time() == 0, 'first source sample')
         desktop.window_action('create-camera')
         desktop.allow_discard = True
-        test_orbit = report['temporary_virtual_output'] and (args.backend == 'x11' or args.test_orbit)
+        test_orbit = bool(desktop.pointer_stream) and (args.backend == 'x11' or args.test_orbit)
         report['orbit_input_tested'] = False
         if test_orbit:
             desktop.orbit(args.backend)
@@ -605,16 +614,26 @@ def run(args):
                                           after.array(after.objects[0]['data']['pose']['camera_to_world']))
         report['steps'].append('native-camera-undo-redo-delete-import-roundtrip')
         if args.full:
-            if report['temporary_virtual_output'] and not desktop.maximized:
+            if not desktop.maximized:
                 action(desktop.window(), 'window.toggle-maximized')
                 desktop.maximized = True
                 pump(.3)
-            from desktop_parity import run_full
-            run_full(desktop, output, report)
-            from desktop_comparison_checks import run_comparison_checks
-            run_comparison_checks(desktop, output, report)
-            from desktop_lifecycle_checks import run_lifecycle_checks
-            run_lifecycle_checks(desktop, output, report)
+            report['requested_full_checks'] = args.full_checks
+            if 'parity' in args.full_checks:
+                from desktop_parity import run_full
+                run_full(desktop, output, report)
+            if 'timeline' in args.full_checks:
+                from desktop_timeline_checks import run_timeline_checks
+                run_timeline_checks(desktop, output, report)
+            if 'navigation' in args.full_checks:
+                from desktop_timeline_checks import run_navigation_key_checks
+                run_navigation_key_checks(desktop, output, report)
+            if 'comparison' in args.full_checks:
+                from desktop_comparison_checks import run_comparison_checks
+                run_comparison_checks(desktop, output, report)
+            if 'lifecycle' in args.full_checks:
+                from desktop_lifecycle_checks import run_lifecycle_checks
+                run_lifecycle_checks(desktop, output, report)
         workspace = output / 'workspace.png'
         desktop.native_save('workspace-snapshot', 'Save Workspace Snapshot…', workspace)
         report['steps'].append('native-workspace-png-save')
@@ -647,6 +666,18 @@ def run(args):
         return report
     except Exception as error:
         report.update(passed=False, error=str(error), traceback=traceback.format_exc())
+        if args.inspect_failure:
+            print('Owned desktop inspection pause: '+str(error), flush=True)
+            pump(min(60, args.inspect_failure))
+        if getattr(desktop,'debug_portal',None) is not None:
+            try:
+                controls = [{'name':n.get_name(),'role':n.get_role_name(), 'states':[s.value_nick for s in n.get_state_set().get_states()],
+                             'description':n.get_description(), 'actions':[Atspi.Action.get_action_name(n,i) for i in range(Atspi.Action.get_n_actions(n))]}
+                            for n in walk(desktop.debug_portal) if n.get_role_name() in
+                            ('push button','toggle button','text','combo box','dialog','file chooser','menu button')]
+                (output/'portal-controls.json').write_text(json.dumps(controls,indent=2,ensure_ascii=False)+'\n')
+            except Exception:
+                pass
         try:
             nodes = [{'name': node.get_name(), 'role': node.get_role_name(),
                       'description': node.get_description(), 'attributes': node.get_attributes(),
@@ -689,9 +720,13 @@ def main():
     parser.add_argument('--attach-pid', type=int, help='Explicitly replace documents in this owned test process; never attach to user work')
     parser.add_argument('--virtual-output', action='store_true', help='When GNOME has zero outputs, create one session-owned output and remove it on exit')
     parser.add_argument('--prime', action='store_true', help='Select NVIDIA PRIME offload for this process only')
-    parser.add_argument('--test-orbit', action='store_true', help='Also require the mapped Mutter pointer check on Wayland; Xwayland always uses real XTEST input')
+    parser.add_argument('--test-orbit', action='store_true', help='Also require the verified native pointer drag on Wayland; mapped Xwayland runs always require it')
     parser.add_argument('--python', type=Path)
+    parser.add_argument('--input-backend', choices=('eis','legacy'), default='eis', help='Native Mutter EIS/libei input, or the legacy RemoteDesktop notifications')
     parser.add_argument('--full', action='store_true', help='Also exercise inspector pages, all transport commands, camera fields, key editing, preview settings, resolution exports and workbench commands')
+    parser.add_argument('--full-checks', nargs='+', choices=('parity','timeline','navigation','comparison','lifecycle'),
+                        default=['parity','timeline','navigation','comparison','lifecycle'], help='Run selected expanded groups; the report records this scope explicitly')
+    parser.add_argument('--inspect-failure', type=int, default=0, help='Keep the owned test UI for up to 60 seconds after failure, then perform normal cleanup')
     args = parser.parse_args()
     try:
         return 0 if run(args)['passed'] else 1

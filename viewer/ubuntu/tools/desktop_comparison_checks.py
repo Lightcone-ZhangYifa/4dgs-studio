@@ -6,8 +6,6 @@ imported. Native save dialogs and independently decoded PNGs are the evidence.
 """
 from __future__ import annotations
 
-import ctypes
-import ctypes.util
 import hashlib
 import re
 import time
@@ -106,8 +104,8 @@ def _assert_locked(desktop, locked):
 
 def _image_region(desktop, pixels):
     """A central reference-pane crop excludes labels, controls and focus rings."""
-    canvas = Atspi.Component.get_extents(_canvas(desktop), Atspi.CoordType.SCREEN)
-    window = Atspi.Component.get_extents(desktop.window(), Atspi.CoordType.SCREEN)
+    canvas = Atspi.Component.get_extents(_canvas(desktop), Atspi.CoordType.WINDOW)
+    window = Atspi.Component.get_extents(desktop.window(), Atspi.CoordType.WINDOW)
     sx, sy = pixels.shape[1]/window.width, pixels.shape[0]/window.height
     x0, x1 = [round((canvas.x-window.x+canvas.width*fraction)*sx) for fraction in (.60,.90)]
     y0, y1 = [round((canvas.y-window.y+canvas.height*fraction)*sy) for fraction in (.35,.75)]
@@ -124,76 +122,36 @@ def _return_to_scene(desktop):
 
 
 def _native_image_gesture(desktop, report):
-    """Pan and Alt-wheel only on the runner-owned virtual output.
-
-    The runner already supplies the actual compositor stream mapping. Existing
-    user outputs are deliberately left without synthetic pointer interaction;
-    button-based Fit/1:1 are still exercised in every run.
-    """
-    if not report.get('temporary_virtual_output'):
-        return {'tested': False, 'reason': 'No runner-owned virtual output coordinate mapping'}
+    """Pan and Alt-wheel on the explicitly mapped owned comparison canvas."""
+    if not desktop.pointer_stream:
+        return {'tested': False, 'reason': 'No verified native absolute pointer mapping'}
     canvas = wait_for(lambda: _canvas(desktop), 'comparison canvas pointer target')
-    rect = Atspi.Component.get_extents(canvas, Atspi.CoordType.SCREEN)
+    rect = Atspi.Component.get_extents(canvas, Atspi.CoordType.WINDOW)
     if rect.width < 160 or rect.height < 120:
-        raise AssertionError('Comparison canvas is too small for a safe owned-window gesture')
-    x, y = float(rect.x+rect.width*.70), float(rect.y+rect.height*.55)
-    backend = report['backend']
-    if backend == 'x11':
-        xlib = ctypes.CDLL(ctypes.util.find_library('X11'))
-        xtst = ctypes.CDLL(ctypes.util.find_library('Xtst'))
-        xlib.XOpenDisplay.argtypes, xlib.XOpenDisplay.restype = [ctypes.c_char_p], ctypes.c_void_p
-        xlib.XFlush.argtypes = [ctypes.c_void_p]
-        xlib.XCloseDisplay.argtypes = [ctypes.c_void_p]
-        xtst.XTestFakeMotionEvent.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_ulong]
-        xtst.XTestFakeButtonEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_int, ctypes.c_ulong]
-        display = xlib.XOpenDisplay(None)
-        if not display:
-            raise RuntimeError('Cannot open the owned Xwayland display for image input')
-        alt_pressed = False
-        try:
-            xtst.XTestFakeMotionEvent(display, -1, int(x), int(y), 0)
-            xtst.XTestFakeButtonEvent(display, 1, True, 0)
-            xlib.XFlush(display)
-            pump(.1)
-            for index in range(1, 5):
-                xtst.XTestFakeMotionEvent(display, -1, int(x+index*10), int(y+index*4), 0)
-                xlib.XFlush(display)
-                pump(.04)
-            xtst.XTestFakeButtonEvent(display, 1, False, 0)
-            xlib.XFlush(display)
-            desktop.key_call('NotifyKeyboardKeysym', GLib.Variant('(ub)', (0xffe9, True)))
-            alt_pressed = True
-            for _ in range(2):
-                xtst.XTestFakeButtonEvent(display, 4, True, 0)
-                xtst.XTestFakeButtonEvent(display, 4, False, 0)
-                xlib.XFlush(display)
-                pump(.06)
-        finally:
-            xtst.XTestFakeButtonEvent(display, 1, False, 0)
-            xlib.XFlush(display)
-            xlib.XCloseDisplay(display)
-            if alt_pressed:
-                desktop.key_call('NotifyKeyboardKeysym', GLib.Variant('(ub)', (0xffe9, False)))
-    else:
-        if not desktop.pointer_stream:
-            return {'tested': False, 'reason': 'Mutter did not provide an owned absolute pointer stream'}
-        desktop.key_call('NotifyPointerMotionAbsolute', GLib.Variant('(sdd)', (desktop.pointer_stream, x, y)))
-        desktop.key_call('NotifyPointerButton', GLib.Variant('(ib)', (272, True)))
-        try:
-            for index in range(1, 5):
-                desktop.key_call('NotifyPointerMotionAbsolute', GLib.Variant('(sdd)',
-                                 (desktop.pointer_stream, x+index*10, y+index*4)))
-                pump(.04)
-        finally:
-            desktop.key_call('NotifyPointerButton', GLib.Variant('(ib)', (272, False)))
-        desktop.key_call('NotifyKeyboardKeysym', GLib.Variant('(ub)', (0xffe9, True)))
-        try:
-            desktop.key_call('NotifyPointerAxisDiscrete', GLib.Variant('(ui)', (0, -2)))
-        finally:
-            desktop.key_call('NotifyKeyboardKeysym', GLib.Variant('(ub)', (0xffe9, False)))
+        raise AssertionError('Comparison canvas is too small for an owned-window gesture')
+    from desktop_coordinates import owned_target_point
+    start = owned_target_point(desktop, canvas, x_fraction=.70, y_fraction=.55)
+    end = owned_target_point(desktop, canvas, x_fraction=.75, y_fraction=.60)
+    if start is None or end is None:
+        raise RuntimeError('Native comparison window coordinates could not be verified')
+    desktop.key_call('NotifyPointerMotionAbsolute', GLib.Variant('(sdd)', (desktop.pointer_stream, *start)))
+    pump(.1)
+    desktop.key_call('NotifyPointerButton', GLib.Variant('(ib)', (272, True)))
+    try:
+        for index in range(1, 5):
+            x,y = [a+(b-a)*index/4 for a,b in zip(start,end)]
+            desktop.key_call('NotifyPointerMotionAbsolute', GLib.Variant('(sdd)', (desktop.pointer_stream, x,y)))
+            pump(.04)
+    finally:
+        desktop.key_call('NotifyPointerButton', GLib.Variant('(ib)', (272, False)))
+    desktop.key_call('NotifyKeyboardKeysym', GLib.Variant('(ub)', (0xffe9, True)))
+    try:
+        desktop.key_call('NotifyPointerAxisDiscrete', GLib.Variant('(ui)', (0, -2)))
+    finally:
+        desktop.key_call('NotifyKeyboardKeysym', GLib.Variant('(ub)', (0xffe9, False)))
     pump(.3)
-    return {'tested': True, 'backend': backend, 'canvas_rect': [rect.x, rect.y, rect.width, rect.height],
-            'drag_delta': [40, 16], 'alt_wheel_steps': 2}
+    return {'tested': True, 'backend': report['backend'], 'canvas_rect': [rect.x,rect.y,rect.width,rect.height],
+            'start':list(start), 'end':list(end), 'alt_wheel_steps':2}
 
 
 def run_comparison_checks(desktop, output, report):

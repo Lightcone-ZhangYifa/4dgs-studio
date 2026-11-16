@@ -714,11 +714,15 @@ class ApplicationTests(unittest.TestCase):
         self.assertTrue(w.compare_bar.get_visible())
         self.assertFalse(w.view_bar.get_sensitive())
         self.assertFalse(w.viewport_controls.get_sensitive())
+        self.assertFalse(w.camera_drop.get_sensitive())
+        self.assertFalse(w.near_clip_control.get_sensitive())
         self.assertTrue(all(not control.get_sensitive() for control in w.preview_controls))
         self.assertFalse(w.camera_editor.get_visible())
         w.compare_toggle.set_active(False)
         self.assertFalse(w.compare_bar.get_visible())
         self.assertTrue(w.view_bar.get_sensitive())
+        self.assertTrue(w.camera_drop.get_sensitive())
+        self.assertTrue(w.near_clip_control.get_sensitive())
         self.assertTrue(w.camera_editor.get_visible())
         self.assertEqual(self.errors, [])
 
@@ -834,6 +838,196 @@ class ApplicationTests(unittest.TestCase):
         w.near_clip_control.set_value(.05)
         w.record_key()
         self.assertEqual(w._track().keyframes[-1].near,.05)
+        self.assertEqual(self.errors,[])
+
+    def test_fov_editor_scales_skew_with_focal_length_and_accepts_native_boundaries(self):
+        import math
+        self.open_scene()
+        w=self.window
+        w.create_camera()
+        track=w._track()
+        calibration=track.at(w.time)
+        k=calibration.K.copy()
+        k[0,0],k[1,1],k[0,1]=300.,330.,27.
+        k[:2,2]=[track.width*.35,track.height*.4]
+        track.record(w.time,k,calibration.c2w)
+        w._camera_edited()
+        self.pump_until(lambda:not w.frames.running)
+        for degrees in (70.,1.,170.):
+            before=w._track().at(w.time)
+            width,height=w._track().width,w._track().height
+            w.fov.set_text(str(degrees))
+            w.fov.emit('activate')
+            self.pump_until(lambda:not w.frames.running)
+            self.assertEqual(self.errors,[])
+            after=w._track().at(w.time)
+            focal=width/(2*math.tan(math.radians(degrees)/2))
+            ratio=focal/before.K[0,0]
+            self.assertAlmostEqual(after.K[0,0],focal)
+            self.assertAlmostEqual(after.K[1,1],before.K[1,1]*ratio)
+            self.assertAlmostEqual(after.K[0,1],before.K[0,1]*ratio)
+            np.testing.assert_array_equal(after.K[:2,2],before.K[:2,2])
+            np.testing.assert_array_equal(after.c2w,before.c2w)
+            self.assertEqual((after.width,after.height),(width,height))
+            w.lookup_action('camera-undo').activate(None)
+            np.testing.assert_allclose(w._track().at(w.time).K,before.K)
+            w.lookup_action('camera-redo').activate(None)
+            np.testing.assert_allclose(w._track().at(w.time).K,after.K)
+
+    def test_preview_range_and_rate_commit_pause_but_uncommitted_or_invalid_rate_do_not(self):
+        self.open_scene()
+        w=self.window
+        w._set_playing(True)
+        w.rate.set_text('2')
+        self.assertTrue(w.playing)
+        w.rate.emit('activate')
+        self.assertFalse(w.playing)
+        self.assertEqual(w._preview_rate,2)
+        w._set_playing(True)
+        w.rate.set_text('unfinished')
+        w.rate.emit('activate')
+        self.assertTrue(w.playing)
+        self.assertEqual(w._preview_rate,2)
+        w.range_start.set_text('.25');w.range_end.set_text('.75')
+        self.assertTrue(w.playing)
+        w.range_enabled.set_active(True)
+        self.assertFalse(w.playing)
+        w._set_playing(True)
+        w.range_enabled.set_active(False)
+        self.assertFalse(w.playing)
+        self.assertEqual(self.errors,[])
+
+    def test_exact_time_entry_extends_session_timeline_without_changing_source(self):
+        self.open_scene()
+        w=self.window
+        source_times=w.document.times.copy()
+        w.time_entry.set_text('2.5');w.time_entry.emit('activate')
+        self.pump_until(lambda:w.time==2.5 and not w.frames.running)
+        self.assertIn(2.5,w.timeline.times)
+        np.testing.assert_array_equal(w.document.times,source_times)
+        w._step(-1)
+        self.pump_until(lambda:w.time==1 and not w.frames.running)
+        w._step(1000000000)
+        self.pump_until(lambda:w.time==2.5 and not w.frames.running)
+        self.assertFalse(w.dirty)
+        self.open_scene(self.other)
+        self.assertNotIn(2.5,w.timeline.times)
+        self.assertEqual(self.errors,[])
+
+    def test_exact_id_without_owner_rejects_ambiguity_instead_of_selecting_first_field(self):
+        path=Path(self.temp.name)/'ambiguous-identity.gsv'
+        state=np.zeros((1,16),np.float32)
+        state[0,:3]=[0,0,2];state[0,3:7]=[.8,.1,.1,.1];state[0,7:9]=1;state[0,12:16]=[1,.2,.3,-1]
+        with Writer(path) as out:
+            for owner in ('one','two'):
+                add_persistent_gaussians(out,owner,np.array([7],np.int64),[0,1],[state,state])
+        self.open_scene(path)
+        w=self.window
+        w._pick(None,None)
+        w.id_entry.set_text('7');w.id_entry.emit('activate')
+        self.assertEqual(w.selected,set())
+        self.assertIsNone(w.primary)
+        self.assertEqual(len(self.errors),1)
+        self.assertIn('7',self.errors[0])
+        self.errors.clear()
+        w.outliner.select_members([('two',None)],emit=True)
+        w.id_entry.emit('activate')
+        self.pump_until(lambda:w.selected=={('two',7)} and not w.frames.running)
+        self.assertEqual(self.errors,[])
+
+    def test_single_key_authored_camera_can_be_viewed_across_clock_but_cannot_be_edited(self):
+        self.open_scene()
+        w=self.window
+        w.create_camera()
+        track=w._track();track.clock='independent-clock'
+        w._camera_edited()
+        index=next(i+1 for i,(owner,_,_) in enumerate(w.camera_entries) if owner==track.id)
+        w.camera_drop.set_selected(index)
+        self.assertEqual(w.camera_drop.get_selected(),index)
+        self.assertTrue(any(entry['object_id']==track.id for entry in w.viewport.cameras))
+        self.assertEqual(w.editing_id,track.id)
+        w.record_key()
+        self.assertEqual(len(self.errors),1)
+        w.position.set_text('1,2,3');w.position.emit('activate')
+        self.assertEqual(len(self.errors),2)
+        self.assertEqual(len(track.keyframes),1)
+        self.errors.clear()
+        calibration=track.at(0)
+        track.record(1,calibration.K,calibration.c2w)
+        w._camera_edited()
+        self.assertEqual(w.camera_drop.get_selected(),0)
+        self.assertFalse(any(entry['object_id']==track.id for entry in w.viewport.cameras))
+        self.assertEqual(self.errors,[])
+
+    def test_copy_attributes_preserves_literal_markup_and_entities_without_global_clipboard(self):
+        owner='source&amp;literal &#55; <b>field</b>'
+        path=Path(self.temp.name)/'literal-attributes.gsv'
+        state=np.zeros((1,16),np.float32)
+        state[0,:3]=[0,0,2];state[0,3:7]=[.8,.1,.1,.1];state[0,7:9]=1;state[0,12:16]=[1,.2,.3,-1]
+        with Writer(path) as out:
+            add_persistent_gaussians(out,owner,np.array([7],np.int64),[0,1],[state,state])
+        self.open_scene(path)
+        w=self.window
+        w.outliner.select_members([(owner,None)],emit=True)
+        self.pump_until(lambda:not w.frames.running)
+        self.assertIn((self.application.tr('property.identity'),owner),w.detail_view.plain_rows)
+        clipboard=mock.Mock()
+        with mock.patch.object(w,'get_clipboard',return_value=clipboard):
+            w._copy_attributes()
+        clipboard.set.assert_called_once()
+        copied=clipboard.set.call_args.args[0]
+        self.assertIn(self.application.tr('property.identity')+': '+owner,copied.splitlines())
+        self.assertEqual(self.errors,[])
+
+    def test_foreign_camera_keys_cannot_seek_or_retime_and_are_hidden_from_active_lane(self):
+        self.open_scene()
+        w=self.window
+        w.create_camera()
+        track=w._track();track.clock='independent-clock'
+        w._camera_edited()
+        self.assertEqual(w.timeline.keys,[])
+        before=w.time
+        w._select_key(0)
+        self.assertEqual(w.time,before)
+        w.timeline.selected_key=0
+        w.key_time.set_text('3');w.key_time.emit('activate')
+        self.assertEqual(len(self.errors),1)
+        self.assertEqual(track.keyframes[0].time,0)
+        w._retime(0,4)
+        self.assertEqual(len(self.errors),2)
+        self.assertEqual(w._track().keyframes[0].time,0)
+        self.errors.clear()
+        track.clock=w.document.clock
+        w._camera_edited()
+        self.assertEqual(w.timeline.keys,[0])
+        w.timeline.selected_key=0
+        w.key_time.set_text('2');w.key_time.emit('activate')
+        self.pump_until(lambda:w.time==2 and not w.frames.running)
+        self.assertEqual(w._track().keyframes[0].time,2)
+        self.assertEqual(self.errors,[])
+
+    def test_document_and_header_counts_include_session_cameras_and_authored_times(self):
+        empty=Path(self.temp.name)/'empty-source.gsv'
+        with Writer(empty):pass
+        source_bytes=empty.read_bytes()
+        self.open_scene(empty)
+        w=self.window
+        w.create_camera()
+        w.time_entry.set_text('2.5');w.time_entry.emit('activate')
+        self.pump_until(lambda:w.time==2.5 and not w.frames.running)
+        w._inspect()
+        rows=dict(w.document_view.plain_rows)
+        self.assertEqual(rows[self.application.tr('document.objects')],'1')
+        self.assertEqual(rows[self.application.tr('document.samples')],'2')
+        self.assertEqual(w.title_widget.get_subtitle(),self.application.tr('ubuntu.counts').format(objects=1,samples=2))
+        self.assertEqual(w.sample_label.get_text(),'2 / 2')
+        self.assertEqual(len(w.document.objects),0)
+        np.testing.assert_array_equal(w.document.times,[0])
+        self.assertEqual(empty.read_bytes(),source_bytes)
+        w.delete_camera()
+        self.pump_until(lambda:not w.frames.running)
+        w._inspect()
+        self.assertEqual(dict(w.document_view.plain_rows)[self.application.tr('document.objects')],'0')
         self.assertEqual(self.errors,[])
 
 

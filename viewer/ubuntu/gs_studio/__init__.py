@@ -3,12 +3,15 @@ from pathlib import Path
 import json
 import plistlib
 
-# The source tree has one canonical product version. Debian packaging records
-# that value locally so installed applications do not depend on a source tree.
+# The native bundle owns product identity on both platforms. Packaging records
+# the same metadata locally so installed applications need no source tree.
 _product = Path(__file__).with_name("product.json")
 if _product.is_file():
-    VERSION = json.loads(_product.read_text())["version"]
+    _metadata = json.loads(_product.read_text())
+    VERSION = _metadata["version"]
+    PRODUCT_IDENTITY = _metadata.get("identity", {})
 else:
     with (Path(__file__).resolve().parents[2] / "native/Info.plist").open("rb") as stream:
-        VERSION = plistlib.load(stream)["CFBundleShortVersionString"]
+        PRODUCT_IDENTITY = plistlib.load(stream)
+    VERSION = PRODUCT_IDENTITY["CFBundleShortVersionString"]
 APPLICATION_ID = "io.github.LightconeZhangYifa.GSVStudio"

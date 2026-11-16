@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+import sys
 import time as clock
 from types import SimpleNamespace
 import numpy as np
@@ -480,7 +481,6 @@ class Viewport(Gtk.GLArea):
 
     def cancel_navigation(self):
         """Stop active input at its current pose, matching macOS Escape behavior."""
-        import sys
         if sys.is_finalizing():
             return False
         active = self._navigation_active

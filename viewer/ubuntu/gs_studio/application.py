@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import copy
-import html
 import json
 import math
 from pathlib import Path
@@ -17,7 +16,7 @@ gi.require_version("Adw", "1")
 gi.require_foreign("cairo")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
-from . import APPLICATION_ID, VERSION
+from . import APPLICATION_ID, PRODUCT_IDENTITY, VERSION
 from .i18n import tr, read_preferences, save_preferences
 from .jobs import LatestJob, CommandJobs
 from .model import SceneDocument, Trajectory, TrajectoryLimitError
@@ -103,6 +102,7 @@ class StudioWindow(Adw.ApplicationWindow):
         self.render_entries = []
         self._supplemental_clocks = {}
         self._supplemental_spaces = {}
+        self._authored_timeline = {}
         self.capture_catalog = {}
         self.capture_entries = []
         self._calibrations = {}
@@ -324,7 +324,7 @@ class StudioWindow(Adw.ApplicationWindow):
         row.append(button(tr("timeline.last", "Last sample"), lambda: self._step(1000000000), "media-skip-forward-symbolic"))
         self.time_entry = Gtk.Entry(width_chars=13, placeholder_text=tr("timeline.time", "Time"))
         accessible(self.time_entry, tr("timeline.time", "Time"))
-        self.time_entry.connect("activate", lambda w: self._guard(lambda: self._scrub(float(w.get_text()))))
+        self.time_entry.connect("activate", lambda *_: self._guard(self._author_time_changed))
         row.append(self.time_entry)
         self.loop = Gtk.CheckButton(label=tr("timeline.loop", "Loop"), active=True)
         row.append(self.loop)
@@ -372,6 +372,7 @@ class StudioWindow(Adw.ApplicationWindow):
         panel.append(self.member_drop)
         find = box(spacing=4, margin_start=8, margin_end=8)
         self.id_entry = Gtk.Entry(placeholder_text=tr("selection.exactID", "Exact Gaussian ID"), hexpand=True, width_chars=12)
+        accessible(self.id_entry, tr("selection.exactID", "Exact Gaussian ID"))
         self.id_entry.connect("activate", lambda *_: self._find_id())
         find.append(self.id_entry)
         find.append(button(tr("selection.find", "Find ID"), self._find_id, "edit-find-symbolic"))
@@ -726,6 +727,7 @@ class StudioWindow(Adw.ApplicationWindow):
         self.history = CameraHistory()
         self._supplemental_clocks = {}
         self._supplemental_spaces = {}
+        self._authored_timeline = {}
         self.editing_id = None
         self._viewed_entry = None
         self.dirty = False
@@ -932,6 +934,8 @@ class StudioWindow(Adw.ApplicationWindow):
             indices = np.flatnonzero(self.frame.ids == identity)
             if not len(indices):
                 raise ValueError(tr("ubuntu.idAbsent", "Identity is not present at the displayed time."))
+            if len(indices) > 1:
+                raise ValueError(tr("selection.ambiguousID", "Identity %@ is absent or ambiguous. Select its source object in the tree.").replace("%@",str(identity)))
             self._pick(str(self.frame.object_ids[indices[0]]), identity)
         self._guard(find)
 
@@ -1023,8 +1027,9 @@ class StudioWindow(Adw.ApplicationWindow):
             self.timeline.queue_draw()
             if not self._entry_editing(self.time_entry):
                 self.time_entry.set_text(f"{actual_time:.17g}")
-            index = int(np.clip(np.searchsorted(doc.times, actual_time), 0, len(doc.times)-1))
-            self.sample_label.set_text(f"{index+1} / {len(doc.times)}")
+            times = self.timeline.times
+            index = int(np.clip(np.searchsorted(times,actual_time,side='right')-1,0,len(times)-1))
+            self.sample_label.set_text(f"{index+1} / {len(times)}")
             warnings = [*getattr(frame, "warnings", []), *([path_error] if path_error else [])]
             self.status.set_text(tr("ubuntu.frame").format(count=f"{getattr(frame,'valid_count',len(frame.ids)):,}",time=f"{actual_time:.9g}") + (" · "+"; ".join(warnings) if warnings else ""))
             self._inspect()
@@ -1035,6 +1040,17 @@ class StudioWindow(Adw.ApplicationWindow):
     def _scrub(self, value):
         self._set_playing(False)
         self._guard(lambda: self._request_frame(value))
+
+    def _author_time_changed(self):
+        value = float(self.time_entry.get_text())
+        if not math.isfinite(value):
+            raise ValueError(tr("timeline.invalidTime", "Enter a finite document time."))
+        if not self.document:
+            return
+        self._set_playing(False)
+        self._authored_timeline.setdefault(self.document.clock,set()).add(value)
+        self._update_timeline()
+        self._request_frame(value)
 
     def _step(self, direction):
         if self.document is None:
@@ -1064,6 +1080,7 @@ class StudioWindow(Adw.ApplicationWindow):
         self._set_playing(not self.playing)
 
     def _preview_range_changed(self):
+        self._set_playing(False)
         self._preview_range = None
         self.timeline.preview_range = None
         if self.document and self.range_enabled.get_active():
@@ -1083,6 +1100,7 @@ class StudioWindow(Adw.ApplicationWindow):
             if not math.isfinite(rate) or not 0 < rate <= 10000:
                 raise ValueError(tr("timeline.invalidRate"))
             self._preview_rate = rate
+            self._set_playing(False)
         except ValueError:
             self.status.set_text(tr("timeline.invalidRate"))
 
@@ -1144,7 +1162,7 @@ class StudioWindow(Adw.ApplicationWindow):
         if index > 0:
             identifier, view, authored = self.camera_entries[index-1]
             track = next((t for t in self.history.tracks if t.id == identifier), None) if authored else None
-            compatible = (track.space,track.clock) == (self.document.space,self.document.clock) if track else (identifier,view) in self._calibrations
+            compatible = (track.space == self.document.space and (track.clock == self.document.clock or len(track.keyframes) == 1)) if track else (identifier,view) in self._calibrations
             if not compatible:
                 self._updating = True
                 self.camera_drop.set_selected(self.camera_entries.index(self._viewed_entry)+1 if self._viewed_entry in self.camera_entries else 0)
@@ -1184,7 +1202,7 @@ class StudioWindow(Adw.ApplicationWindow):
             try:
                 if authored:
                     track = next(t for t in self.history.tracks if t.id == identifier)
-                    if (track.space, track.clock) != (self.document.space or "world", self.document.clock or "timeline"):
+                    if track.space != (self.document.space or "world") or (len(track.keyframes) > 1 and track.clock != (self.document.clock or "timeline")):
                         continue
                     calibration = track.at(self.time)
                 else:
@@ -1204,7 +1222,7 @@ class StudioWindow(Adw.ApplicationWindow):
             try:
                 if authored:
                     track = next(t for t in self.history.tracks if t.id == identifier)
-                    if (track.space, track.clock) != (self.document.space or "world", self.document.clock or "timeline"):
+                    if track.space != (self.document.space or "world") or (len(track.keyframes) > 1 and track.clock != (self.document.clock or "timeline")):
                         raise ValueError("Camera and viewport space/clock differ. Select compatible geometry first.")
                     calibration = track.at(self.time)
                 else:
@@ -1308,7 +1326,10 @@ class StudioWindow(Adw.ApplicationWindow):
         if not self.document:
             return
         extra = [k.time for t in self.history.tracks if t.clock == (self.document.clock or "timeline") and t.space == self.document.space for k in t.keyframes]
+        extra.extend(self._authored_timeline.get(self.document.clock,()))
         self.timeline.times = np.unique(np.concatenate([self.document.times, extra]))
+        self.title_widget.set_subtitle(tr("ubuntu.counts").format(
+            objects=len(self.document.objects)+len(self.history.tracks),samples=len(self.timeline.times)))
         descriptor = self.document.manifest.get("clocks", {}).get(self.document.clock,
                       self._supplemental_clocks.get(self.document.clock, {}))
         unit = descriptor.get("unit", self.document.clock_unit)
@@ -1321,11 +1342,12 @@ class StudioWindow(Adw.ApplicationWindow):
 
     def _refresh_camera_editor(self, force=False):
         track = self._track()
-        signature = (id(track),id(track.keyframes)) if track else (None,None)
+        compatible = track is not None and (track.space,track.clock) == (self.document.space,self.document.clock)
+        signature = (id(track),id(track.keyframes),compatible) if track else (None,None,False)
         changed_keys = signature != self._editor_signature
         if changed_keys:
             self._editor_signature = signature
-            self.timeline.keys = [k.time for k in track.keyframes] if track else []
+            self.timeline.keys = track.times.tolist() if compatible else []
         self.timeline.key_name = track.label if track else ""
         self.camera_editor.set_visible(track is not None and not self.compare_toggle.get_active())
         if changed_keys:
@@ -1361,6 +1383,9 @@ class StudioWindow(Adw.ApplicationWindow):
     def _select_key(self, index):
         track = self._track()
         if track and 0 <= index < len(track.keyframes):
+            if (track.space,track.clock) != (self.document.space,self.document.clock):
+                self.status.set_text(tr("camera.keyDomainMismatch"))
+                return
             self.timeline.selected_key = index
             self._scrub(track.keyframes[index].time)
             self._refresh_camera_editor()
@@ -1370,6 +1395,8 @@ class StudioWindow(Adw.ApplicationWindow):
             track = self._track()
             if track is None:
                 return
+            if (track.space,track.clock) != (self.document.space,self.document.clock):
+                raise ValueError(tr("camera.keyDomainMismatch"))
             changed = track.clone()
             changed.retime(index, value)
             self.history.remember()
@@ -1403,10 +1430,12 @@ class StudioWindow(Adw.ApplicationWindow):
             k, pose = calibration.K.copy(), calibration.c2w.copy()
             if operation == "fov":
                 fov = float(self.fov.get_text())
-                if not math.isfinite(fov) or not 1 < fov < 170:
+                if not math.isfinite(fov) or not 1 <= fov <= 170:
                     raise ValueError(tr("camera.invalidFOV", "Horizontal FOV must be between 1° and 170°."))
                 focal = track.width/(2*math.tan(math.radians(fov)/2))
-                k[1,1] *= focal/k[0,0]
+                ratio = focal/k[0,0]
+                k[1,1] *= ratio
+                k[0,1] *= ratio
                 k[0,0] = focal
             else:
                 p = np.array([float(s) for s in self.position.get_text().replace(",", " ").split()])
@@ -1455,7 +1484,8 @@ class StudioWindow(Adw.ApplicationWindow):
     def _inspect(self):
         if not self.document:
             return
-        self.document_view.document(self.document, self.frame)
+        self.document_view.document(self.document,self.frame,
+            object_count=len(self.document.objects)+len(self.history.tracks),sample_count=len(self.timeline.times))
         self.create_from_selection.set_visible(not self.selected and not self.compare_toggle.get_active())
         self.camera_editor.set_visible(self._track() is not None and not self.compare_toggle.get_active())
         self.look_through.set_visible(self.primary is not None and any(e[0] == self.primary for e in self.camera_entries) and not self.compare_toggle.get_active())
@@ -1665,8 +1695,15 @@ class StudioWindow(Adw.ApplicationWindow):
 
     def _comparison_controls(self, active):
         self.compare_bar.set_visible(active)
-        self.view_bar.set_sensitive(not active)
-        self.viewport_controls.set_sensitive(not active)
+        for container in (self.view_bar, self.viewport_controls):
+            container.set_sensitive(not active)
+            # GTK 4.14 exposes each child's own sensitive flag through AT-SPI,
+            # even when its parent is disabled. Keep the public controls and
+            # their accessible states consistent while inspecting fixed images.
+            child = container.get_first_child()
+            while child is not None:
+                child.set_sensitive(not active)
+                child = child.get_next_sibling()
         for control in self.preview_controls:
             control.set_sensitive(not active)
 
@@ -1770,7 +1807,7 @@ class StudioWindow(Adw.ApplicationWindow):
 
     def _copy_attributes(self):
         values = [self.selection_label.get_text()]
-        values.extend(html.unescape(row.get_title())+": "+html.unescape(row.get_subtitle() or "") for row in self.detail_view.rows)
+        values.extend(title+": "+value for title,value in self.detail_view.plain_rows)
         self.get_clipboard().set("\n".join(values))
 
     def _home(self):
@@ -1795,6 +1832,8 @@ class StudioWindow(Adw.ApplicationWindow):
             self._step(-1)
         elif keyval == Gdk.KEY_Right:
             self._step(1)
+        elif keyval in (Gdk.KEY_1, Gdk.KEY_3, Gdk.KEY_7):
+            self._preset({Gdk.KEY_1: 'front', Gdk.KEY_3: 'right', Gdk.KEY_7: 'top'}[keyval])
         elif keyval == Gdk.KEY_Escape:
             self._set_playing(False)
             self._pick(None, None)
@@ -1918,8 +1957,19 @@ class StudioWindow(Adw.ApplicationWindow):
         dialog.present()
 
     def about(self):
-        dialog = Adw.AboutWindow(transient_for=self, modal=True, application_name="4DGS Studio", application_icon=APPLICATION_ID, developer_name="Yifa Zhang · 张亦法", version=VERSION, website="https://github.com/Lightcone-ZhangYifa/4dgs-studio", license_type=Gtk.License.MIT_X11)
-        dialog.add_link(tr("about.github", "GitHub"), "https://github.com/Lightcone-ZhangYifa")
+        from urllib.parse import urlsplit
+        author = PRODUCT_IDENTITY.get('GSVStudioAuthor', {})
+        names = list(dict.fromkeys(value.strip() for key in ('Name', 'NativeName')
+            if isinstance(value := author.get(key), str) and value.strip()))
+        dialog = Adw.AboutWindow(transient_for=self, modal=True,
+            application_name=PRODUCT_IDENTITY.get('CFBundleDisplayName', PRODUCT_IDENTITY.get('CFBundleName', '4DGS Studio')),
+            application_icon=APPLICATION_ID, developer_name=' · '.join(names), version=VERSION,
+            copyright=PRODUCT_IDENTITY.get('NSHumanReadableCopyright', ''),
+            website="https://github.com/Lightcone-ZhangYifa/4dgs-studio", license_type=Gtk.License.MIT_X11)
+        profile = author.get('ProfileURL', '').strip()
+        address = urlsplit(profile)
+        if address.scheme == 'https' and address.hostname and address.username is None and address.password is None:
+            dialog.add_link(tr("about.github", "GitHub"), profile)
         dialog.present()
 
     def _close_requested(self, window):

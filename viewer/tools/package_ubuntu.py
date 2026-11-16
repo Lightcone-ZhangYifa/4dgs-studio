@@ -21,7 +21,7 @@ APP_ID = "io.github.LightconeZhangYifa.GSVStudio"
 
 def build(destination):
     sys.path.insert(0, str(ROOT / "viewer/ubuntu"))
-    from gs_studio import VERSION
+    from gs_studio import PRODUCT_IDENTITY, VERSION
     destination = Path(destination).resolve()
     destination.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="gsv-deb-") as temporary:
@@ -29,7 +29,9 @@ def build(destination):
         lib = stage / "usr/share/4dgs-studio"
         shutil.copytree(ROOT / "viewer/ubuntu/gs_studio", lib / "ubuntu/gs_studio", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         shutil.copytree(ROOT / "packages/gsv/src/gsv", lib / "ubuntu/gsv", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-        (lib / "ubuntu/gs_studio/product.json").write_text(json.dumps({"version": VERSION}) + "\n")
+        identity = {key: PRODUCT_IDENTITY[key] for key in ("CFBundleDisplayName", "CFBundleName",
+            "CFBundleVersion", "NSHumanReadableCopyright", "GSVStudioAuthor") if key in PRODUCT_IDENTITY}
+        (lib / "ubuntu/gs_studio/product.json").write_text(json.dumps({"version": VERSION, "identity": identity}) + "\n")
         for language in ("en", "zh-Hans"):
             target = lib / f"Resources/{language}.lproj"
             target.mkdir(parents=True)
