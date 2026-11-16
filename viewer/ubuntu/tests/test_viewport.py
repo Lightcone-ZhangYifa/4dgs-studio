@@ -78,6 +78,24 @@ class NavigationTests(unittest.TestCase):
         np.testing.assert_array_equal(nav.pivot,pivot)
         np.testing.assert_allclose(nav.c2w[:3,2],forward,atol=1e-12)
 
+    def test_presets_are_proper_world_up_rotations_and_preserve_orbit(self):
+        from gs_studio.navigation import world_basis
+        for up in [np.array(x,dtype=float)*sign for x in np.eye(3) for sign in (-1,1)]:
+            for name in ('front','back','left','right','top','bottom','isometric'):
+                nav=Navigation();nav.up=up;nav.pivot=np.array([2.,1.,3.])
+                distance=np.linalg.norm(nav.c2w[:3,3]-nav.pivot)
+                nav.preset(name)
+                np.testing.assert_allclose(nav.c2w[:3,:3].T@nav.c2w[:3,:3],np.eye(3),atol=1e-12)
+                self.assertAlmostEqual(np.linalg.det(nav.c2w[:3,:3]),1.,places=12)
+                self.assertAlmostEqual(np.linalg.norm(nav.c2w[:3,3]-nav.pivot),distance,places=10)
+                np.testing.assert_array_equal(nav.pivot,[2,1,3])
+                if name=='front':np.testing.assert_allclose(nav.c2w[:3,2],-world_basis(up)[:,2],atol=1e-12)
+
+    def test_nonfinite_pan_is_ignored(self):
+        nav=Navigation();pose=nav.c2w.copy();pivot=nav.pivot.copy()
+        nav.pan(float('nan'),0,nav.intrinsics(800,600))
+        np.testing.assert_array_equal(nav.c2w,pose);np.testing.assert_array_equal(nav.pivot,pivot)
+
     def test_trail_uses_source_intervals(self):
         times = [0., 1., 2., 5., 11.]
         self.assertEqual(trail_start(.5, times, 2), 0)
@@ -122,6 +140,7 @@ class GLViewportTests(unittest.TestCase):
         win = self.Gtk.Window(default_width=128, default_height=128)
         viewport = Viewport()
         viewport.show_grid = viewport.show_cameras = False
+        viewport.navigation.c2w=np.diag([1.,-1.,-1.,1.]);viewport.navigation.c2w[2,3]=3
         viewport.on_error = lambda text: self.fail(text)
         viewport.set_frame(frame())
         win.set_child(viewport); win.present(); self.pump()
@@ -176,7 +195,7 @@ class GLViewportTests(unittest.TestCase):
         pixels()
         gl.glBindBuffer(gl.GL_TEXTURE_BUFFER, viewport._renderer.mask_buffer)
         mask = np.frombuffer(gl.glGetBufferSubData(gl.GL_TEXTURE_BUFFER,0,1),np.uint8)
-        self.assertEqual(mask.tolist(),[1])
+        self.assertEqual(mask.tolist(),[0],"Whole-object selection does not mark individual Gaussian rows in macOS")
         viewport.set_selection(set())
         viewport.opacity_multiplier = .25
         dimmed = pixels()
@@ -277,14 +296,14 @@ class GLViewportTests(unittest.TestCase):
         viewport = Viewport();viewport.set_frame(frame())
         submitted=[];viewport.on_stats = lambda stats: submitted.append(stats)
         root.append(caption);root.append(viewport);win.set_child(root);win.present();self.pump()
-        initial = len(submitted)
+        initial = viewport._renderer.submitted_frame_count
         self.assertGreater(initial,0)
         caption.set_text('Frame time');caption.queue_draw();root.queue_draw();self.pump(10)
-        self.assertEqual(len(submitted),initial)
+        self.assertEqual(viewport._renderer.submitted_frame_count,initial)
         viewport.queue_render();viewport.queue_render();self.pump(10)
-        self.assertEqual(len(submitted),initial+1)
+        self.assertEqual(viewport._renderer.submitted_frame_count,initial+1)
         win.set_default_size(320,280);self.pump(10)
-        self.assertGreater(len(submitted),initial+1)
+        self.assertGreater(viewport._renderer.submitted_frame_count,initial+1)
         self.assertEqual(viewport._renderer.size,(viewport.get_width()*viewport.get_scale_factor(),viewport.get_height()*viewport.get_scale_factor()))
         win.destroy();self.pump(2)
 
@@ -475,6 +494,329 @@ class GLViewportTests(unittest.TestCase):
                         self.assertEqual(renderer.last_endpoint_uploads,0)
                 finally:
                     renderer.close();win.destroy();self.pump(2)
+
+    def test_camera_pick_resolves_depth_occlusion_empty_scene_and_toggle(self):
+        from unittest import mock
+        from gs_studio.viewport import Viewport
+        win=self.Gtk.Window(default_width=128,default_height=128)
+        viewport=Viewport();viewport.navigation.c2w=np.eye(4)
+        viewport.show_grid=viewport.show_pivot=False
+        win.set_child(viewport);win.present();self.pump()
+        k,_,width,height=viewport.get_camera();x,y=width/2+.5,height/2+.5
+        def line(z,px=None):
+            px=x if px is None else px
+            pixels=np.array([[px,y-12,1],[px,y+12,1]])
+            return (pixels@np.linalg.inv(k).T*z).reshape(1,2,3)
+        front={'object_id':'front','view':0,'segments':line(2)}
+        back={'object_id':'back','view':0,'segments':line(4)}
+        callbacks=[];gaussians=[]
+        viewport.on_camera_pick=lambda *args:callbacks.append(args)
+        viewport.on_pick=lambda *args:gaussians.append(args)
+        f=frame([[0,0,3]])
+        with mock.patch.object(viewport,'_camera_segments',side_effect=lambda entry:entry['segments']):
+            viewport.set_frame(f);viewport.set_camera_wireframes([front]);self.pump(5)
+            viewport.pick(x,y,extend=True)
+            self.assertEqual(callbacks.pop(),('front',0,True))
+            self.assertEqual(gaussians,[])
+            viewport.set_camera_wireframes([back]);self.pump(5)
+            self.assertEqual(viewport.pick(x,y),('field',-(2**63)+1))
+            self.assertEqual(callbacks,[])
+            viewport.set_frame(None);viewport.set_camera_wireframes([back,front]);self.pump(5)
+            viewport.pick(x,y)
+            self.assertEqual(callbacks.pop(),('front',0,False))
+            # Cursor misses a narrow Gaussian; the closest camera edge is still
+            # hidden by its alpha>=.1 footprint several pixels away from cursor.
+            mean=np.linalg.inv(k)@np.array([x+3,y,1.])*3
+            narrow=frame([mean]);narrow.covariance[:]=np.eye(3)*1e-6
+            viewport.set_frame(narrow);viewport.set_camera_wireframes([dict(back,segments=line(4,x+3))]);self.pump(5)
+            viewport.pick(x,y)
+            self.assertEqual(callbacks,[])
+            self.assertEqual(gaussians[-1],(None,None,False))
+        win.destroy();self.pump(2)
+
+    def test_visible_camera_edge_clips_screen_span_and_interpolates_inverse_depth(self):
+        from gs_studio.viewport import camera_edge_hits
+        projected=np.array([[-10.,-1.,0,1,1,1,1,2],[10.,3.,0,1,1,1,1,6]])
+        hits=camera_edge_hits(projected,[0,0],100,100,4)
+        self.assertEqual(hits.shape,(1,3))
+        np.testing.assert_allclose(hits[0],[0,1,3],atol=1e-6)
+
+    def test_minimum_selection_ring_marks_only_individual_elements(self):
+        from gs_studio.viewport import Viewport
+        win=self.Gtk.Window(default_width=128,default_height=128)
+        viewport=Viewport();viewport.navigation.c2w=np.eye(4)
+        viewport.show_grid=viewport.show_pivot=viewport.show_cameras=False
+        tiny=frame([[0,0,3]]);tiny.covariance[:]=np.eye(3)*1e-8;tiny.opacity[:]=.01
+        viewport.set_frame(tiny);viewport.set_selection({('field',-(2**63)+1)})
+        win.set_child(viewport);win.present();self.pump()
+        self.assertIsNone(viewport.render_error)
+        rgba=viewport.snapshot_rgba();k,_,_,_=viewport.get_camera()
+        amber=(rgba[:,:,0]>200)&(rgba[:,:,1]>120)&(rgba[:,:,2]<80)
+        ys,xs=np.nonzero(amber)
+        self.assertGreater(len(xs),0)
+        radii=np.hypot(xs+.5-k[0,2],ys+.5-k[1,2])
+        self.assertGreater(radii.min(),4.8);self.assertLess(radii.max(),6.1)
+        viewport.set_selection({('field',None)});self.pump(5)
+        rgba=viewport.snapshot_rgba()
+        self.assertFalse(((rgba[:,:,0]>200)&(rgba[:,:,1]>120)&(rgba[:,:,2]<80)).any())
+        win.destroy();self.pump(2)
+
+    def test_center_selection_preset_and_free_view_preserve_required_state(self):
+        from gs_studio.viewport import Viewport
+        viewport=Viewport();viewport.set_frame(frame([[2,1,3]]))
+        viewport.selected={('field',-(2**63)+1)}
+        k=np.array([[55.,7.,30.],[0.,60.,24.],[0,0,1.]])
+        viewport.set_camera(SimpleNamespace(K=k,c2w=np.eye(4),width=64,height=48,pixel_center='half',distortion='none'))
+        pose=viewport.navigation.c2w.copy();effective=viewport.get_camera()[0]
+        viewport.center_on_selection()
+        np.testing.assert_array_equal(viewport.navigation.c2w,pose)
+        np.testing.assert_allclose(viewport.navigation.pivot,[2,1,3])
+        viewport.free_camera();np.testing.assert_array_equal(viewport.get_camera()[0],effective)
+        viewport.frame_selection();np.testing.assert_array_equal(viewport.get_camera()[0],effective)
+        np.testing.assert_array_equal(viewport.navigation.c2w[:3,:3],pose[:3,:3])
+        pivot=viewport.navigation.pivot.copy();distance=np.linalg.norm(viewport.navigation.c2w[:3,3]-pivot)
+        viewport.preset('right')
+        self.assertAlmostEqual(np.linalg.det(viewport.navigation.c2w[:3,:3]),1)
+        np.testing.assert_array_equal(viewport.navigation.pivot,pivot)
+        self.assertAlmostEqual(np.linalg.norm(viewport.navigation.c2w[:3,3]-pivot),distance)
+        viewport.frame_scene()
+        self.assertIsNone(viewport._calibration)
+        self.assertAlmostEqual(viewport.navigation.fov,360/7)
+
+    def test_scroll_latches_trackpad_operation_and_obeys_discrete_wheel_policy(self):
+        from unittest import mock
+        from gs_studio.viewport import Viewport
+        from gi.repository import Gdk
+        class Controller:
+            state=Gdk.ModifierType.ALT_MASK;unit=Gdk.ScrollUnit.SURFACE
+            def get_current_event_state(self):return self.state
+            def get_unit(self):return self.unit
+            def get_current_event(self):return None
+        viewport=Viewport();controller=Controller()
+        with mock.patch.object(viewport.navigation,'orbit') as orbit,mock.patch.object(viewport.navigation,'pan') as pan,mock.patch.object(viewport.navigation,'dolly') as dolly:
+            viewport._scroll(controller,1,2);controller.state=Gdk.ModifierType(0)
+            viewport._scroll(controller,2,3)
+            self.assertEqual(orbit.call_count,2);pan.assert_not_called()
+            viewport.cancel_navigation();controller.unit=Gdk.ScrollUnit.WHEEL;controller.state=Gdk.ModifierType.ALT_MASK
+            viewport._scroll(controller,0,1);self.assertEqual(dolly.call_count,1)
+            viewport.cancel_navigation()
+        viewport.tool='pan';self.assertEqual(viewport.get_cursor().get_name(),'grab')
+
+    def test_history_restores_up_axis_and_ignores_inactive_focus_loss(self):
+        from gs_studio.viewport import Viewport
+        viewport=Viewport();viewport.clear_navigation_history()
+        initial=len(viewport._history)
+        viewport.cancel_navigation();self.assertEqual(len(viewport._history),initial)
+        viewport._begin_navigation();viewport.set_up_axis('z');viewport.navigation.orbit(10,0);viewport._end_navigation()
+        viewport.previous_view();np.testing.assert_array_equal(viewport.navigation.up,[0,1,0])
+        viewport.next_view();np.testing.assert_array_equal(viewport.navigation.up,[0,0,1])
+
+    def test_grid_frustum_size_and_zero_interval_trails_match_native(self):
+        from gs_studio.viewport import Viewport
+        viewport=Viewport();viewport.set_frame(frame([[0,0,3]]))
+        grid,_=viewport._grid_segments();viewport.navigation.dolly(30);same,_=viewport._grid_segments()
+        np.testing.assert_array_equal(grid,same)
+        self.assertEqual(np.max(np.abs(grid)),10)
+        calibration=SimpleNamespace(K=np.eye(3),c2w=np.eye(4),width=1,height=1,pixel_center='half')
+        first=viewport._camera_segments(calibration);viewport.navigation.dolly(30)
+        np.testing.assert_array_equal(first,viewport._camera_segments(calibration))
+        viewport.paths=[SimpleNamespace(positions=np.array([[0,0,0],[1,0,0]]),times=np.array([0.,1.]),identity=7,object_id='field',colors=np.ones((2,3)))]
+        viewport.source_times=np.array([0.,1.]);viewport.time=0;viewport.show_paths=False
+        points,_=viewport._path_segments();self.assertEqual(len(points),0)
+
+    def test_framebuffer_and_transparency_allocation_failures_are_transactional(self):
+        from unittest import mock
+        from gs_studio.viewport import Viewport
+        from gs_studio.gl_renderer import Renderer,RenderAllocationError
+        from OpenGL import GL as gl
+        win=self.Gtk.Window(default_width=128,default_height=128);viewport=Viewport()
+        win.set_child(viewport);win.present();self.pump();viewport.make_current()
+        renderer=Renderer();renderer.initialize()
+        try:
+            k=np.array([[40.,0,32],[0,40.,24],[0,0,1.]])
+            renderer.target(64,48);renderer.begin(k,np.eye(4),64,48,background=(.2,.3,.4))
+            old=(renderer.fbo,renderer.texture,renderer.depth,renderer.size)
+            reference=bytes(gl.glReadPixels(0,0,64,48,gl.GL_RGBA,gl.GL_UNSIGNED_BYTE))
+            with mock.patch.object(gl,'glTexImage2D',side_effect=RuntimeError('Injected target OOM')):
+                with self.assertRaises(RenderAllocationError):renderer.target(128,96)
+            self.assertEqual((renderer.fbo,renderer.texture,renderer.depth,renderer.size),old)
+            self.assertTrue(gl.glIsFramebuffer(old[0]));self.assertTrue(gl.glIsTexture(old[1]))
+            self.assertEqual(bytes(gl.glReadPixels(0,0,64,48,gl.GL_RGBA,gl.GL_UNSIGNED_BYTE)),reference)
+            original=gl.glTexImage2D
+            def fail_transparency(target,level,internal,*args):
+                if internal==gl.GL_RGBA32F:raise RuntimeError('Injected transparency OOM')
+                return original(target,level,internal,*args)
+            with mock.patch.object(gl,'glTexImage2D',side_effect=fail_transparency):
+                with self.assertRaises(RenderAllocationError):renderer.target(128,96,transparency=True)
+                with self.assertRaises(RenderAllocationError):renderer.target(64,48,transparency=True)
+            self.assertEqual((renderer.fbo,renderer.texture,renderer.depth,renderer.size),old)
+            self.assertEqual(renderer.oit_fbo,0)
+            renderer.target(128,96,transparency=True)
+            self.assertEqual(renderer.size,(128,96));self.assertGreater(renderer.oit_fbo,0)
+            self.assertFalse(gl.glIsFramebuffer(old[0]))
+            self.assertEqual(gl.glGetError(),gl.GL_NO_ERROR)
+        finally:renderer.close();win.destroy();self.pump(2)
+
+    def test_allocation_failure_retains_completed_preview_and_quality_retry_recovers(self):
+        from unittest import mock
+        from gs_studio.viewport import Viewport
+        from gs_studio.snapshots import SnapshotPendingError
+        from OpenGL import GL as gl
+        win=self.Gtk.Window(default_width=128,default_height=128);viewport=Viewport()
+        viewport.show_grid=viewport.show_cameras=viewport.show_pivot=False
+        viewport.set_frame(frame());warnings=[];viewport.on_error=warnings.append
+        win.set_child(viewport);win.present();self.pump()
+        previous=viewport.snapshot_rgba().copy();old=viewport._renderer.fbo
+        with mock.patch.object(gl,'glTexImage2D',side_effect=RuntimeError('Injected recoverable OOM')):
+            viewport.resolution_scale=.5;viewport.queue_render();self.pump(8)
+        self.assertIsNone(viewport.render_error);self.assertEqual(viewport._renderer.fbo,old)
+        self.assertTrue(viewport._render_pending);self.assertEqual(len(warnings),1)
+        with self.assertRaises(SnapshotPendingError):viewport.snapshot_rgba()
+        viewport.make_current();gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER,old)
+        retained=np.frombuffer(gl.glReadPixels(0,0,previous.shape[1],previous.shape[0],gl.GL_RGBA,gl.GL_UNSIGNED_BYTE),np.uint8).reshape(previous.shape)[::-1]
+        np.testing.assert_array_equal(retained,previous)
+        viewport.queue_render();self.pump(8)
+        self.assertIsNone(viewport.last_render_warning);self.assertFalse(viewport._render_pending)
+        self.assertEqual(viewport.snapshot_rgba().shape[:2],(round(viewport.get_height()*.5),round(viewport.get_width()*.5)))
+        win.destroy();self.pump(2)
+
+    def test_gpu_metrics_wait_for_ready_queries_and_count_true_completions(self):
+        from unittest import mock
+        from gs_studio.viewport import Viewport
+        from gs_studio.gl_renderer import Renderer
+        from OpenGL import GL as gl
+        win=self.Gtk.Window(default_width=128,default_height=128);viewport=Viewport()
+        win.set_child(viewport);win.present();self.pump();viewport.make_current();viewport.attach_buffers()
+        destination=int(gl.glGetIntegerv(gl.GL_DRAW_FRAMEBUFFER_BINDING))
+        renderer=Renderer();renderer.initialize()
+        try:
+            metrics=renderer.gpu_metrics
+            if not metrics.supported:self.skipTest(metrics.reason)
+            k=np.array([[50.,0,32],[0,50.,24],[0,0,1.]])
+            renderer.target(64,48);renderer.begin(k,np.eye(4),64,48);renderer.finish(destination,64,48)
+            self.assertEqual(renderer.submitted_frame_count,1)
+            self.assertEqual(metrics.completed_frame_count,0)
+            self.assertIsNone(metrics.summary()['gpu_ms'])
+            self.assertEqual(metrics.summary()['gpu_completed_fps'],0)
+            with mock.patch.object(gl,'glGetQueryObjectiv',return_value=0),mock.patch.object(metrics,'_read_u64',wraps=metrics._read_u64) as read:
+                self.assertFalse(metrics.poll());read.assert_not_called()
+            gl.glFinish();self.assertTrue(metrics.poll())
+            summary=renderer.performance_metrics()
+            self.assertEqual(summary['completed_frame_count'],1)
+            self.assertGreater(summary['gpu_render_ms'],0)
+            self.assertEqual(summary['gpu_sort_ms'],0)
+            self.assertGreater(summary['resident_bytes'],0)
+            self.assertTrue(summary['resident_bytes_estimated'])
+            renderer.begin(k,np.eye(4),64,48);renderer.finish(destination,64,48);gl.glFinish();metrics.poll()
+            self.assertEqual(metrics.completed_frame_count,2)
+            self.assertGreater(metrics.timestamps[-1],metrics.timestamps[0])
+            self.assertGreater(metrics.summary()['gpu_completed_fps'],0)
+            metrics.last_result_at-=1
+            self.assertEqual(metrics.summary()['gpu_completed_fps'],0)
+            queries=list(metrics.objects)
+        finally:
+            renderer.close();win.destroy();self.pump(2)
+        self.assertTrue(all(not gl.glIsQuery(query) for query in queries))
+
+    def test_paused_viewport_publishes_completed_gpu_metrics_without_redrawing(self):
+        from gs_studio.viewport import Viewport
+        win=self.Gtk.Window(default_width=128,default_height=128);viewport=Viewport()
+        stats=[];viewport.on_stats=stats.append
+        win.set_child(viewport);win.present();self.pump(70)
+        self.assertTrue(stats)
+        if not stats[-1]['gpu_timing_available']:
+            win.destroy();self.skipTest(stats[-1]['gpu_timing_reason'])
+        self.assertGreaterEqual(stats[-1]['completed_frame_count'],1)
+        self.assertIsNotNone(stats[-1]['gpu_ms'])
+        submitted=stats[-1]['submitted_frame_count'];self.pump(10)
+        self.assertEqual(viewport._renderer.submitted_frame_count,submitted)
+        self.assertEqual(stats[-1]['gpu_completed_fps'],0)
+        win.destroy();self.pump(2)
+
+    def test_gpu_metrics_skip_external_query_and_disable_on_failure_without_losing_draw(self):
+        from unittest import mock
+        from gs_studio.viewport import Viewport
+        from gs_studio.gl_renderer import Renderer
+        from OpenGL import GL as gl
+        win=self.Gtk.Window(default_width=128,default_height=128);viewport=Viewport()
+        win.set_child(viewport);win.present();self.pump();viewport.make_current();viewport.attach_buffers()
+        destination=int(gl.glGetIntegerv(gl.GL_DRAW_FRAMEBUFFER_BINDING))
+        renderer=Renderer();renderer.initialize()
+        try:
+            metrics=renderer.gpu_metrics
+            if not metrics.supported:self.skipTest(metrics.reason)
+            k=np.array([[50.,0,32],[0,50.,24],[0,0,1.]])
+            renderer.target(64,48)
+            external=int(np.asarray(gl.glGenQueries(1)).reshape(-1)[0])
+            gl.glBeginQuery(gl.GL_TIME_ELAPSED,external)
+            renderer.begin(k,np.eye(4),64,48);renderer.finish(destination,64,48)
+            self.assertEqual(int(gl.glGetQueryiv(gl.GL_TIME_ELAPSED,gl.GL_CURRENT_QUERY)),external)
+            self.assertEqual(renderer.submitted_frame_count,1)
+            self.assertEqual(metrics.timing_samples_skipped,1)
+            gl.glEndQuery(gl.GL_TIME_ELAPSED);gl.glDeleteQueries(1,[external])
+            with mock.patch.object(gl,'glBeginQuery',side_effect=RuntimeError('Injected instrumentation failure')):
+                renderer.target(64,48);renderer.begin(k,np.eye(4),64,48,background=(.2,.3,.4));renderer.finish(destination,64,48)
+            self.assertFalse(metrics.supported);self.assertIn('Injected instrumentation failure',metrics.reason)
+            self.assertEqual(renderer.submitted_frame_count,2)
+            self.assertIsNone(renderer.performance_metrics()['gpu_ms'])
+            gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER,renderer.fbo)
+            pixel=np.frombuffer(gl.glReadPixels(10,10,1,1,gl.GL_RGBA,gl.GL_UNSIGNED_BYTE),np.uint8)
+            np.testing.assert_allclose(pixel[:3],[51,77,102],atol=1)
+            self.assertEqual(gl.glGetError(),gl.GL_NO_ERROR)
+        finally:renderer.close();win.destroy();self.pump(2)
+
+    def test_camera_rig_child_selection_frames_hidden_view_without_gaussian_lookup(self):
+        from unittest import mock
+        from gs_studio.viewport import Viewport
+        viewport=Viewport()
+        lookup=mock.Mock(side_effect=AssertionError('Camera view index treated as Gaussian ID'))
+        viewport.set_frame(SimpleNamespace(is_prepared=True,ids=np.array([7]),bounds=(np.full(3,-1.),np.ones(3)),object_bounds={},element=lookup))
+        entries=[]
+        for view,x in [(0,-2.),(1,2.)]:
+            pose=np.eye(4);pose[:3,3]=[x,0,3]
+            entries.append({'object_id':'rig','view':view,'visible':view==0,'calibration':SimpleNamespace(c2w=pose,K=np.eye(3),width=1,height=1)})
+        viewport.set_camera_wireframes(entries)
+        viewport.selected={('rig',1)}
+        initial=viewport.navigation.c2w.copy()
+        viewport.center_on_selection()
+        np.testing.assert_array_equal(viewport.navigation.pivot,[2,0,3])
+        np.testing.assert_array_equal(viewport.navigation.c2w,initial)
+        viewport.frame_selection();np.testing.assert_array_equal(viewport.navigation.pivot,[2,0,3])
+        self.assertFalse(viewport._camera_entry_selected(entries[0]))
+        self.assertTrue(viewport._camera_entry_selected(entries[1]))
+        viewport.selected={('rig',0)};viewport.center_on_selection()
+        np.testing.assert_array_equal(viewport.navigation.pivot,[-2,0,3])
+        viewport.selected={('rig',None)};viewport.center_on_selection()
+        np.testing.assert_array_equal(viewport.navigation.pivot,[0,0,3])
+        self.assertTrue(all(viewport._camera_entry_selected(entry) for entry in entries))
+        lookup.assert_not_called()
+
+    def test_hidden_camera_entries_do_not_draw_pick_or_expose_paths(self):
+        from unittest import mock
+        from gs_studio.viewport import Viewport
+        win=self.Gtk.Window(default_width=128,default_height=128);viewport=Viewport()
+        viewport.navigation.c2w=np.eye(4);viewport.show_grid=viewport.show_pivot=False
+        viewport.show_trails=False
+        hidden={'object_id':'rig','view':1,'visible':False}
+        viewport.set_camera_wireframes([hidden])
+        viewport.set_paths([SimpleNamespace(object_id='rig',identity=None,positions=np.array([[0,0,1],[1,0,1]]),times=np.array([0.,1.]),colors=np.ones((2,3)))])
+        calls=[];viewport.on_camera_pick=lambda *args:calls.append(args)
+        with mock.patch.object(viewport,'_camera_segments',side_effect=AssertionError('Hidden camera projected')) as segments:
+            win.set_child(viewport);win.present();self.pump()
+            self.assertIsNone(viewport.render_error)
+            viewport.pick(viewport.get_width()/2,viewport.get_height()/2)
+            self.assertEqual(calls,[]);segments.assert_not_called()
+            points,_=viewport._path_segments();self.assertEqual(len(points),0)
+        k,_,w,h=viewport.get_camera()
+        pixel=np.array([[w/2+.5,h/2-10,1],[w/2+.5,h/2+10,1]])
+        visible={'object_id':'rig','view':0,'visible':True,'segments':(pixel@np.linalg.inv(k).T*2).reshape(1,2,3)}
+        hidden=dict(hidden,segments=(pixel@np.linalg.inv(k).T).reshape(1,2,3))
+        with mock.patch.object(viewport,'_camera_segments',side_effect=lambda entry:entry['segments']) as segments:
+            viewport.set_paths([]);viewport.set_camera_wireframes([hidden,visible]);self.pump(5)
+            viewport.pick(w/2,h/2)
+            self.assertEqual(calls[-1],('rig',0,False))
+            self.assertTrue(all(call.args[0] is visible for call in segments.call_args_list))
+        win.destroy();self.pump(2)
 
     def test_clipped_segments_and_calibrated_integer_center(self):
         from gs_studio.viewport import Viewport, project_segments

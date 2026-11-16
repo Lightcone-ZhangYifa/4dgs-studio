@@ -49,9 +49,30 @@ def trail_start(time, times, frames=8):
     return float(times[start] * (1 - phase) + times[start + 1] * phase)
 
 
+def world_basis(up):
+    up=np.asarray(up,np.float64)
+    back=np.array([0.,-1.,0.]) if abs(up[2])>.9 else np.array([0.,0.,1.])
+    right=np.cross(up,back);right/=np.linalg.norm(right)
+    return np.stack([right,up,np.cross(right,up)],axis=1)
+
+
+def viewing_rotation(back,up):
+    back=np.asarray(back,np.float64);back/=np.linalg.norm(back)
+    forward=-back
+    right=np.cross(forward,up);right/=np.linalg.norm(right)
+    down=np.cross(forward,right)
+    return np.stack([right,down,forward],axis=1)
+
+
+def default_pose():
+    direction=np.array([math.sin(math.pi/5)*math.cos(math.pi/9),math.sin(math.pi/9),math.cos(math.pi/5)*math.cos(math.pi/9)])
+    pose=np.eye(4);pose[:3,:3]=viewing_rotation(direction,np.array([0.,1.,0.]));pose[:3,3]=direction*4
+    return pose
+
+
 @dataclass
 class Navigation:
-    c2w: np.ndarray = field(default_factory=lambda: np.array([[1., 0, 0, 0], [0, -1., 0, 0], [0, 0, -1., 3], [0, 0, 0, 1.]]))
+    c2w: np.ndarray = field(default_factory=default_pose)
     pivot: np.ndarray = field(default_factory=lambda: np.zeros(3))
     up: np.ndarray = field(default_factory=lambda: np.array([0., 1., 0.]))
     fov: float = 360. / 7.
@@ -95,6 +116,8 @@ class Navigation:
         self.rotate(axis, target - elevation)
 
     def pan(self, dx, dy, k):
+        if not np.isfinite([dx,dy]).all():
+            return
         depth = max(float((self.pivot - self.c2w[:3, 3]) @ self.c2w[:3, 2]), 1e-4)
         y = dy / k[1, 1]
         x = (dx - k[0, 1] * y) / k[0, 0]
@@ -128,18 +151,38 @@ class Navigation:
         # Camera roll rotates about the optical center, never around scene depth.
         self.rotate(self.c2w[:3, 2], radians, pivot=self.c2w[:3, 3].copy())
 
-    def frame(self, points, width, height):
-        points = np.asarray(points)
-        if not len(points):
+    def focus(self,center,radius,width,height,k=None):
+        center=np.asarray(center,np.float64)
+        if not np.isfinite(center).all() or not math.isfinite(radius):
             return
-        points = points[np.isfinite(points).all(axis=1)]
-        if not len(points):
-            return
-        low, high = points.min(axis=0), points.max(axis=0)
-        self.pivot = low * .5 + high * .5
-        radius = max(float(np.linalg.norm(high - low)) * .5, 1e-3)
-        k = self.intrinsics(width, height)
-        half_y = math.atan(max(1, height) / (2 * k[1, 1]))
-        half_x = math.atan(max(1, width) / (2 * k[0, 0]))
-        distance = radius / max(math.sin(min(half_x, half_y)), 1e-4) * 1.15
-        self.c2w[:3, 3] = self.pivot - self.c2w[:3, 2] * distance
+        k=self.intrinsics(width,height) if k is None else k
+        short_fov=min(2*math.atan(width/(2*k[0,0])),2*math.atan(height/(2*k[1,1])))
+        distance=max(.02,max(radius,.001)*1.12/max(.01,math.sin(short_fov*.5)))
+        self.pivot=center.copy()
+        self.c2w[:3,3]=self.pivot-self.c2w[:3,2]*distance
+
+    def reset(self,center,radius):
+        direction=world_basis(self.up)@np.array([math.sin(math.pi/5)*math.cos(math.pi/9),math.sin(math.pi/9),math.cos(math.pi/5)*math.cos(math.pi/9)])
+        self.pivot=np.asarray(center,np.float64).copy()
+        self.c2w[:3,:3]=viewing_rotation(direction,self.up)
+        self.c2w[:3,3]=self.pivot+direction*max(float(radius)*2.8,.05)
+        self.fov=360./7.
+
+    def preset(self,name):
+        local={'front':(0,0,1),'back':(0,0,-1),'right':(1,0,0),'left':(-1,0,0),'isometric':(1,1,1),
+               'top':(0,math.cos(.0001),math.sin(.0001)), 'bottom':(0,-math.cos(.0001),math.sin(.0001))}
+        if name not in local:
+            raise ValueError('Unknown viewpoint')
+        distance=max(float(np.linalg.norm(self.c2w[:3,3]-self.pivot)),1e-4)
+        back=world_basis(self.up)@np.asarray(local[name],np.float64);back/=np.linalg.norm(back)
+        self.c2w[:3,:3]=viewing_rotation(back,self.up)
+        self.c2w[:3,3]=self.pivot+back*distance
+        self.fov=360./7.
+
+    def frame(self,points,width,height):
+        points=np.asarray(points)
+        if not len(points):return
+        points=points[np.isfinite(points).all(axis=1)]
+        if not len(points):return
+        low,high=points.min(axis=0),points.max(axis=0)
+        self.focus(low*.5+high*.5,max(float(np.linalg.norm(high-low))*.5,1e-3),width,height)

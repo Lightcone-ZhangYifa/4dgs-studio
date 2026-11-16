@@ -13,7 +13,7 @@ os.environ.setdefault("PYOPENGL_PLATFORM", "egl")
 from OpenGL import GL as gl
 
 from .navigation import Navigation, operation, rotation, trail_start
-from .gl_renderer import Renderer, projected_ellipses
+from .gl_renderer import Renderer, RenderAllocationError, projected_ellipses
 
 
 def _get(value, name, default=None):
@@ -51,6 +51,27 @@ def project_segments(points, colors, k, c2w, width, height, near=.001):
     return data.reshape(-1, 8)
 
 
+def camera_edge_hits(projected,cursor,width,height,tolerance):
+    """Visible screen spans and reciprocal-depth interpolation shared with Metal."""
+    if not len(projected):return np.empty((0,3),np.float64)
+    vertices=np.asarray(projected).reshape(-1,2,8)
+    a,b=vertices[:,0,:2],vertices[:,1,:2];delta=b-a
+    first,last=np.zeros(len(a)),np.ones(len(a));valid=np.ones(len(a),bool)
+    for axis,size in [(0,width),(1,height)]:
+        parallel=np.abs(delta[:,axis])<1e-12
+        valid &= ~parallel|((a[:,axis]>=0)&(a[:,axis]<size))
+        d=np.where(parallel,1.,delta[:,axis])
+        left,right=-a[:,axis]/d,(size-1e-4-a[:,axis])/d
+        first=np.maximum(first,np.where(parallel,0,np.minimum(left,right)))
+        last=np.minimum(last,np.where(parallel,1,np.maximum(left,right)))
+    length=np.sum(delta*delta,axis=1)
+    t=np.clip(np.sum((np.asarray(cursor)-a)*delta,axis=1)/np.maximum(length,1e-24),first,last)
+    closest=a+delta*t[:,None]
+    z=1/((1-t)/vertices[:,0,7]+t/vertices[:,1,7])
+    valid &= (last>=first)&(np.sum((closest-cursor)**2,axis=1)<=tolerance*tolerance)&np.isfinite(z)&(z>0)
+    return np.column_stack([closest,z])[valid]
+
+
 class Viewport(Gtk.GLArea):
     """All methods, including set_frame(), are called on GTK's main thread.
 
@@ -74,6 +95,8 @@ class Viewport(Gtk.GLArea):
         self.set_auto_render(False)
         self.navigation = Navigation()
         self.frame = None
+        self._bounds_frame=None
+        self._bounds_cache=None
         self.selected = set()
         self.on_pick = self.on_camera_pick = self.on_camera_changed = None
         self.on_key = self.on_error = self.on_stats = None
@@ -86,7 +109,7 @@ class Viewport(Gtk.GLArea):
         self.exposure_multiplier = 1.
         self.gaussian_scale = 1.
         self.opacity_multiplier = 1.
-        self.near_clip = .001
+        self.near_clip = .01
         self.background = 'studio'
         self.show_pivot = True
         self.sensitivity = 1.
@@ -96,6 +119,9 @@ class Viewport(Gtk.GLArea):
         self.paths = []
         self.cameras = []
         self.render_error = None
+        self.last_render_warning=None
+        self._gpu_poll_source=0
+        self._last_stats=None
         self.graphics_info = {}
         self._calibration = None
         self._renderer = None
@@ -111,6 +137,7 @@ class Viewport(Gtk.GLArea):
         self._navigation_active = False
         self._previous_delta = np.zeros(2)
         self._scroll_history = 0
+        self._scroll_operation = None
         self._history_add()
         self.connect('realize', self._realize)
         self.connect('unrealize', self._unrealize)
@@ -124,6 +151,7 @@ class Viewport(Gtk.GLArea):
         self.add_controller(drag)
         scroll = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.BOTH_AXES)
         scroll.connect('scroll', self._scroll)
+        scroll.connect('scroll-begin', lambda *_: setattr(self,'_scroll_operation',None))
         self.add_controller(scroll)
         keys = Gtk.EventControllerKey.new()
         keys.connect('key-pressed', self._key)
@@ -141,6 +169,7 @@ class Viewport(Gtk.GLArea):
         rotate.connect('angle-changed', self._roll)
         rotate.connect('end', lambda *_: self._end_navigation())
         self.add_controller(rotate)
+        zoom.group(rotate)
 
     def queue_render(self):
         self._render_pending = True
@@ -168,6 +197,8 @@ class Viewport(Gtk.GLArea):
             self._report_error(str(error))
 
     def _unrealize(self, _area):
+        if self._gpu_poll_source:
+            GLib.source_remove(self._gpu_poll_source);self._gpu_poll_source=0
         if self._scroll_history:
             GLib.source_remove(self._scroll_history)
             self._scroll_history = 0
@@ -184,6 +215,8 @@ class Viewport(Gtk.GLArea):
             self.on_error(text)
 
     def set_frame(self, frame):
+        if frame is not self.frame:
+            self._bounds_frame=None;self._bounds_cache=None
         self.frame = frame
         self._dirty = True
         self.queue_render()
@@ -242,53 +275,96 @@ class Viewport(Gtk.GLArea):
         self.queue_render()
 
     def free_camera(self):
-        self._calibration = None
+        # Ending source-camera follow preserves the current projection and pose.
         self.queue_render()
 
+    def _scene_bounds(self):
+        if self.frame is None or not len(self.frame.ids):return None
+        if getattr(self.frame,'bounds',None) is not None:return self.frame.bounds
+        if self.frame is self._bounds_frame:return self._bounds_cache
+        means=self.frame.means
+        if not len(means):return None
+        extent=3*np.sqrt(np.maximum(np.diagonal(self.frame.covariance,axis1=1,axis2=2),0))
+        self._bounds_cache=(means-extent).min(axis=0),(means+extent).max(axis=0)
+        self._bounds_frame=self.frame
+        return self._bounds_cache
+
+    def _scene_radius(self):
+        bounds=self._scene_bounds()
+        return float(np.linalg.norm(bounds[1]-bounds[0]))*.5 if bounds is not None else 3.
+
     def frame_scene(self):
-        self._history_add()
-        self._calibration = None
-        if self.frame is not None and len(self.frame.ids):
-            if getattr(self.frame, 'is_prepared', False):
-                self.navigation.frame(np.stack(self.frame.bounds), *self._dimensions())
-            else:
-                self._frame_points(self.frame.means, self.frame.covariance)
-        self._history_add()
-        self._changed()
+        self._begin_navigation()
+        self._calibration=None
+        bounds=self._scene_bounds()
+        center=np.zeros(3) if bounds is None else bounds[0]*.5+bounds[1]*.5
+        self.navigation.reset(center,self._scene_radius())
+        self._end_navigation();self._changed()
+
+    def _selection_members(self):
+        members=[]
+        for owner,identity in self.selected:
+            cameras=[entry for entry in self.cameras if _get(entry,'object_id',_get(entry,'id'))==owner]
+            if cameras:
+                # A rig child index is a camera view, never a Gaussian identity.
+                # Hidden compatible views remain available for framing/pivot use.
+                for entry in cameras:
+                    if identity is None or _get(entry,'view',0)==identity:
+                        calibration=_get(entry,'calibration',entry)
+                        members.append((np.asarray(_get(calibration,'c2w'))[:3,3],max(.1,self._scene_radius()*.1)))
+                continue
+            if self.frame is not None and len(self.frame.ids):
+                if getattr(self.frame,'is_prepared',False):
+                    if identity is None:
+                        bounds=self.frame.object_bounds.get(owner)
+                        if bounds is not None:
+                            members.append((bounds[0]*.5+bounds[1]*.5,max(.05,float(np.linalg.norm(bounds[1]-bounds[0]))*.5)))
+                    else:
+                        element=self.frame.element(owner,identity)
+                        if element is not None and element.valid:
+                            members.append((element.position,max(.05,float(np.linalg.norm(element.scales))*8)))
+                else:
+                    mask=self.frame.object_ids==owner
+                    if identity is not None:mask &= self.frame.ids==identity
+                    authored_bounds=getattr(self.frame,'object_bounds',{}).get(owner) if identity is None else None
+                    if authored_bounds is not None:
+                        low,high=authored_bounds
+                        members.append((low*.5+high*.5,max(.05,float(np.linalg.norm(high-low))*.5)))
+                    elif np.any(mask):
+                        means=self.frame.means[mask]
+                        if identity is not None:
+                            radius=8*math.sqrt(max(float(np.trace(self.frame.covariance[mask][0])),0))
+                            members.append((means[0],max(.05,radius)))
+                        else:
+                            low,high=means.min(axis=0),means.max(axis=0)
+                            members.append((low*.5+high*.5,max(.05,float(np.linalg.norm(high-low))*.5)))
+        return members
+
+    def _selected_bounds(self):
+        members=self._selection_members()
+        if not members:return None
+        low=np.min([center-radius for center,radius in members],axis=0)
+        high=np.max([center+radius for center,radius in members],axis=0)
+        return low,high
+
+    def center_on_selection(self):
+        bounds=self._selected_bounds()
+        if bounds is not None:
+            self.navigation.pivot=np.asarray(bounds[0]*.5+bounds[1]*.5,np.float64)
+            self.queue_render()
 
     def frame_selection(self):
-        if self.frame is None or not self.selected:
-            return self.frame_scene()
-        self._history_add()
-        self._calibration = None
-        if getattr(self.frame, 'is_prepared', False):
-            bounds = []
-            for owner, identity in self.selected:
-                if identity is None:
-                    owned = getattr(self.frame, 'object_bounds', {}).get(owner)
-                    if owned is not None:
-                        bounds.extend(owned)
-                    elif any(o == owner for o, _, _, _ in self.frame.segments):
-                        bounds.extend(self.frame.bounds)
-                else:
-                    element = self.frame.element(owner, identity)
-                    if element is not None and element.valid:
-                        radius = 3 * self.gaussian_scale * np.linalg.norm(element.scales)
-                        bounds.extend([element.position-radius,element.position+radius])
-            if bounds:
-                self.navigation.frame(np.asarray(bounds), *self._dimensions())
+        if not self.selected:return self.frame_scene()
+        members=self._selection_members()
+        if not members:return
+        k,_,width,height=self.get_camera()
+        if len(members)==1:
+            center,radius=members[0]
         else:
-            flags = np.zeros(len(self.frame.means), bool)
-            for object_id, identity in self.selected:
-                flags |= ((self.frame.object_ids == object_id) if identity is None else ((self.frame.object_ids == object_id) & (self.frame.ids == identity)))
-            if np.any(flags):
-                self._frame_points(self.frame.means[flags], self.frame.covariance[flags])
-        chosen = [self._camera_segments(c) for c in self.cameras
-                  if (_get(c, 'object_id', _get(c, 'id')), None) in self.selected]
-        if chosen:
-            self.navigation.frame(np.concatenate(chosen).reshape(-1,3), *self._dimensions())
-        self._history_add()
-        self._changed()
+            low,high=self._selected_bounds();center=low*.5+high*.5;radius=max(.05,float(np.linalg.norm(high-low))*.5)
+        self._begin_navigation()
+        self.navigation.focus(center,radius,width,height,k=k)
+        self._end_navigation();self._changed()
 
     def _frame_points(self, means, covariance):
         radius = 3 * self.gaussian_scale * np.sqrt(np.maximum(np.diagonal(covariance, axis1=1, axis2=2), 0))
@@ -312,53 +388,58 @@ class Viewport(Gtk.GLArea):
     def navigation_mode(self, value):
         self.navigation.mode = value
 
-    def preset(self, direction):
-        vectors = {'front': (0, 0, 1), 'back': (0, 0, -1), 'left': (-1, 0, 0), 'right': (1, 0, 0), 'top': (0, 1, 0), 'bottom': (0, -1, 0), 'isometric': (1, 1, 1)}
-        if direction not in vectors:
-            raise ValueError('Unknown viewpoint')
-        self._history_add()
-        self._calibration = None
-        back = np.array(vectors[direction], np.float64)
-        back /= np.linalg.norm(back)
-        up = self.navigation.up
-        if abs(back @ up) > .99:
-            up = np.array([0., 0., -1.]) if abs(back[2]) < .99 else np.array([0., 1., 0.])
-        right = np.cross(up, back); right /= np.linalg.norm(right)
-        down = np.cross(right, -back)
-        self.navigation.c2w[:3, :3] = np.stack([right, down, -back], axis=1)
-        self.frame_scene()
+    def preset(self,direction):
+        self._begin_navigation()
+        self._calibration=None
+        self.navigation.preset(direction)
+        self._end_navigation();self._changed()
 
     def center_on_depth(self):
-        if self.frame is None or not len(self.frame.ids):
-            return
-        k, pose, width, height = self.get_camera()
-        if getattr(self.frame, 'is_prepared', False):
-            weight = np.float32(self.frame.weight) if self.frame.weights is None else self.frame.weights[:,None]
-            means = self.frame.first[:,:3]*(1-weight)+self.frame.second[:,:3]*weight
-            valid = np.empty(len(self.frame.ids),bool)
+        k,pose,width,height=self.get_camera()
+        count=len(self.frame.ids) if self.frame is not None else 0
+        rows=np.arange(0,count,max(1,(count+4095)//4096))
+        if count and getattr(self.frame,'is_prepared',False):
+            weight=np.float32(self.frame.weight) if self.frame.weights is None else self.frame.weights[rows,None]
+            means=self.frame.first[rows,:3]*(1-weight)+self.frame.second[rows,:3]*weight
+            valid=np.zeros(len(rows),bool)
             for _,start,stop,w in self.frame.segments:
-                a,b = self.frame.first[start:stop,7]>.5,self.frame.second[start:stop,7]>.5
-                valid[start:stop] = a if w==0 else b if w==1 else a&b
-            means = means[valid]
+                selected=(rows>=start)&(rows<stop);indices=rows[selected]
+                a,b=self.frame.first[indices,7]>.5,self.frame.second[indices,7]>.5
+                valid[selected]=a if w==0 else b if w==1 else a&b
+            means=means[valid]
         else:
-            means = self.frame.means
-        points = (means - pose[:3, 3]) @ pose[:3, :3]
-        valid = points[:, 2] > 1e-4
-        if not np.any(valid):
-            return
-        projected = points[valid] @ k.T
-        pixel = projected[:, :2] / points[valid, 2, None]
-        visible = (pixel[:, 0] >= 0) & (pixel[:, 0] < width) & (pixel[:, 1] >= 0) & (pixel[:, 1] < height)
-        if np.any(visible):
-            depth = float(np.median(points[valid, 2][visible]))
-            self.navigation.pivot = pose[:3, 3] + pose[:3, 2] * depth
-            self.queue_render()
+            means=self.frame.means[rows] if count else np.empty((0,3))
+        points=(means-pose[:3,3])@pose[:3,:3]
+        points=points[np.isfinite(points).all(axis=1)&(points[:,2]>self.near_clip)]
+        if len(points):
+            projected=points@k.T;pixel=projected[:,:2]/points[:,2,None]
+            depths=points[:,2][(pixel[:,0]>0)&(pixel[:,0]<width)&(pixel[:,1]>0)&(pixel[:,1]<height)]
+        else:depths=np.empty(0)
+        depth=float(np.partition(depths,len(depths)//2)[len(depths)//2]) if len(depths) else max(self.near_clip*10,min(self._scene_radius(),1e6))
+        self.navigation.pivot=pose[:3,3]+pose[:3,2]*depth
+        self.queue_render()
+
+    @property
+    def tool(self):return self._tool
+
+    @tool.setter
+    def tool(self,value):
+        if value not in ('select','orbit','pan','dolly'):raise ValueError('Unknown viewport tool')
+        self._tool=value
+        self.set_cursor_from_name('default' if value=='select' else 'grab' if value=='pan' else 'crosshair')
+
+    def _view_snapshot(self):
+        return (self.navigation.c2w.copy(),self.navigation.pivot.copy(),self.navigation.fov,self._calibration,self.navigation.up.copy())
+
+    def clear_navigation_history(self):
+        self._history=[];self._history_index=-1;self._navigation_active=False
+        self._history_add()
 
     def _history_add(self):
-        snapshot = (self.navigation.c2w.copy(), self.navigation.pivot.copy(), self.navigation.fov, self._calibration)
+        snapshot = self._view_snapshot()
         if self._history_index >= 0:
             old = self._history[self._history_index]
-            if np.array_equal(old[0], snapshot[0]) and np.array_equal(old[1], snapshot[1]) and old[2] == snapshot[2] and old[3] is snapshot[3]:
+            if np.array_equal(old[0], snapshot[0]) and np.array_equal(old[1], snapshot[1]) and old[2] == snapshot[2] and old[3] is snapshot[3] and np.array_equal(old[4],snapshot[4]):
                 return
         del self._history[self._history_index + 1:]
         self._history.append(snapshot)
@@ -367,7 +448,8 @@ class Viewport(Gtk.GLArea):
         self._history_index = len(self._history) - 1
 
     def previous_view(self):
-        self._history_add()
+        self._end_navigation()
+        self._history[self._history_index]=self._view_snapshot()
         self._history_restore(self._history_index - 1)
 
     def next_view(self):
@@ -377,18 +459,21 @@ class Viewport(Gtk.GLArea):
         if not 0 <= index < len(self._history):
             return
         self._history_index = index
-        pose, pivot, fov, self._calibration = self._history[index]
+        pose, pivot, fov, self._calibration,up = self._history[index]
         self.navigation.c2w = pose.copy()
         self.navigation.pivot = pivot.copy()
         self.navigation.fov = fov
+        self.navigation.up=up.copy()
         self._changed()
 
     def _begin_navigation(self):
-        self._navigation_active = True
-        self._history_add()
+        if self._navigation_active:return
+        self._history[self._history_index]=self._view_snapshot()
+        self._navigation_active=True
 
     def _end_navigation(self):
-        self._navigation_active = False
+        if not self._navigation_active:return
+        self._navigation_active=False
         self._history_add()
 
     def cancel_navigation(self):
@@ -401,6 +486,7 @@ class Viewport(Gtk.GLArea):
         if self._scroll_history:
             GLib.source_remove(self._scroll_history)
             self._scroll_history = 0
+        self._scroll_operation=None
         self._end_navigation()
         return active
 
@@ -412,6 +498,8 @@ class Viewport(Gtk.GLArea):
 
     def _drag_begin(self, gesture, x, y):
         self.grab_focus()
+        self._end_navigation()
+        self._scroll_operation=None
         self._begin_navigation()
         state = gesture.get_current_event_state()
         self._drag_operation = operation(gesture.get_current_button(), alt=bool(state & Gdk.ModifierType.ALT_MASK), shift=bool(state & Gdk.ModifierType.SHIFT_MASK), control=bool(state & Gdk.ModifierType.CONTROL_MASK), tool=self.tool)
@@ -471,30 +559,24 @@ class Viewport(Gtk.GLArea):
         valid, x, y = gesture.get_bounding_box_center()
         return np.clip([x, y], [0, 0], self._dimensions()) if valid else self._event_pixel(gesture)
 
-    def _scroll(self, controller, dx, dy):
-        if not self._scroll_history:
-            self._begin_navigation()
-        else:
-            GLib.source_remove(self._scroll_history)
-        state = controller.get_current_event_state()
-        if state & Gdk.ModifierType.ALT_MASK:
-            gain = min(5., max(.05, self.sensitivity))
-            self.navigation.orbit(dx * gain, dy * gain)
-        else:
-            unit = controller.get_unit() if hasattr(controller, 'get_unit') else None
-            smooth = unit == Gdk.ScrollUnit.SURFACE if unit is not None else False
-            if smooth and not (state & Gdk.ModifierType.CONTROL_MASK):
-                gain = min(5., max(.05, self.sensitivity))
-                self.navigation.pan(dx * gain, dy * gain, self.get_camera()[0])
-            else:
-                gain = min(5., max(.05, self.sensitivity))
-                self.navigation.dolly(dy * (.18 if smooth else 2) * gain, pixel=self._event_pixel(controller), k=self.get_camera()[0])
-        self._changed()
-        self._scroll_history = GLib.timeout_add(220, self._finish_scroll)
+    def _scroll(self,controller,dx,dy):
+        if not np.isfinite([dx,dy]).all() or (dx==0 and dy==0):return True
+        state=controller.get_current_event_state()
+        unit=controller.get_unit() if hasattr(controller,'get_unit') else None
+        smooth=unit==Gdk.ScrollUnit.SURFACE if unit is not None else False
+        proposed='dolly' if not smooth or state&Gdk.ModifierType.CONTROL_MASK else 'orbit' if state&Gdk.ModifierType.ALT_MASK else 'pan'
+        if self._scroll_operation is None or not smooth:self._scroll_operation=proposed
+        if not self._scroll_history:self._begin_navigation()
+        else:GLib.source_remove(self._scroll_history)
+        gain=min(5.,max(.05,self.sensitivity))
+        if self._scroll_operation=='orbit':self.navigation.orbit(dx*gain,dy*gain)
+        elif self._scroll_operation=='pan':self.navigation.pan(dx*gain,dy*gain,self.get_camera()[0])
+        else:self.navigation.dolly(dy*(.18 if smooth else 2)*gain,pixel=self._event_pixel(controller),k=self.get_camera()[0])
+        self._changed();self._scroll_history=GLib.timeout_add(220,self._finish_scroll)
         return True
 
     def _finish_scroll(self):
-        self._scroll_history = 0
+        self._scroll_history=0;self._scroll_operation=None
         self._end_navigation()
         return GLib.SOURCE_REMOVE
 
@@ -539,85 +621,77 @@ class Viewport(Gtk.GLArea):
             self.next_view(); return True
         return False
 
-    def pick(self, x, y, extend=False):
-        if self.frame is None or not len(self.frame.ids):
-            if self.on_pick:
-                self.on_pick(None, None, extend)
+    def pick(self,x,y,extend=False):
+        k,pose,width,height=self.get_camera()
+        if not np.isfinite([x,y]).all() or x<0 or y<0 or x>=width or y>=height:return None
+        factor=max(1,self.get_scale_factor());scale=min(1.,max(.1,float(self.resolution_scale)))
+        pick_width,pick_height=max(1,round(width*factor*scale)),max(1,round(height*factor*scale))
+        sx,sy=pick_width/width,pick_height/height
+        pick_k=k.copy();pick_k[0]*=sx;pick_k[1]*=sy
+        cursor=np.floor([x*sx,y*sy])+.5
+        count=len(self.frame.ids) if self.frame is not None else 0
+        index=None;gaussian_depth=math.inf
+        gpu=self.get_realized() and self._renderer is not None and not self.render_error and not self.get_error()
+        if gpu:
+            self.make_current();self._renderer.upload(self.frame,pose,self.selected)
+            hit=self._renderer.pick(pick_k,pose,pick_width,pick_height,cursor,gaussian_scale=self.gaussian_scale,opacity_scale=self.opacity_multiplier,near_depth=self.near_clip,return_depth=True)
+            if hit is not None:index,gaussian_depth=hit
+        elif count and not getattr(self.frame,'is_prepared',False):
+            centers,covariance,depth=projected_ellipses(self.frame,pick_k,pose,width=pick_width,height=pick_height,near=self.near_clip,gaussian_scale=self.gaussian_scale)
+            delta=cursor-centers;xx,xy,yy=covariance[:,0,0],covariance[:,0,1],covariance[:,1,1]
+            r2=(yy*delta[:,0]**2-2*xy*delta[:,0]*delta[:,1]+xx*delta[:,1]**2)/np.maximum(xx*yy-xy*xy,1e-24)
+            valid=(depth>self.near_clip)&np.isfinite(r2)&(r2<=9)&(np.clip(self.frame.opacity*self.opacity_multiplier,0,.999)*np.exp(-.5*np.maximum(r2,0))>=.1)
+            candidates=np.flatnonzero(valid)
+            if len(candidates):
+                index=int(candidates[np.argmin(depth[candidates])]);gaussian_depth=float(depth[index])
+        candidates=[]
+        for order,entry in enumerate(self.cameras if self.show_cameras else []):
+            if not _get(entry,'visible',True):continue
+            segments=self._camera_segments(entry)
+            projected=project_segments(segments,np.ones((len(segments),2,4)),pick_k,pose,pick_width,pick_height,near=self.near_clip)
+            for hit in camera_edge_hits(projected,cursor,pick_width,pick_height,4*sx):
+                candidates.append((entry,order,hit))
+        best=None
+        if candidates:
+            surface=self._renderer.camera_occlusion_depths(pick_k,pose,pick_width,pick_height,[hit[:2] for _,_,hit in candidates],gaussian_scale=self.gaussian_scale,opacity_scale=self.opacity_multiplier,near_depth=self.near_clip) if gpu else np.ones(len(candidates))
+            for (entry,order,hit),surface_depth in zip(candidates,surface):
+                line_depth=max(0.,1-self.near_clip/hit[2])
+                if line_depth>surface_depth+2e-7:continue
+                key=(float(np.float32(hit[2])),order)
+                if best is None or key<best[0]:best=(key,entry)
+        if best is not None and best[0][0]<=gaussian_depth:
+            entry=best[1];owner=_get(entry,'object_id',_get(entry,'id'));view=_get(entry,'view',0)
+            if self.on_camera_pick:
+                import inspect
+                try:inspect.signature(self.on_camera_pick).bind(owner,view,extend)
+                except (TypeError,ValueError):self.on_camera_pick(owner,view)
+                else:self.on_camera_pick(owner,view,extend)
             return None
-        k, pose, width, height = self.get_camera()
-        # Match the actual render raster, including HiDPI and preview resolution.
-        # The .3 px² antialias filter lives in framebuffer pixels, not GTK units.
-        factor = max(1, self.get_scale_factor())
-        scale = min(1., max(.1, float(self.resolution_scale)))
-        pick_width, pick_height = max(1, round(width * factor * scale)), max(1, round(height * factor * scale))
-        sx, sy = pick_width / width, pick_height / height
-        pick_k = k.copy(); pick_k[0] *= sx; pick_k[1] *= sy
-        index = None
-        if getattr(self.frame, 'is_prepared', False):
-            self.make_current()
-            if self._renderer is None or self.render_error or self.get_error():
-                return None
-            self._renderer.upload(self.frame, pose, self.selected)
-            index = self._renderer.pick(pick_k, pose, pick_width, pick_height, [x*sx,y*sy], gaussian_scale=self.gaussian_scale, opacity_scale=self.opacity_multiplier, near_depth=self.near_clip)
-        else:
-            centers, covariance, depth = projected_ellipses(self.frame, pick_k, pose, width=pick_width, height=pick_height, near=self.near_clip, gaussian_scale=self.gaussian_scale)
-            delta = np.array([x * sx, y * sy]) - centers
-            xx, xy, yy = covariance[:, 0, 0], covariance[:, 0, 1], covariance[:, 1, 1]
-            determinant = xx * yy - xy * xy
-            r2 = (yy * delta[:, 0] ** 2 - 2 * xy * delta[:, 0] * delta[:, 1] + xx * delta[:, 1] ** 2) / np.maximum(determinant, 1e-24)
-            valid = (depth > self.near_clip) & np.isfinite(r2) & (r2 <= 9) & (np.clip(np.asarray(self.frame.opacity) * self.opacity_multiplier, 0., .999) * np.exp(-.5 * np.maximum(r2, 0)) >= .1)
-            indices = np.flatnonzero(valid)
-            if len(indices):
-                index = indices[np.argmin(depth[indices])]
         if index is not None:
-            result = (str(self.frame.object_ids[index]), int(self.frame.ids[index]))
-            if getattr(self.frame, 'is_prepared', False):
-                self.navigation.pivot = self.frame.element(*result).position.astype(np.float64)
-            else:
-                self.navigation.pivot = np.array(self.frame.means[index], np.float64)
+            result=(str(self.frame.object_ids[index]),int(self.frame.ids[index]))
+            self.navigation.pivot=self.frame.element(*result).position.astype(np.float64) if getattr(self.frame,'is_prepared',False) else np.array(self.frame.means[index],np.float64)
             if extend:
-                if result in self.selected:
-                    self.selected.remove(result)
-                else:
-                    self.selected.add(result)
-            else:
-                self.selected = {result}
-            self._dirty = True
-            self.queue_render()
-            if self.on_pick:
-                self.on_pick(*result, extend)
+                if result in self.selected:self.selected.remove(result)
+                else:self.selected.add(result)
+            else:self.selected={result}
+            self._dirty=True;self.queue_render()
+            if self.on_pick:self.on_pick(*result,extend)
             return result
-        # Wireframe picking shares the same clipped endpoints as drawing.
-        best = None
-        best_distance = 7.
-        for calibration in self.cameras if self.show_cameras else []:
-            segments = self._camera_segments(calibration)
-            projected = project_segments(segments, np.ones((len(segments), 2, 4)), k, pose, width, height, near=self.near_clip)
-            if not len(projected):
-                continue
-            endpoints = projected[:, :2].reshape(-1, 2, 2)
-            delta = endpoints[:, 1] - endpoints[:, 0]
-            t = np.clip(np.sum((np.array([x, y]) - endpoints[:, 0]) * delta, axis=1) / np.maximum(np.sum(delta * delta, axis=1), 1e-12), 0, 1)
-            distance = np.linalg.norm(endpoints[:, 0] + delta * t[:, None] - [x, y], axis=1).min()
-            if distance < best_distance:
-                best, best_distance = calibration, distance
-        if best is not None and self.on_camera_pick:
-            self.on_camera_pick(_get(best, 'object_id', _get(best, 'id')), _get(best, 'view', 0))
-            return None
         if not extend:
-            self.selected.clear()
-            self._dirty = True
-            self.queue_render()
-        if self.on_pick:
-            self.on_pick(None, None, extend)
+            self.selected.clear();self._dirty=True;self.queue_render()
+        if self.on_pick:self.on_pick(None,None,extend)
         return None
+
+    def _camera_entry_selected(self,entry):
+        owner=_get(entry,'object_id',_get(entry,'id'))
+        return _get(entry,'selected',False) or (owner,None) in self.selected or (owner,_get(entry,'view',0)) in self.selected
 
     def _camera_segments(self, calibration):
         calibration = _get(calibration, 'calibration', calibration)
         k = np.asarray(_get(calibration, 'K'))
         pose = np.asarray(_get(calibration, 'c2w'))
         width, height = _get(calibration, 'width'), _get(calibration, 'height')
-        size = max(float(np.linalg.norm(self.navigation.c2w[:3, 3] - self.navigation.pivot)) * .035, 1e-3)
+        size=max(.05,min(1.,self._scene_radius()*.08))
         shift = -.5 if _get(calibration, 'pixel_center', 'integer') == 'integer' else 0.
         pixels = np.array([[shift, shift, 1], [width+shift, shift, 1], [width+shift, height+shift, 1], [shift, height+shift, 1]])
         corners = (pixels @ np.linalg.inv(k).T * size) @ pose[:3, :3].T + pose[:3, 3]
@@ -627,8 +701,7 @@ class Viewport(Gtk.GLArea):
     def _grid_segments(self):
         up = int(np.argmax(np.abs(self.navigation.up)))
         axes = [i for i in range(3) if i != up]
-        distance = max(float(np.linalg.norm(self.navigation.c2w[:3, 3] - self.navigation.pivot)), 1e-6)
-        step = 10 ** math.floor(math.log10(distance) - 1)
+        step=1.
         grid, colors = [], []
         for axis in axes:
             other = axes[1] if axis == axes[0] else axes[0]
@@ -655,6 +728,8 @@ class Viewport(Gtk.GLArea):
                 continue
             identity = _get(path, 'identity')
             object_id = _get(path, 'object_id')
+            cameras=[entry for entry in self.cameras if _get(entry,'object_id',_get(entry,'id'))==object_id] if identity is None else []
+            if cameras and (not self.show_cameras or not any(_get(entry,'visible',True) for entry in cameras)):continue
             # SceneDocument.trajectories already applies the shared stable
             # identity density policy and unions individually selected paths.
             color = _get(path, 'colors')
@@ -662,6 +737,8 @@ class Viewport(Gtk.GLArea):
                 base = _get(path, 'color', [1., .7, .15])
                 color = np.broadcast_to(base, (len(points), 3))
             color = np.asarray(color)
+            if identity is None and ((object_id,None) in self.selected or any(self._camera_entry_selected(entry) for entry in cameras)):
+                color=np.broadcast_to([1.,.67,.15],(len(points),3))
             rgba = np.column_stack([color[:, :3], np.full(len(points), self.path_opacity)])
             segments = np.stack([points[:-1], points[1:]], axis=1)
             segment_colors = np.stack([rgba[:-1], rgba[1:]], axis=1)
@@ -687,6 +764,9 @@ class Viewport(Gtk.GLArea):
                 end_offset = np.where(scale, self.time * .5 - a * .5, end_offset)
                 start = np.clip(start_offset / span, 0, 1)
                 end = np.clip(end_offset / span, 0, 1)
+            positive=end>start
+            trail,tc,start,end=trail[positive],tc[positive],start[positive],end[positive]
+            if not len(trail):continue
             delta = trail[:, 1] - trail[:, 0]
             cd = tc[:, 1] - tc[:, 0]
             trail[:, 1] = trail[:, 0] + delta * end[:, None]
@@ -727,6 +807,25 @@ class Viewport(Gtk.GLArea):
             gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER, read)
             gl.glBindFramebuffer(gl.GL_DRAW_FRAMEBUFFER, draw)
 
+    def _poll_gpu_stats(self):
+        if not self.get_realized() or self._renderer is None or self.get_error():
+            self._gpu_poll_source=0;return GLib.SOURCE_REMOVE
+        self.make_current()
+        renderer=self._renderer
+        changed=renderer.gpu_metrics.poll()
+        metrics=renderer.performance_metrics()
+        if not renderer.gpu_metrics.supported:
+            if self._last_stats is not None:
+                self._last_stats.update(metrics)
+                if self.on_stats:self.on_stats(dict(self._last_stats))
+            self._gpu_poll_source=0;return GLib.SOURCE_REMOVE
+        idle=renderer.gpu_metrics.last_result_at is not None and clock.monotonic()-renderer.gpu_metrics.last_result_at>=.5
+        if self._last_stats is not None and (changed or idle):
+            self._last_stats.update(metrics)
+            if self.on_stats:self.on_stats(dict(self._last_stats))
+        if renderer.gpu_metrics.pending or (renderer.gpu_metrics.last_result_at is not None and not idle):return GLib.SOURCE_CONTINUE
+        self._gpu_poll_source=0;return GLib.SOURCE_REMOVE
+
     def _render(self, _area, _context):
         if self.render_error or self._renderer is None:
             return True
@@ -747,40 +846,64 @@ class Viewport(Gtk.GLArea):
                 self._last_upload_pose = pose.copy()
                 self._last_selection = self.selected.copy()
                 self._dirty = False
-            renderer.target(render_width, render_height)
-            renderer.begin(k, pose, render_width, render_height, exposure=self.exposure, exposure_multiplier=self.exposure_multiplier, gaussian_scale=self.gaussian_scale, opacity_scale=self.opacity_multiplier, near_depth=self.near_clip, background={'studio': (.018, .025, .04), 'black': (0., 0., 0.), 'gray': (.18, .18, .18), 'white': (1., 1., 1.)}.get(self.background, (.018, .025, .04)))
+            transparency=(self.show_paths and self.path_opacity>0 and self.path_opacity<.999 and bool(self.paths)) or (self.show_cameras and any(_get(entry,'visible',True) and not self._camera_entry_selected(entry) for entry in self.cameras))
+            renderer.target(render_width,render_height,transparency=transparency)
+            renderer.begin(k, pose, render_width, render_height, exposure=self.exposure, exposure_multiplier=self.exposure_multiplier, gaussian_scale=self.gaussian_scale, opacity_scale=self.opacity_multiplier, near_depth=self.near_clip, background={'studio': (.055,.061,.071), 'black': (0., 0., 0.), 'gray': (.18, .18, .18), 'white': (1., 1., 1.)}.get(self.background,(.055,.061,.071)))
             if self.show_grid:
                 points, colors = self._grid_segments()
                 renderer.lines(project_segments(points, colors, k, pose, render_width, render_height, near=self.near_clip), render_width, render_height, occlude=False)
             # lines() changes the current shader; splats() restores its program.
             renderer.splats()
-            renderer.splats(depth_only=True)
-            edges = _get(self.frame, 'edges') if self.frame is not None else None
+            edges=_get(self.frame,'edges') if self.frame is not None else None
             if edges is not None and len(edges):
-                edge_colors = np.tile([.7, .86, .75, .85], (len(edges), 2, 1))
-                renderer.lines(project_segments(edges, edge_colors, k, pose, render_width, render_height, near=self.near_clip), render_width, render_height)
+                edge_colors=np.tile([1.,.76,.12,1.],(len(edges),2,1))
+                renderer.lines(project_segments(edges,edge_colors,k,pose,render_width,render_height,near=self.near_clip),render_width,render_height,occlude=False)
+            # Native pivot is a base-pass annotation before camera/path overlays.
+            pivot=pose[:3,:3].T@(self.navigation.pivot-pose[:3,3])
+            if self.show_pivot and pivot[2]>self.near_clip:
+                center=k@pivot;center=center[:2]/pivot[2]
+                radius=9.
+                mark=np.tile([0.,0.,0.,1.,.65,.12,1.],(4,1))
+                mark[:,:2]=center+np.array([[-radius,0],[radius,0],[0,-radius],[0,radius]])
+                renderer.lines(mark,render_width,render_height,occlude=False)
+            renderer.splats(depth_only=True)
+            overlay=[]
             if self.show_paths or self.show_trails:
-                points, colors = self._path_segments()
-                renderer.paths(project_segments(points, colors, k, pose, render_width, render_height, near=self.near_clip), render_width, render_height)
+                points,colors=self._path_segments()
+                overlay.append(project_segments(points,colors,k,pose,render_width,render_height,near=self.near_clip))
             if self.show_cameras:
-                for calibration in self.cameras:
-                    points = self._camera_segments(calibration)
-                    rgba = [1., .76, .12, 1.] if _get(calibration, 'selected', False) else [.4, .7, 1., .8]
-                    color = np.tile(rgba, (len(points), 2, 1))
-                    renderer.lines(project_segments(points, color, k, pose, render_width, render_height, near=self.near_clip), render_width, render_height)
-            # Orbit center is a fixed-size display marker, outside quantitative RGB.
-            pivot = pose[:3, :3].T @ (self.navigation.pivot - pose[:3, 3])
-            if self.show_pivot and pivot[2] > self.near_clip:
-                center = k @ pivot; center = center[:2] / pivot[2]
-                radius = 9 * scale_factor * scale
-                mark = np.tile([0., 0., 0., 1., .65, .12, 1.], (4, 1))
-                mark[:, :2] = center + np.array([[-radius, 0], [radius, 0], [0, -radius], [0, radius]])
-                renderer.lines(mark, render_width, render_height, occlude=False)
+                for entry in self.cameras:
+                    if not _get(entry,'visible',True):continue
+                    points=self._camera_segments(entry)
+                    selected=self._camera_entry_selected(entry)
+                    rgba=[1.,.67,.15,1.] if selected else [.3,.55,.65,.65]
+                    colors=np.tile(rgba,(len(points),2,1))
+                    overlay.append(project_segments(points,colors,k,pose,render_width,render_height,near=self.near_clip))
+            if overlay:renderer.paths(np.concatenate(overlay),render_width,render_height)
+            renderer.selection_markers(k,pose,render_width,render_height,gaussian_scale=self.gaussian_scale,opacity_scale=self.opacity_multiplier,near_depth=self.near_clip)
             renderer.finish(destination, width, height)
+            self.last_render_warning=None
+        except RenderAllocationError as error:
+            renderer.abort_frame()
+            gl.glBindFramebuffer(gl.GL_FRAMEBUFFER,destination)
+            if renderer.fbo:
+                renderer.finish(destination,width,height)
+            warning=str(error)
+            if warning!=self.last_render_warning and self.on_error:self.on_error(warning)
+            self.last_render_warning=warning
+            # A reduced-resolution retry can recover; snapshot export must still
+            # wait for a completed current frame rather than export stale pixels.
+            self._render_pending=True
+            return True
         except Exception as error:
+            renderer.abort_frame()
             gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, destination)
             self._report_error(str(error))
         self._render_pending = False
-        if self.on_stats:
-            self.on_stats({'cpu_submission_ms': (clock.perf_counter() - start) * 1000, 'splats': renderer.count, 'render_width': render_width, 'render_height': render_height, 'sort_backend': renderer.sort_backend, 'sort_reused': renderer.last_sort_reused, 'sort_submission_ms': renderer.last_sort_submission_ms, 'sort_reason': renderer.sort_reason, 'graphics_info': self.graphics_info, 'endpoint_upload_bytes': renderer.last_endpoint_upload_bytes, 'endpoint_swapped': renderer.last_endpoint_swapped})
+        self._last_stats={'cpu_submission_ms': (clock.perf_counter() - start) * 1000, 'splats': renderer.count, 'render_width': render_width, 'render_height': render_height, 'sort_backend': renderer.sort_backend, 'sort_reused': renderer.last_sort_reused, 'sort_submission_ms': renderer.last_sort_submission_ms, 'sort_reason': renderer.sort_reason, 'graphics_info': self.graphics_info, 'endpoint_upload_bytes': renderer.last_endpoint_upload_bytes, 'endpoint_swapped': renderer.last_endpoint_swapped}
+        self._last_stats.update(renderer.performance_metrics())
+        if self.on_stats:self.on_stats(dict(self._last_stats))
+        if not self._gpu_poll_source and renderer.gpu_metrics.supported:
+            self._gpu_poll_source=GLib.timeout_add(16,self._poll_gpu_stats)
+
         return True
