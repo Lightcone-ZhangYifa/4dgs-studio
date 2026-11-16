@@ -7,31 +7,58 @@ or a completed macOS-to-Ubuntu application exchange.
 
 ## Evidence and scope
 
-The principal sources reviewed are `viewer/native/StudioComparison.swift`,
+The reviewed sources include `viewer/native/GSVDocument.swift`,
+`StreamingScene.swift`, `CompositeScene.swift`, `GSVCamera.swift`,
+`GSVCameraWriter.swift`, `StudioSelection.swift`, `StudioInspector.swift`,
+`WorkspaceModels.swift`, `TrajectoryExtraction.swift`, `StudioComparison.swift`,
 `StudioTimeline.swift`, `StudioPreviewControls.swift`, `StudioSnapshot.swift`,
-`GSVObservation.swift` and `GSVRender.swift`. Menu and inspector entry points were
-cross-checked against `App.swift`, `StudioActions.swift` and
-`StudioInspector.swift`. Ubuntu paths below are relative to `viewer/ubuntu`.
+`GSVObservation.swift`, `GSVRender.swift` and `Shaders.metal`. Menu/inspector entry
+points were cross-checked against `App.swift` and `StudioActions.swift`. Ubuntu
+paths below are relative to `viewer/ubuntu`.
 
 **Implemented** means the entry point and behavior exist in the current source.
 **Automated** means an assertion exists in the named test; it does not imply
-physical input delivery. The audit-specific batch actually executed 23 comparison,
-12 mapped GTK inspection-control and 4 extreme-clock timeline tests successfully.
-The other test names below identify existing coverage, not a new execution claim.
-GTK widget tests use Xvfb and real GTK allocations; the application tests substitute
-file chooser completion with a selected local path.
+physical input delivery. The recorded complete Ubuntu run executed 238 tests
+successfully, with two benchmark tests skipped; the SDK suite passed 78 tests.
+Named tests below are individual assertions within that evidence, not native
+input acceptance. GTK tests use real allocations under Xvfb. A separate working-
+tree run at source `8d54a00` also passed all 31 application tests under actual GNOME
+Xwayland/RTX 4090 and Wayland/llvmpipe. Those application tests substitute file
+chooser completion with a selected path, including when run on real GNOME.
+They do not validate native portal keyboard/mouse delivery. The existing GNOME
+display remained present throughout, with logical-monitor count 1→1; no desktop
+input was injected by this regression harness.
 
 **Desktop ID** refers to `steps` or `full_checks[].id` in the JSON report from
 [tools/test_desktop_session.py](tools/test_desktop_session.py) and
 [tools/desktop_parity.py](tools/desktop_parity.py). The latter runs with `--full`.
 This document records the available checks, **not their execution status**. A
 current actual GNOME report with `passed: true` is required before marking a
-desktop row accepted. These scripts use the normal application, AT-SPI actions,
+desktop row accepted. **The expanded current-source `--full` workflow has not
+completed acceptance.** Clean `599ca1c` basic portal results remain historical
+evidence with their recorded source and scope in [DESKTOP_VALIDATION.md](DESKTOP_VALIDATION.md).
+Newer working-tree EIS runs passed five parity groups, three comparison groups
+and three lifecycle groups. The last preferences check stopped on a runner
+ComboRow name/value mismatch; the tool is corrected, but no complete final
+clean-source `--full` result has yet superseded that partial evidence.
+These scripts use the normal application, AT-SPI actions,
 native dialogs and exported artifacts; they reject Xvfb. Rows marked “uncovered”
 still need a dedicated desktop gesture or assertion.
 
 Test names in the tables are in `tests/`. Method names identify production code,
 not test-only application interfaces.
+
+## Document, hierarchy and inspection semantics
+
+| macOS source and user operation | Ubuntu entry and behavior | Automated assertions | Remaining desktop evidence |
+| --- | --- | --- | --- |
+| `GSVDocument`: validated, read-only regular sources and change detection | `camera.SnapshotScene` / `open_regular_scene` retain SDK validation, pin a regular descriptor and read owned bounded `preadv` snapshots; source truncation cannot fault a live mapping | `test_model.test_nonregular_inputs_fail_without_blocking_source_or_camera_import`, `test_owned_source_snapshots_survive_truncation_without_sigbus`, `test_truncation_during_snapshot_read_fails_and_closes_descriptor` | Training-process mutation and cancellation during large native-dialog loads remain separate acceptance cases |
+| `StreamingScene`, `CompositeScene`: active source cohort, peers, complete identity table | `model.SceneDocument` selects compatible source domains/display caches without double rendering; CPU and prepared frames retain source-count/layout metadata and all-time framing bounds | Domain/cache tests; `test_prepared_validity_preserves_inactive_identities_at_sample_boundaries`, `test_scaffold_glyphs_and_edges_obey_source_validity` | Real scene/cohort switching at scale requires application measurements |
+| `WorkspaceModels`, Outliner: canonical categories, multi-view rigs, visibility and mixed selection | `outliner.SceneOutliner` is a direct ScrolledWindow/ListView with TreeListModel, TreeExpander and MultiSelection; seven counted groups, only multi-view camera children; rig/view membership remains exact | `test_outliner` covers grouping, nonselectable categories, Ctrl membership, search/collapse state, keyboard expansion, visibility and 2,000-object virtualization | Current full desktop hierarchy/accessibility traversal is not yet accepted |
+| `StudioSelection`, `StudioActions`: viewing and selection are independent | The View camera dropdown changes `_viewed_entry`, not `selected`, `primary` or the authored editing target. Outliner/viewport selection determines inspection and editing; source viewing can be recorded into an already selected authored camera | `test_application.test_camera_view_preserves_selection_and_rejects_a_foreign_domain`, `test_rig_view_inspection_does_not_switch_viewing_camera`, `test_source_and_geometry_selections_cannot_edit_previous_user_camera` | Latest view-versus-selection assertions are automated; earlier basic camera workflows do not establish this complete current semantics |
+| `StudioInspector`: Selection / Viewport / Document and raw source values | `inspector.document` displays coordinates, clock mappings/units and storage; `update(elements=...)` inspects inactive/foreign-domain identities without activating them, preserves raw RGB and distinguishes scaffold glyph styling | Document/inactive/scaffold model tests; `test_model.test_playback_updates_values_in_place_without_rebuilding_accessible_rows` | Full current inspector interaction and screen-reader traversal remain pending |
+| `Shaders.metal.projectGaussians`: visible/total statistics | `gpu_visibility` reuses the render projection and asynchronously counts eligible Gaussian bounding boxes at at most 10 Hz. Source/cohort changes reject old epochs; empty geometry is exactly zero; query failure displays unavailable, not active count | All `test_gpu_visibility` cases: baseline GL3.3, ready-only reads, bounded queue, clipping, opacity/scale, mixed weights, epochs, empty/inactive and failure recovery | A sampled count has age/source-time metadata; it is not an occlusion/pixel count or desktop presentation FPS |
+| `GSVCameraWriter`, authored inspection: large key tracks | `CameraTrack.times` caches immutable Float64 times; steady seek is logarithmic. Inspector shows a count, retaining every key in cached raw JSON; imports build one validated list, not repeatedly sorted prefixes | Large-seek/cache, stable-Inspector and large-import/invalid-middle/cancellation tests in `test_model` | CPU scaling measurements below; 100,000-key native portal import/playback is not yet a desktop acceptance result |
 
 ## Menus, workbench and source ownership
 
@@ -44,8 +71,26 @@ not test-only application interfaces.
 | `App`, `StudioActions`: Frame scene/selection, Top/Front/Right/Isometric, previous/next view | View menu and viewport controls; navigation history independent of camera edit history | `test_viewport.test_presets_are_proper_world_up_rotations_and_preserve_orbit`, `test_center_selection_preset_and_free_view_preserve_required_state`, `test_history_restores_up_axis_and_ignores_inactive_focus_loss` | `all-presets-frame-and-view-history` |
 | `App`: sidebar, inspector, fullscreen and navigation guide | Workbench menu actions and normal GTK window state | No dedicated assertion for the complete toggle/help sequence | `panels-fullscreen-navigation-help` |
 | `App`: native text Undo/Redo versus camera Undo/Redo | Focused GTK text history receives ordinary Ctrl-Z; camera history has dedicated actions; Home remains local | `test_application.test_native_text_undo_preserves_camera_and_creation_undo_clears_selection` | Camera history is included in `native-camera-undo-redo-delete-import-roundtrip`; focused text history uncovered |
-| `StudioActions`, camera inspector: create, record, rename, transform/FOV, select/retime/delete key, delete camera, import/export | Camera menu and contextual Selection inspector; separate authored tracks and camera-only GSV export | `test_application.test_scene_selection_playback_camera_animation_and_comparison`, `test_authored_paths_refresh_with_keys_and_editor_preserves_focused_text`, `test_source_and_geometry_selections_cannot_edit_previous_user_camera`; model camera roundtrip tests | `two-key-camera-authoring-and-native-save`, `native-camera-undo-redo-delete-import-roundtrip`, `camera-name-transform-fov-key-choice-retime-delete-undo` |
+| `StudioActions`, camera inspector: create, record, rename, transform/FOV, select/retime/delete key, delete camera, import/export | Camera menu and contextual Selection inspector; Enter/Apply commit fields, separate authored tracks, camera-only export; recorded keys capture the current interactive near clip | `test_application.test_scene_selection_playback_camera_animation_and_comparison`, `test_authored_paths_refresh_with_keys_and_editor_preserves_focused_text`, `test_apply_camera_field_is_equivalent_to_enter_and_can_be_undone`, `test_authored_keys_capture_the_current_interactive_near_clip`; model roundtrip tests | `two-key-camera-authoring-and-native-save`, `native-camera-undo-redo-delete-import-roundtrip`, `camera-name-transform-fov-key-choice-retime-delete-undo` |
 | `StudioActions`: asynchronous accepted saves survive later work | `jobs.CommandJobs` serializes accepted writes; source replacement invalidates UI callbacks, not chosen writes | `test_jobs.test_accepted_writes_survive_source_replacement_and_new_command`, `test_close_drains_every_accepted_command_without_gtk_callbacks` | Source SHA256 retained by desktop runner; concurrent source replacement during save uncovered |
+
+The last handler audit also corrected these mapped-but-different behaviors:
+
+| Native behavior | Current Ubuntu behavior and regression |
+| --- | --- |
+| Viewport number shortcuts | 1/3/7 invoke Front/Right/Top perspective, alongside the existing menu/buttons |
+| FOV keying with nonzero skew and endpoint angles | Both focal lengths and K[0,1] scale by the same ratio; inclusive 1°/170° accepted, principal point/raster/pose preserved; `test_fov_editor_scales_skew_with_focal_length_and_accepts_native_boundaries` checks undo/redo |
+| Preview rate/range commits | Valid rate or committed/enabled/disabled range pauses; unfinished fields and rejected rates do not change committed rate; `test_preview_range_and_rate_commit_pause_but_uncommitted_or_invalid_rate_do_not` |
+| Static cross-clock camera viewing versus authoring | Same-space one-key authored cameras remain viewable/visible; recording, FOV/transform, key jumps and retiming require active domain; foreign key lane hidden; `test_single_key_authored_camera_can_be_viewed_across_clock_but_cannot_be_edited`, `test_foreign_camera_keys_cannot_seek_or_retime_and_are_hidden_from_active_lane` |
+| Ambiguous ownerless identity | More than one source match is rejected instead of selecting the first field; `test_exact_id_without_owner_rejects_ambiguity_instead_of_selecting_first_field` |
+| Typed session times and workspace counts | Exact Time expands the per-clock session timeline without changing source samples; Document/header count authored cameras and session samples; sample index uses the workspace lower sample; `test_exact_time_entry_extends_session_timeline_without_changing_source`, `test_document_and_header_counts_include_session_cameras_and_authored_times` |
+| Exact copied attributes | `Inspector.plain_rows` supplies cached original strings, avoiding double entity decoding by Adwaita getters; `test_copy_attributes_preserves_literal_markup_and_entities_without_global_clipboard` mocks the clipboard and retains literal `&amp;`, `&#55;` and `<b>` |
+| Canonical About/product identity | Source and Debian builds read `Info.plist` product/author metadata; four packaging tests passed, with no separate hard-coded Linux author record |
+
+These assertions are in the current automated suite and the 31-case actual
+GNOME window runs at `8d54a00`, with only documentation changes in the working
+tree. Chooser completion remained substituted in those runs; native-portal
+and EIS acceptance remains separately scoped below.
 
 ## Timeline and transport
 
@@ -176,6 +221,73 @@ upload cost, or macOS performance. Source identity/size/mtime checks remained
 unchanged, regeneration refused existing inputs, and exception-path restoration
 of both positional-read functions was verified.
 
+## Authored animation scaling and maintenance
+
+The working-tree CPU measurements below use 100,000 finite, ordered camera keys
+with fixed 320×240 raster, an integer-centered pinhole K, rigid poses and explicit
+near/far tracks. Each import fixture is generated directly as SDK arrays, not
+through repeated `record()` calls. Per-key adapter validation remains enabled;
+shared SDK envelope, checksum and camera validation are also enabled.
+
+| Work | Measured wall time | Scope |
+| --- | --- | --- |
+| First seek, building the cached 100,000-key time index | 6.14 ms | Includes one complete time-index construction |
+| Warm seek | 0.413 / 0.431 ms median/P95 | 101 seeks, same key list; interpolation retained |
+| Previous time-array construction alone | 5.75 ms median | Former per-seek traversal, excluding interpolation |
+| Initial inspector descriptor and native rows | 90.26 ms | Full raw key times and widgets built once |
+| Warm inspector updates | 0.236 / 0.254 ms median/P95 | 101 times; existing rows/raw descriptor retained |
+| Import 10,000 keys, 2.21 MiB | 1.720 s | Validation and immutable key construction |
+| Import 100,000 keys, 21.53 MiB | 17.268 s | Same checks; 10.042× time for 10× keys |
+
+The imports measured 171.97/172.68 µs per key. Every key is retained, matrices
+are independent read-only snapshots, integer-to-half pixel conversion occurs
+once, and near/far and interpolated pose assertions pass. Both the reconstruction
+and animation file SHA256 remain unchanged. The 17-second case is loading work
+on a worker, not interactive seek latency or a claim of instant large imports.
+Optional cancellation checks occur every 128 keys and before publication; an
+invalid middle key rejects the whole import. Reproduce the import scaling from
+the repository root without a display:
+
+```sh
+PYTHONPATH=viewer/ubuntu:viewer/ubuntu/tests:packages/gsv/src .venv/bin/python - <<'PY'
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from time import perf_counter
+from test_model import write, write_camera_animation
+from gs_studio.model import SceneDocument
+from gs_studio.camera import import_camera_animation
+with TemporaryDirectory() as folder:
+    root = Path(folder)
+    write(root / 'source.gsv')
+    with SceneDocument(root / 'source.gsv') as source:
+        for count in (10_000, 100_000):
+            path = root / f'camera-{count}.gsv'
+            write_camera_animation(path, source, count)
+            start = perf_counter()
+            track = import_camera_animation(path, source)[0]
+            print(count, len(track.keyframes), perf_counter() - start)
+PY
+```
+
+Maintenance invariants:
+
+- Structural camera edits replace `keyframes` with a new list. Read-only time
+  indices, raw descriptors and key-selector entries use that identity to
+  invalidate caches. In-place list mutation would bypass those invalidations.
+- View-camera changes preserve the selection set and authored target. Tests that
+  select a source object must use the Outliner/selection path; the View dropdown
+  is not a selection shortcut.
+- Raw source schemas, translation catalogs, version metadata and camera export
+  contracts remain shared with macOS. About reads the same canonical product/
+  author identity in the checkout and Debian payload. GTK row updates retain object identity
+  unless their property schema changes, keeping accessibility/focus stable.
+- CPU fallback frames retain original cohort count/layout metadata even when
+  invalid raster records are filtered. Visibility epochs depend on that layout,
+  not display time or camera pose.
+- Frustum counting compiles the existing render projection. A new preview
+  clipping/opacity policy must update its shared eligibility expression, with
+  GL3.3 tests, rather than introducing a separate CPU approximation.
+
 ## Findings fixed during this audit and remaining acceptance
 
 The scoped fixes add horizontal/Shift timeline panning, ignore label-gutter
@@ -197,7 +309,8 @@ desktop operation.
 Outstanding evidence is explicit in the Desktop column: physical image/timeline
 gestures, HiDPI behavior, screen-reader use, cancellation/error dialogs, and
 several comparison selectors are not covered by the current desktop scripts.
-The eight `--full` categories also require a successful actual-session report.
+The eight `--full` categories also require a successful current-source
+actual-session report; no such complete passing report is claimed here.
 Cross-platform camera exchange requires running the macOS application, not just
 loading a schema-equivalent fixture. macOS-vs-Ubuntu rendered pixel and performance
 comparisons require measured artifacts from both backends on identified hardware.

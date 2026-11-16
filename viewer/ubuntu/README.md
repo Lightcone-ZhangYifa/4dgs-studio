@@ -57,11 +57,23 @@ does not replace another installed `gsv` Python package. Uninstall with
 
 The workspace keeps the macOS arrangement: Scene Outliner on the left,
 viewport and timeline in the center, inspector on the right. Paned dividers
-resize the panels. Object rows support multiple selection and per-object
-visibility. Double-click a camera to look through it or a render view to compare
+resize the panels. The native GTK tree groups representations, cameras, motion,
+observations, appearance, rendering and supporting data in the same order as
+macOS. Categories show object counts and collapse; multi-view camera rigs expose
+individual view children, while single-view cameras have no redundant child.
+Large lists retain GTK virtualization. Selection inspects an object or camera
+view without changing the viewing camera. Object rows support multiple selection
+and per-object visibility. Double-click a camera to look through it or a render view to compare
 it. Double-click geometry from another space/clock to activate that domain;
 no implicit coordinate conversion or clock alignment occurs. Unknown source
 representations remain inspectable and never execute embedded model code.
+
+The inspector follows the same Selection / Viewport / Document organization.
+Camera editing appears in its selection context; document coordinates, clocks,
+units and storage information have their own page. Inspection values update in
+place during playback, retaining scrolling, expanded descriptors and widget
+identity. Inactive identities remain inspectable, and scaffold display glyphs
+are kept separate from measured node attributes.
 
 | Input | Action |
 | --- | --- |
@@ -72,6 +84,7 @@ representations remain inspectable and never execute embedded model code.
 | Ctrl+left drag / wheel | Dolly |
 | Pinch / rotate | Dolly / roll |
 | F / Home | Frame selection / scene |
+| 1 / 3 / 7 in the viewport | Front / Right / Top perspective |
 | Space / left or right arrow | Play or pause / step a source sample |
 | Ctrl+K | Record the view into the selected authored camera |
 | Ctrl+Z / Ctrl+Shift+Z | Native text undo/redo when editing, otherwise camera undo/redo |
@@ -92,21 +105,47 @@ The timeline scrubs document-native time. Scroll to zoom, middle-drag to pan,
 or use Fit. Playback has explicit native-units/s, speed, loop and in/out range
 controls; source FPS is never inferred. Click a camera key diamond to inspect
 it, drag to retime it, or enter an exact time in the Camera inspector. Camera
-name, horizontal FOV, position XYZ and rotation WXYZ fields apply with Enter.
+name, horizontal FOV, position XYZ and rotation WXYZ fields apply with Enter or
+their Apply button.
 Create Camera from View, then move the viewport and record keys. Saves and
 imports preserve the same camera schema, SLERP interpolation and source manifest
 digest as macOS. Camera-only files opened as sources remain read-only; reopen
 the original reconstruction and import its animation for editing.
 
+Committing a valid preview rate or range pauses playback. Entering an exact
+Time adds that time to the session timeline; source timestamps remain unchanged.
+Document and header object/sample counts describe the workspace, including
+authored cameras and session times. FOV edits accept the native 1°–170° inclusive
+range and scale skew together with the two focal lengths.
+
 The selection-member menu chooses a primary object or identity without changing
 mixed selection membership; inspector fields label the owning object, even when
-two objects use the same identity. Source-camera selection clears the authoring
-target, so edits cannot silently affect a previously selected user camera.
+two objects use the same identity. Selecting a source camera or geometry through
+the Outliner clears the authored-camera editing target. The **View camera
+dropdown is independent of selection**: looking through a source camera does
+not select it or clear an already selected authored camera. Record therefore
+captures the currently displayed view into that selected authored track. An
+incompatible space/clock leaves the existing view intact and reports the reason.
+One-key cameras in the same space can be viewed across clocks because their
+pose is constant. Recording, transform/FOV edits, key jumps and retiming still
+require the active space/clock; foreign keys stay out of its timeline lane.
+Without a selected owner, an ID shared by multiple fields is rejected as
+ambiguous. Copy Attributes retains literal entity/tag text exactly.
 Authored keys extend the transport timeline, including empty/static sources.
+
+Authored playback reuses a read-only Float64 key-time index. The inspector shows
+the key count and retains all times in its expandable descriptor; the key
+selector and raw descriptor rebuild when the track changes, rather than on
+every display tick. Camera imports build one validated, ordered key list, with
+cancellation checkpoints every 128 keys. Large imports still perform the full
+per-key numerical checks on a worker; the measured 100,000-key case took about
+17 seconds. Source scenes and imported animation files stay unchanged.
 
 Preferences follow system light/dark appearance and select English or Simplified
 Chinese for the next launch. The canonical translations are shared with macOS.
 Preferences are stored under `$XDG_CONFIG_HOME/4dgs-studio` (normally `~/.config`).
+About and packaged identity use the canonical `viewer/native/Info.plist`,
+including its author record, rather than a separate Linux author/version copy.
 
 ## Calibrated images
 
@@ -151,7 +190,7 @@ skips display-dependent tests. The second also exercises real GTK windows and
 OpenGL contexts with Mesa, including playback, picking, calibrated images,
 resize, GPU resource disposal, source replacement, file I/O and close races.
 Only chooser completion is substituted in automated application tests; portal
-interaction itself requires manual desktop acceptance. `GDK_DEBUG=no-vsync`
+interaction itself requires separate desktop acceptance. `GDK_DEBUG=no-vsync`
 works around the Xvfb frame-clock limitation; do not set it on a normal desktop.
 
 Graphics Information in the application menu reports the actual current renderer,
@@ -163,6 +202,27 @@ Xwayland launch created an actual RTX 4090 OpenGL 4.6 context. Driver/backend
 selection remains per process; the application does not rewrite desktop or GPU
 settings. The validation record in `PARITY.md` separates those paths.
 
+The performance label reports the latest completed **frustum-visible / source
+identity** count. A nonblocking GL 3.3 point/geometry query reuses the splat
+projection and samples at most 10 times per second; its age and source time are
+shown in the tooltip. This counts valid, opaque-enough, finite projected 3σ
+bounds intersecting the raster, including Gaussians occluded by other geometry.
+It is not a count of unoccluded pixels or an estimate from active IDs. Changing
+the source/cohort clears old results; empty geometry is exactly zero without a
+GPU sample, and an unavailable query displays “—”. The tooltip also separates
+CPU submission, asynchronous GPU render/sort timing, completed-render rate and
+estimated GPU storage. Completion rate is not desktop presentation FPS. Timing
+or visibility-query failure leaves rendering available. Framebuffer
+resizing allocates replacement targets transactionally, so allocation failure
+retains the previous target and a lower preview resolution can recover.
+
+[FEATURE_AUDIT.md](FEATURE_AUDIT.md) maps individual macOS operations to the GTK
+frontend, named regressions and actual-session check IDs. The CI
+`audit_studio_features.py` completeness guard covers all 80 current macOS desktop
+action callbacks in the source map; that is not runtime acceptance of every
+action. Both frontends retain the same SDK, translation resources,
+camera/render contracts and product version source.
+
 A reproducible renderer benchmark is available at
 `viewer/ubuntu/tools/benchmark_viewport.py`. It separates CPU submission and
 `glFinish` completed-frame time and records renderer/driver/size. Actual RTX 4090 renderer measurements are recorded in `PARITY.md`, along with
@@ -172,9 +232,20 @@ and manual acceptance checklist for each target driver before release.
 
 ## Actual GNOME desktop acceptance
 
-The [desktop acceptance record](DESKTOP_VALIDATION.md) describes real Wayland and
-NVIDIA Xwayland runs, including native open/save portals, camera roundtrips and
-calibrated image exports. `tools/test_desktop_session.py` requires explicit
+The [desktop acceptance record](DESKTOP_VALIDATION.md) distinguishes the clean
+`599ca1c` basic native-portal runs from later working-tree window regressions.
+The recorded Ubuntu suite ran 238 tests successfully, with two benchmark tests
+skipped; the SDK suite passed 78 tests. A separate actual GNOME window run passed
+31 application tests on each of NVIDIA Xwayland and software Wayland at
+`8d54a00`, with chooser completion still substituted. **The current expanded `--full` desktop
+workflow has not completed acceptance.** These results do not establish current
+full portal, physical-input or cross-platform acceptance.
+Later working-tree EIS runs passed five parity groups, three comparison groups
+and three lifecycle groups; the preferences check stopped on a test-tool
+ComboRow name/value mismatch. That tool correction still awaits a complete clean
+run, so these are partial results, not a full pass.
+
+`tools/test_desktop_session.py` requires explicit
 `--allow-desktop-input`; it never runs from unit-test discovery or CI by accident.
 A disconnected session can opt into a temporary Mutter output with
 `--virtual-output`, which is removed on completion.

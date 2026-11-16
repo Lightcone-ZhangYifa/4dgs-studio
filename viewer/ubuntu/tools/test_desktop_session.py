@@ -509,6 +509,8 @@ def run(args):
             report['temporary_virtual_output'] = True
         desktop.keyboard_start()
         report['input_backend'] = args.input_backend
+        report['input_events_synthetic'] = True
+        report['input_scope'] = 'Real Mutter compositor events and public accessibility actions on the owned test application; no manual hardware-input claim'
         if args.input_backend == 'eis':
             from desktop_eis import EISInput
             desktop.eis = EISInput.from_remote_session(desktop.bus, desktop.remote)
