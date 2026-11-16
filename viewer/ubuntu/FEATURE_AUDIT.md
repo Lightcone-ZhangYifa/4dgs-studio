@@ -25,8 +25,9 @@ revision. The 80-action mapping is a review-completeness guard, not runtime
 proof of every mapped action.
 
 Subsequent [production-data validation](PRODUCTION_VALIDATION.md) uses four real
-160k–2.56M-point scenes. The endpoint/calibration changes at `bf7a410` pass an
-updated **255-test suite: 253 passed, two opt-in benchmarks skipped**.
+160k–2.56M-point scenes. The endpoint/calibration changes at `bf7a410` and
+visibility-query repair at `771be79` pass an updated **258-test suite:
+256 passed, two opt-in benchmarks skipped**.
 
 **Desktop ID** means the exact ID and group in a retained runner report. Read
 [DESKTOP_VALIDATION.md](DESKTOP_VALIDATION.md#final-report-status) for final status

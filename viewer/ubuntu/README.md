@@ -240,8 +240,9 @@ and manual acceptance checklist for each target driver before release.
 
 The later [production-data validation](PRODUCTION_VALIDATION.md) tests real
 160k, 640k, 1.28M and 2.56M-point, 36-sample GSVs. Endpoint retention and batch
-camera evaluation are committed at `bf7a410`; the updated Ubuntu suite ran
-**255 tests: 253 passed and two opt-in benchmark tests skipped**. Production
+camera evaluation are committed at `bf7a410`, with reliable NVIDIA visibility
+counting at `771be79`; the updated Ubuntu suite ran
+**258 tests: 256 passed and two opt-in benchmark tests skipped**. Production
 source reads, actual GTK/GPU timings and native input have separate evidence.
 
 The earlier complete parity run froze runtime source at `ec35705`; its input-driver revision is

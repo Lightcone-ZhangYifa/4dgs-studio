@@ -8,8 +8,9 @@ and [camera/render contract](../../docs/gsv/RENDER_CONTRACT.md).
 ## Current verification scope
 
 Later [production-data validation](PRODUCTION_VALIDATION.md) covers four real
-160k–2.56M-point scenes and the endpoint/calibration optimizations at `bf7a410`.
-The updated Ubuntu suite ran **255 tests: 253 passed, two opt-in benchmarks skipped**.
+160k–2.56M-point scenes, endpoint/calibration optimizations at `bf7a410` and the
+visibility-query repair at `771be79`. The updated Ubuntu suite ran
+**258 tests: 256 passed, two opt-in benchmarks skipped**.
 
 Runtime source `ec35705` and desktop input-driver revision `6583689` are the
 earlier complete-parity baseline. Its automated results are **245 tests: 243 passed, two benchmark
