@@ -71,7 +71,9 @@ def measure(args):
                     valid_count=getattr(frame, 'valid_count', len(frame)), cold_prepare=cold,
                     warm_prepare=dict(summary(warm), python_source_reads=warm_reads,
                                       all_endpoint_storage_reused=all(reuse)),
-                    validity_count_verified=True, cache_bytes=document._cache_bytes, memory=memory()))
+                    validity_count_verified=True, cache_bytes=document._cache_bytes,
+                    active_endpoint_bytes=document._cache_size(getattr(document, '_active_endpoints', None)),
+                    memory=memory()))
             owner = next((x for x in document.visible_ids
                           if document.object(x)['type'] == 'gaussian'), None)
             if owner:
@@ -90,11 +92,15 @@ def measure(args):
                 count = 0
                 for camera in document.cameras:
                     if camera.get('space') == document.space and camera.get('clock') == document.clock:
-                        for view in range(len(camera['data']['view_ids'])):
-                            document.camera(camera['id'], value, view)
-                            count += 1
+                        if hasattr(document, 'camera_views'):
+                            count += len(document.camera_views(camera['id'], value))
+                        else:
+                            for view in range(len(camera['data']['view_ids'])):
+                                document.camera(camera['id'], value, view)
+                                count += 1
                 calibration_times.append(dict(time=value, views=count, ms=(time.perf_counter()-started)*1000))
             report['all_camera_calibrations'] = calibration_times
+            report['calibration_api'] = 'camera_views' if hasattr(document, 'camera_views') else 'camera per view'
             report['memory'] = memory()
             report['success'] = True
     except BaseException as error:

@@ -983,16 +983,17 @@ class StudioWindow(Adw.ApplicationWindow):
             for camera in doc.cameras:
                 if camera.get("space") != doc.space:
                     continue
-                if camera.get("clock") != doc.clock and len(doc.scene.array(camera["data"]["times"])) != 1:
+                if camera.get("clock") != doc.clock and len(doc.object_times(camera["id"])) != 1:
                     continue
-                for view in range(len(camera["data"]["view_ids"])):
-                    calibrations[(camera["id"], view)] = doc.camera(camera["id"], requested_time, view)
+                for view, calibration in doc.camera_views(camera["id"], requested_time, cancelled=lambda: self.closed or doc is not self.document or frame_generation != self.frames.generation).items():
+                    calibrations[(camera["id"], view)] = calibration
             inspection_calibrations = dict(calibrations)
             source_camera = next((camera for camera in doc.cameras if camera['id'] == primary), None)
             if source_camera is not None:
-                camera_time = requested_time if source_camera.get('clock') == doc.clock else float(doc.scene.array(source_camera['data']['times'])[0])
+                camera_time = requested_time if source_camera.get('clock') == doc.clock else float(doc.object_times(primary)[0])
                 view = inspected_views.get(primary, 0)
-                inspection_calibrations[(primary, view)] = doc.camera(primary, camera_time, view)
+                if (primary, view) not in inspection_calibrations or camera_time != requested_time:
+                    inspection_calibrations[(primary, view)] = doc.camera(primary, camera_time, view)
             elements = {}
             for owner, identity in selected:
                 if identity is not None and doc._objects.get(owner,{}).get('type') != 'camera':

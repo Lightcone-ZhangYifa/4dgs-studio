@@ -175,9 +175,14 @@ def slerp(first, second, weight):
 
 
 def interpolate_pose(first, second, weight):
-    out = np.eye(4, dtype=np.float64)
-    out[:3, :3] = quat_matrix(slerp(matrix_quat(first[:3, :3]), matrix_quat(second[:3, :3]), weight))
-    out[:3, 3] = (1 - weight) * first[:3, 3] + weight * second[:3, 3]
+    """Interpolate rigid poses, preserving any broadcast leading dimensions."""
+    first, second = np.broadcast_arrays(np.asarray(first, np.float64), np.asarray(second, np.float64))
+    if first.ndim < 2 or first.shape[-2:] != (4, 4):
+        raise GSVError('Camera poses require [...,4,4] matrices')
+    out = np.broadcast_to(np.eye(4, dtype=np.float64), first.shape).copy()
+    out[..., :3, :3] = quat_matrix(slerp(matrix_quat(first[..., :3, :3]),
+                                      matrix_quat(second[..., :3, :3]), weight))
+    out[..., :3, 3] = (1 - weight) * first[..., :3, 3] + weight * second[..., :3, 3]
     return out
 
 

@@ -15,7 +15,8 @@ import numpy as np
 from gsv import GSVError, Scene, Writer, add_camera, add_persistent_gaussians
 from gs_studio.model import SceneDocument, PreparedFrame, density_rows
 from gs_studio.camera import (CameraHistory, CameraKeyframe, CameraTrack, export_camera_animation,
-                              import_camera_animation, SnapshotScene)
+                              import_camera_animation, SnapshotScene, interpolate_pose, slerp)
+from gsv.evaluate import matrix_quat, quat_matrix
 from gs_studio import model
 
 
@@ -80,6 +81,39 @@ def write_camera_animation(path, source, count, *, invalid_middle=False):
                              'far_unbounded':out.add_array('unbounded',(np.arange(count)%2==1)[:,None])}}
         out.add_object('dense-user-camera','camera','gsv.camera.pinhole',data,
                        space=source.space,clock=source.clock,metadata={'role':'user'})
+
+
+def write_physical_rig(path):
+    """Distinct views exercise interpolation and nearest-sample metadata."""
+    times = np.array([0., 2., 5.])
+    grid = np.arange(12, dtype=np.float64).reshape(3, 4)
+    k = np.tile(np.array([[200., 3., 160.], [0., 220., 120.], [0., 0., 1.]]), (3, 4, 1, 1))
+    k[:, :, 0, 0] += grid
+    k[:, :, 0, 1] += grid * .1
+    poses = np.tile(np.eye(4), (3, 4, 1, 1))
+    axes = np.array([[1., 0, 0], [0, 1., 0], [0, 0, 1.], [1., 2., 3.]])
+    axes /= np.linalg.norm(axes, axis=1, keepdims=True)
+    angles = np.array([0., np.pi, -.9 * np.pi])[:, None]
+    quaternions = np.concatenate([np.broadcast_to(np.cos(angles / 2)[..., None], (3, 4, 1)),
+                                 np.sin(angles / 2)[..., None] * axes], axis=-1)
+    poses[:, :, :3, :3] = quat_matrix(quaternions)
+    poses[:, :, 0, 3] = times[:, None]
+    poses[:, :, 1, 3] = np.arange(4)[None]
+    near = .01 + grid * .001
+    unbounded = np.array([[0, 1, 0, 1], [1, 0, 0, 1], [0, 0, 1, 1]], bool)
+    far = np.where(unbounded, 0., 10 + grid)
+    coefficients = np.arange(60, dtype=np.float64).reshape(3, 4, 5) * .001
+    with Writer(path) as out:
+        add_camera(out, 'rig', times, k, poses, [[320+i, 240+i] for i in range(4)],
+                   view_ids=['left', 'right', 'top', 'diagonal'], pixel_center='integer',
+                   depth_mapping={'near': .005, 'far': None, 'ndc_range': 'minus-one-to-one', 'direction': 'reversed'},
+                   view_volume={'near': near, 'far': far, 'far_unbounded': unbounded},
+                   distortion={'model': 'opencv-brown', 'coefficients': coefficients},
+                   optics={'f_number': 2 + grid, 'focus_distance': 1 + grid},
+                   acquisition={'exposure_seconds': .001 * (1+grid), 'iso': 100 * (1+grid),
+                                'shutter_open': -.0001 * (1+grid), 'shutter_close': .0001 * (1+grid),
+                                'rolling_readout': .0001 * (1+grid), 'rolling_direction': 'top-to-bottom'})
+    return times, k, poses, near, far, unbounded, coefficients, grid
 
 
 class ModelTests(unittest.TestCase):
@@ -592,6 +626,83 @@ with SceneDocument(path) as document:
             self.assertEqual(camera.details['optics']['f_number'], 16.)
             self.assertEqual(camera.details['acquisition']['exposure_seconds'], .04)
             np.testing.assert_allclose(camera.K, k)
+
+    def test_batch_camera_matches_single_views_and_legacy_scalar_contract(self):
+        path = Path(self.temp.name) / 'batch-rig.gsv'
+        times, ks, poses, near, far, unbounded, coefficients, grid = write_physical_rig(path)
+        cases = [(-10., 0, 0, 0.), (0., 0, 0, 0.), (1., 0, 1, .5),
+                 (1.8, 0, 1, .9), (2., 0, 1, 1.), (3.5, 1, 2, .5),
+                 (5., 1, 2, 1.), (100., 1, 2, 1.)]
+        with SceneDocument(path) as doc:
+            for time, a, b, weight in cases:
+                batch = doc.camera_views('rig', time)
+                self.assertEqual(list(batch), [0, 1, 2, 3])
+                nearest = a if weight <= .5 else b
+                for view, calibration in batch.items():
+                    single = doc.camera('rig', time, view)
+                    np.testing.assert_array_equal(calibration.K, single.K)
+                    np.testing.assert_array_equal(calibration.c2w, single.c2w)
+                    self.assertEqual(calibration.details, single.details)
+                    self.assertEqual((calibration.width, calibration.height, calibration.pixel_center,
+                                      calibration.distortion, calibration.near, calibration.far),
+                                     (single.width, single.height, single.pixel_center,
+                                      single.distortion, single.near, single.far))
+                    # The former scalar interpolation contract, independent of
+                    # the new leading-dimension implementation.
+                    expected_pose = np.eye(4)
+                    expected_pose[:3, :3] = quat_matrix(slerp(matrix_quat(poses[a, view, :3, :3]),
+                                                            matrix_quat(poses[b, view, :3, :3]), weight))
+                    expected_pose[:3, 3] = (1-weight)*poses[a, view, :3, 3] + weight*poses[b, view, :3, 3]
+                    np.testing.assert_array_equal(calibration.c2w, expected_pose)
+                    np.testing.assert_array_equal(calibration.K, (1-weight)*ks[a, view] + weight*ks[b, view])
+                    np.testing.assert_allclose(calibration.c2w[:3, :3].T @ calibration.c2w[:3, :3], np.eye(3), atol=1e-14)
+                    self.assertAlmostEqual(np.linalg.det(calibration.c2w[:3, :3]), 1.)
+                    self.assertEqual((calibration.width, calibration.height, calibration.pixel_center), (320+view, 240+view, 'integer'))
+                    self.assertEqual(calibration.near, float((1-weight)*near[a, view]+weight*near[b, view]))
+                    is_unbounded = unbounded[a, view] if weight == 0 else unbounded[b, view] if weight == 1 else unbounded[a, view] or unbounded[b, view]
+                    self.assertEqual(calibration.far, None if is_unbounded else float((1-weight)*far[a, view]+weight*far[b, view]))
+                    details = calibration.details
+                    self.assertEqual(details['evaluated_time'], time)
+                    self.assertEqual(details['inspection_sample_time'], times[nearest])
+                    self.assertEqual(details['distortion_coefficients'], coefficients[nearest, view].tolist())
+                    self.assertEqual(details['depth_mapping']['direction'], 'reversed')
+                    self.assertEqual(details['optics'], {'f_number': 2+grid[nearest, view], 'focus_distance': 1+grid[nearest, view]})
+                    self.assertEqual(details['acquisition']['exposure_seconds'], .001*(1+grid[nearest, view]))
+                    self.assertEqual(details['acquisition']['rolling_direction'], 'top-to-bottom')
+                    self.assertEqual(details['authored_view_volume'], {'near': near[nearest, view], 'far': None if unbounded[nearest, view] else far[nearest, view]})
+            batch = doc.camera_views('rig', 1., views=[3, 1, 3])
+            self.assertEqual(list(batch), [3, 1])
+            batch[3].K[:] = 0
+            self.assertGreater(doc.camera('rig', 1., 3).K[0, 0], 0)
+
+    def test_batch_camera_reads_arrays_and_searches_interval_once_and_single_is_sparse(self):
+        path = Path(self.temp.name) / 'batch-work.gsv'
+        write_physical_rig(path)
+        with SceneDocument(path) as doc:
+            doc.object_times('rig')
+            with mock.patch.object(doc.scene, 'array', wraps=doc.scene.array) as reads, \
+                    mock.patch.object(model.np, 'searchsorted', wraps=model.np.searchsorted) as searches:
+                doc.camera_views('rig', 1.)
+            keys = [call.args[0] for call in reads.call_args_list]
+            self.assertEqual(len(keys), len(set(keys)))
+            self.assertEqual(searches.call_count, 1)
+            with mock.patch.object(model, 'interpolate_pose', wraps=interpolate_pose) as interpolate:
+                doc.camera('rig', 1., view=np.int64(2))
+            self.assertEqual(interpolate.call_args.args[0].shape, (1, 4, 4))
+            self.assertEqual(doc.camera_views('rig', 0, views=[]), {})
+            for views in ([4], [-1], [.5], [True]):
+                with self.assertRaises(GSVError):
+                    doc.camera_views('rig', 0, views=views)
+            with self.assertRaises(GSVError):
+                doc.camera_views('rig', float('nan'))
+            with self.assertRaises(InterruptedError):
+                doc.camera_views('rig', 0, cancelled=lambda: True)
+            first = np.eye(4)
+            last = np.tile(np.eye(4), (2, 3, 1, 1))
+            last[..., 0, 3] = np.arange(6).reshape(2, 3)
+            interpolated = interpolate_pose(first, last, .25)
+            self.assertEqual(interpolated.shape, (2, 3, 4, 4))
+            np.testing.assert_array_equal(interpolated[..., 0, 3], last[..., 0, 3]*.25)
 
     def test_camera_slerp_calibration_and_range(self):
         with SceneDocument(self.path) as doc:

@@ -881,55 +881,99 @@ class SceneDocument:
                                    bool(record[7] > .5), float(record[15]), details)
 
     def camera(self, object_id, time, view=0):
+        """Evaluate one view without constructing other rig calibrations."""
+        return self.camera_views(object_id, time, views=(view,))[view]
+
+    def camera_views(self, object_id, time, views=None, *, cancelled=None):
+        """Evaluate requested rig views with one interval search and array set.
+
+        The mapping keeps requested view indices/order. This inspection API can
+        inspect a foreign domain at its own native time; viewing-domain policy
+        remains the caller's responsibility, as for camera().
+        """
         with self._lock:
             self._require_open()
+            _check_cancel(cancelled)
             obj = self.object(object_id)
             if obj['encoding'] != 'gsv.camera.pinhole':
                 raise GSVError('Object is not a calibrated camera')
             data = obj['data']
-            times = self.scene.array(data['times'])
+            times = self.object_times(object_id)
             projection = data['projection']
-            sizes = self.scene.array(projection['image_sizes'])
-            if not 0 <= view < len(sizes):
+            count = len(data['view_ids'])
+            if views is None:
+                requested = list(range(count))
+            else:
+                try:
+                    requested = list(views)
+                except TypeError as error:
+                    raise GSVError('Camera views require a sequence of integer indices') from error
+            if any(not isinstance(view, (int, np.integer)) or isinstance(view, (bool, np.bool_))
+                   or not 0 <= view < count for view in requested):
                 raise GSVError('Camera view index is out of range')
+            requested = list(dict.fromkeys(int(view) for view in requested))
+            time = float(time)
             if not np.isfinite(time):
                 raise GSVError('Time must be finite')
+            if not requested:
+                return {}
+            indices = np.asarray(requested, np.intp)
             b = min(int(np.searchsorted(times, time)), len(times) - 1)
             a = max(0, b - 1)
             weight = _time_weight(time, times[a], times[b]) if a != b else 0.0
-            poses = self.scene.array(data['pose']['camera_to_world'])
-            ks = self.scene.array(projection['intrinsics'])
-            pose = interpolate_pose(poses[a, view], poses[b, view], weight)
-            k = (1 - weight) * ks[a, view] + weight * ks[b, view]
-            width, height = (int(x) for x in sizes[view])
+            poses = self.scene.array(data['pose']['camera_to_world'], cancelled=cancelled)
+            ks = self.scene.array(projection['intrinsics'], cancelled=cancelled)
+            sizes = self.scene.array(projection['image_sizes'], cancelled=cancelled)
+            evaluated_poses = interpolate_pose(poses[a, indices], poses[b, indices], weight)
+            evaluated_ks = (1 - weight) * ks[a, indices] + weight * ks[b, indices]
             volume = data.get('view_volume')
-            near, far = .001, None
+            near_values = far_values = unbounded = None
+            evaluated_near = np.full(len(indices), .001)
+            evaluated_far = np.zeros(len(indices))
+            evaluated_unbounded = np.ones(len(indices), bool)
             if volume:
-                near_values = self.scene.array(volume['near'])
-                near = float((1 - weight) * near_values[a, view] + weight * near_values[b, view])
-                unbounded = self.scene.array(volume['far_unbounded'])
-                far_unbounded = (unbounded[a, view] if weight == 0 else unbounded[b, view]
-                                 if weight == 1 else unbounded[a, view] or unbounded[b, view])
-                if not far_unbounded:
-                    values = self.scene.array(volume['far'])
-                    far = float((1 - weight) * values[a, view] + weight * values[b, view])
+                near_values = self.scene.array(volume['near'], cancelled=cancelled)
+                far_values = self.scene.array(volume['far'], cancelled=cancelled)
+                unbounded = self.scene.array(volume['far_unbounded'], cancelled=cancelled)
+                evaluated_near = (1 - weight) * near_values[a, indices] + weight * near_values[b, indices]
+                evaluated_unbounded = (unbounded[a, indices] if weight == 0 else unbounded[b, indices]
+                                       if weight == 1 else unbounded[a, indices] | unbounded[b, indices])
+                evaluated_far = (1 - weight) * far_values[a, indices] + weight * far_values[b, indices]
             nearest = a if weight <= .5 else b
-            details = {'view_id': data['view_ids'][view],
-                       'evaluated_time': float(time),
-                       'inspection_sample_time': float(times[nearest]),
-                       'distortion': projection['distortion']['model']}
+            distortion = projection['distortion']['model']
+            coefficients = None
             if 'coefficients' in projection['distortion']:
-                details['distortion_coefficients'] = self.scene.array(projection['distortion']['coefficients'])[nearest, view].tolist()
-            if 'depth_mapping' in projection:
-                details['depth_mapping'] = dict(projection['depth_mapping'])
+                coefficients = self.scene.array(projection['distortion']['coefficients'], cancelled=cancelled)[nearest]
+            sections = {}
             for section in ('optics', 'acquisition'):
                 if section in data:
-                    details[section] = {key: value if key == 'rolling_direction' else float(self.scene.array(value)[nearest, view])
-                                        for key, value in data[section].items()}
-            if volume:
-                details['authored_view_volume'] = {'near': float(near_values[nearest, view]), 'far': None if unbounded[nearest, view] else float(self.scene.array(volume['far'])[nearest, view])}
-            return Calibration(k.copy(), pose, width, height, projection['pixel_center'],
-                               projection['distortion']['model'], near, far, details)
+                    sections[section] = {key: value if key == 'rolling_direction'
+                                         else self.scene.array(value, cancelled=cancelled)[nearest]
+                                         for key, value in data[section].items()}
+            result = {}
+            for index, view in enumerate(requested):
+                _check_cancel(cancelled)
+                details = {'view_id': data['view_ids'][view], 'evaluated_time': time,
+                           'inspection_sample_time': float(times[nearest]), 'distortion': distortion}
+                if coefficients is not None:
+                    details['distortion_coefficients'] = coefficients[view].tolist()
+                if 'depth_mapping' in projection:
+                    details['depth_mapping'] = dict(projection['depth_mapping'])
+                for section, values in sections.items():
+                    details[section] = {key: value if key == 'rolling_direction' else float(value[view])
+                                        for key, value in values.items()}
+                if volume:
+                    details['authored_view_volume'] = {'near': float(near_values[nearest, view]),
+                                                       'far': None if unbounded[nearest, view]
+                                                       else float(far_values[nearest, view])}
+                width, height = (int(value) for value in sizes[view])
+                result[view] = Calibration(evaluated_ks[index].copy(), evaluated_poses[index].copy(),
+                                           width, height, projection['pixel_center'], distortion,
+                                           float(evaluated_near[index]),
+                                           None if evaluated_unbounded[index] else float(evaluated_far[index]),
+                                           details)
+            self.scene._unchanged()
+            return result
 
     def trajectories(self, object_id, ids=None, density=1, *, cancelled=None, max_bytes=256 * 1024**2, view=0):
         """Extract every requested source segment, preserving every validity gap.

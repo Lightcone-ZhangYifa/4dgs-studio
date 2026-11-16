@@ -785,6 +785,41 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(w.viewport.get_camera()[1][0,3],3)
         self.assertEqual(self.errors,[])
 
+    def test_playback_batches_rig_calibrations_and_keeps_foreign_inspection_single(self):
+        path = Path(self.temp.name) / 'many-view-rig.gsv'
+        with Writer(path) as out:
+            k = np.array([[100., 2., 10.], [0., 100., 6.], [0., 0., 1.]])
+            poses = np.tile(np.eye(4), (2, 51, 1, 1))
+            poses[1, :, 0, 3] = 1.
+            add_camera(out, 'rig', [0., 1.], np.tile(k, (2, 51, 1, 1)), poses,
+                       [[20, 12]]*51, pixel_center='half')
+            add_camera(out, 'foreign', [10., 20.], np.tile(k, (2, 2, 1, 1)),
+                       np.tile(np.eye(4), (2, 2, 1, 1)), [[20, 12]]*2, clock='capture')
+            add_camera(out, 'foreign-static', [10.], k[None, None], np.eye(4)[None, None],
+                       [[20, 12]], clock='capture')
+            add_camera(out, 'other-space', [0.], k[None, None], np.eye(4)[None, None],
+                       [[20, 12]], space='other')
+        self.open_scene(path)
+        w, doc = self.window, self.window.document
+        with mock.patch.object(doc, 'camera_views', wraps=doc.camera_views) as batches, \
+                mock.patch.object(doc, 'camera', side_effect=AssertionError('per-view playback calibration')):
+            w._request_frame(.25)
+            self.pump_until(lambda: w.time == .25 and not w.frames.running)
+        self.assertEqual([call.args[0] for call in batches.call_args_list], ['rig', 'foreign-static'])
+        self.assertEqual(len(w._calibrations), 52)
+        self.assertAlmostEqual(w._calibrations['rig', 50].c2w[0, 3], .25)
+        self.assertNotIn(('foreign', 0), w._calibrations)
+        self.assertNotIn(('other-space', 0), w._calibrations)
+        with mock.patch.object(doc, 'camera', wraps=doc.camera) as individual:
+            w._camera_pick('foreign', 1)
+            self.pump_until(lambda: ('foreign', 1) in w._inspection_calibrations and not w.frames.running)
+        self.assertEqual(individual.call_count, 1)
+        self.assertEqual(individual.call_args.args, ('foreign', 10., 1))
+        self.assertEqual(doc.clock, 'scene')
+        self.assertNotIn(('foreign', 1), w._calibrations)
+        self.assertEqual(w._inspection_calibrations['foreign', 1].details['inspection_sample_time'], 10.)
+        self.assertEqual(self.errors, [])
+
     def test_apply_camera_field_is_equivalent_to_enter_and_can_be_undone(self):
         from gi.repository import Gtk
         self.open_scene()
