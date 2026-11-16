@@ -54,27 +54,35 @@ class Navigation:
     c2w: np.ndarray = field(default_factory=lambda: np.array([[1., 0, 0, 0], [0, -1., 0, 0], [0, 0, -1., 3], [0, 0, 0, 1.]]))
     pivot: np.ndarray = field(default_factory=lambda: np.zeros(3))
     up: np.ndarray = field(default_factory=lambda: np.array([0., 1., 0.]))
-    fov: float = 50.
+    fov: float = 360. / 7.
     mode: str = "turntable"
 
     def intrinsics(self, width, height):
-        f = .5 * max(1, height) / math.tan(math.radians(self.fov) / 2)
+        f = .5 * max(1, min(width, height)) / math.tan(math.radians(self.fov) / 2)
         return np.array([[f, 0., width / 2], [0., f, height / 2], [0., 0., 1.]])
 
-    def rotate(self, axis, angle):
+    def rotate(self, axis, angle, *, pivot=None):
+        if not np.isfinite(angle):
+            return
+        center = self.pivot if pivot is None else np.asarray(pivot, np.float64)
         r = rotation(axis, angle)
         self.c2w[:3, :3] = r @ self.c2w[:3, :3]
-        self.c2w[:3, 3] = self.pivot + r @ (self.c2w[:3, 3] - self.pivot)
+        self.c2w[:3, 3] = center + r @ (self.c2w[:3, 3] - center)
         # Remove numerical drift without changing the camera position.
         u, _, vh = np.linalg.svd(self.c2w[:3, :3])
         self.c2w[:3, :3] = u @ vh
 
     def orbit(self, dx, dy):
+        if not np.isfinite([dx, dy]).all():
+            return
         if self.mode == "trackball":
-            axis = self.c2w[:3, 1] * -dx + self.c2w[:3, 0] * dy
-            length = float(np.linalg.norm(axis))
-            if length > 1e-12:
-                self.rotate(axis, length * .006)
+            # Match native camera-local yaw then pitch, preserving authored roll.
+            right, down = self.c2w[:3, 0].copy(), self.c2w[:3, 1].copy()
+            r = rotation(right, dy * .006) @ rotation(down, dx * .006)
+            self.c2w[:3, :3] = r @ self.c2w[:3, :3]
+            self.c2w[:3, 3] = self.pivot + r @ (self.c2w[:3, 3] - self.pivot)
+            u, _, vh = np.linalg.svd(self.c2w[:3, :3])
+            self.c2w[:3, :3] = u @ vh
             return
         self.rotate(self.up, -dx * .006)
         forward = self.c2w[:3, 2]
@@ -94,14 +102,31 @@ class Navigation:
         self.c2w[:3, 3] += shift
         self.pivot += shift
 
-    def dolly(self, delta):
-        offset = self.c2w[:3, 3] - self.pivot
-        distance = float(np.linalg.norm(offset))
-        if distance <= 1e-12:
-            offset = -self.c2w[:3, 2]
-            distance = 1.
-        target = float(np.clip(distance * math.exp(float(np.clip(delta * .08, -20, 20))), 1e-6, 1e12))
-        self.c2w[:3, 3] = self.pivot + offset * (target / distance)
+    def point_on_pivot_plane(self, pixel, k):
+        """Unproject a GTK pixel onto the existing pivot plane, including skew."""
+        origin = self.c2w[:3, 3]
+        depth = max(float((self.pivot - origin) @ self.c2w[:3, 2]), 1e-4)
+        y = (pixel[1] - k[1, 2]) / k[1, 1]
+        x = (pixel[0] - k[0, 2] - k[0, 1] * y) / k[0, 0]
+        return origin + (self.c2w[:3, 0] * x + self.c2w[:3, 1] * y + self.c2w[:3, 2]) * depth
+
+    def dolly(self, delta, *, pixel=None, k=None):
+        if not np.isfinite(delta) or delta == 0:
+            return
+        origin = self.c2w[:3, 3].copy()
+        offset = origin - self.pivot
+        distance = max(float(np.linalg.norm(offset)), 1e-4)
+        target = float(np.clip(distance * math.exp(float(np.clip(delta * .025, -20, 20))), 1e-4, 1e8))
+        ratio = target / distance
+        anchor = self.pivot.copy()
+        if pixel is not None and k is not None and np.isfinite(pixel).all():
+            anchor = self.point_on_pivot_plane(pixel, k)
+        self.c2w[:3, 3] = anchor + (origin - anchor) * ratio
+        self.pivot = anchor + (self.pivot - anchor) * ratio
+
+    def roll(self, radians):
+        # Camera roll rotates about the optical center, never around scene depth.
+        self.rotate(self.c2w[:3, 2], radians, pivot=self.c2w[:3, 3].copy())
 
     def frame(self, points, width, height):
         points = np.asarray(points)
@@ -113,7 +138,8 @@ class Navigation:
         low, high = points.min(axis=0), points.max(axis=0)
         self.pivot = low * .5 + high * .5
         radius = max(float(np.linalg.norm(high - low)) * .5, 1e-3)
-        half_y = math.radians(self.fov) * .5
-        half_x = math.atan(math.tan(half_y) * max(1, width) / max(1, height))
+        k = self.intrinsics(width, height)
+        half_y = math.atan(max(1, height) / (2 * k[1, 1]))
+        half_x = math.atan(max(1, width) / (2 * k[0, 0]))
         distance = radius / max(math.sin(min(half_x, half_y)), 1e-4) * 1.15
         self.c2w[:3, 3] = self.pivot - self.c2w[:3, 2] * distance

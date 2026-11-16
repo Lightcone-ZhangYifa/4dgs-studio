@@ -538,6 +538,154 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(w.capture_entries[w.capture_drop.get_selected()].time, 20)
         self.assertEqual(self.errors, [])
 
+    def test_mixed_primary_member_keeps_duplicate_ids_bound_to_owners(self):
+        path = Path(self.temp.name) / "shared-identity.gsv"
+        with Writer(path) as out:
+            for i, owner in enumerate(("field-a","field-b")):
+                frame = np.zeros((1,16),np.float32)
+                frame[0,:3] = [i-.5,0,2]
+                frame[0,3:7] = [.8,.08,.05,.04]
+                frame[0,7:9] = 1
+                frame[0,12:16] = [.9,.4,.1,-1]
+                add_persistent_gaussians(out,owner,np.array([7],np.int64),[0,1],[frame,frame],label="Field "+("A" if i == 0 else "B"))
+        self.open_scene(path)
+        w = self.window
+        w._pick("field-a",7)
+        w._pick("field-b",7,extend=True)
+        members = {("field-a",7),("field-b",7)}
+        self.assertEqual(w.selected,members)
+        self.assertTrue(w.member_drop.get_visible())
+        labels = [w.member_drop.get_model().get_string(i) for i in range(w.member_drop.get_model().get_n_items())]
+        self.assertTrue(any("Field A" in text and "7" in text for text in labels))
+        self.assertTrue(any("Field B" in text and "7" in text for text in labels))
+        for owner in ("field-a","field-b"):
+            w.member_drop.set_selected(w._member_entries.index((owner,7)))
+            self.assertEqual(w.primary_member,(owner,7))
+            self.assertEqual(w.primary,owner)
+            self.assertEqual(w.selected,members)
+            self.assertIsNone(w.editing_id)
+            rows = w.detail_view.rows
+            owner_rows = [row.get_subtitle() for row in rows if row.get_title() == self.application.tr("property.objectID")]
+            self.assertEqual(owner_rows,[owner,"field-b" if owner == "field-a" else "field-a"])
+            self.assertEqual(w.detail_view.group.get_title(),"Field "+("A" if owner == "field-a" else "B"))
+        self.assertEqual(self.errors,[])
+
+    def test_trajectory_capacity_error_keeps_scene_seek_and_playback_working(self):
+        from gs_studio.model import TrajectoryLimitError
+        self.open_scene()
+        w = self.window
+        original_ids = w.frame.ids.copy()
+        reason = "Complete trajectories exceed the test preview memory budget"
+        with mock.patch.object(w.document,"trajectories",side_effect=TrajectoryLimitError(reason)) as build:
+            w._pick("field",2**60+3)
+            w._scrub(.5)
+            self.pump_until(lambda: w.time == .5 and not w.frames.running)
+            self.assertGreater(build.call_count,0)
+            np.testing.assert_array_equal(w.frame.ids,original_ids)
+            self.assertIn(reason,w.status.get_text())
+            self.assertEqual(w.viewport.paths,[])
+            self.assertEqual(w.viewport.frame,w.frame)
+            w.toggle_playback()
+            self.pump_until(lambda: w.time > .55)
+            self.assertTrue(w.playing)
+            w._set_playing(False)
+        self.assertEqual(self.errors,[])
+
+    def test_explicit_calibrated_preview_never_scores_linked_reference_images(self):
+        self.open_scene()
+        w = self.window
+        w.compare_toggle.set_active(True)
+        self.pump_until(lambda: w._comparison_result is not None and
+                        w._comparison_result.metrics is not None and not w.comparisons.running)
+        self.assertEqual(len(w.image_view.images),2)
+        self.assertIn("PSNR",w.status.get_text())
+        w.observation_drop.set_selected(1)
+        self.pump_until(lambda: w._comparison_result is not None and
+                        w._comparison_result.metrics is None and not w.comparisons.running)
+        self.assertIs(self.application.PREVIEW_ONLY,w.observation_entries[w.observation_drop.get_selected()])
+        self.assertEqual(len(w.image_view.images),1)
+        self.assertIsNone(w._comparison_result.reference)
+        self.assertNotIn("PSNR",w.status.get_text())
+        self.assertTrue(all(entry.observation_id is None for entry in w.capture_entries))
+        self.assertEqual([entry.time for entry in w.capture_entries],[0,1])
+        w.capture_drop.set_selected(1)
+        self.pump_until(lambda: w.time == 1 and w._comparison_result is not None and
+                        w._comparison_result.metrics is None and not w.comparisons.running)
+        self.assertEqual(len(w.image_view.images),1)
+        self.assertEqual(w.capture_entries[w.capture_drop.get_selected()].time,1)
+        w.observation_drop.set_selected(0)
+        self.pump_until(lambda: w._comparison_result is not None and
+                        w._comparison_result.metrics is not None and not w.comparisons.running)
+        self.assertEqual(len(w.image_view.images),2)
+        # Scrubbing deliberately to an unmatched calibration time must clear
+        # the completed score rather than substituting another capture row.
+        w._scrub(.25)
+        self.pump_until(lambda: w.time == .25 and not w.frames.running and not w.comparisons.running)
+        self.assertIsNone(w._comparison_result)
+        self.assertEqual(w.image_view.images,[])
+        self.assertIn("exact",w.status.get_text().lower())
+        self.assertEqual(self.errors,[])
+
+    def test_empty_source_import_retains_frame_clock_and_rejects_session_conflict(self):
+        import copy
+        from gs_studio.camera import CameraTrack, export_camera_animation, import_camera_animation
+        empty = Path(self.temp.name) / "empty.gsv"
+        with Writer(empty):
+            pass
+        original = empty.read_bytes()
+        self.open_scene(empty)
+        w = self.window
+        self.assertEqual(w.document.manifest["clocks"],{})
+        self.assertEqual(w.document.manifest["spaces"],{})
+        space = {"unit":"meter","handedness":"right","axes":["right","down","forward"]}
+        K = np.array([[50.,0,32],[0,50,24],[0,0,1]])
+        def animation(identifier,unit):
+            track = CameraTrack("Imported "+unit,"world","timeline",64,48,id=identifier)
+            track.spaces = {"world":copy.deepcopy(space)}
+            track.clocks = {"timeline":{"unit":unit}}
+            track.record(0,K,np.eye(4))
+            moved = np.eye(4)
+            moved[0,3] = 1
+            track.record(30,K,moved)
+            path = Path(self.temp.name) / (identifier+".gsv")
+            export_camera_animation(path,[track],w.document)
+            return path
+        frames = animation("authored-frame","frame")
+        conflict = animation("authored-second","second")
+        with self.chooser(frames):
+            w.choose_file("import")
+            self.pump_until(lambda: len(w.history.tracks) == 1 and not w.file_jobs.running)
+        self.assertEqual(w.timeline.unit,"frame")
+        self.assertEqual(float(w.rate.get_text()),30)
+        self.assertEqual(w.timeline.times.tolist(),[0,30])
+        self.assertEqual(w._supplemental_clocks,{"timeline":{"unit":"frame"}})
+        self.assertEqual(w._supplemental_spaces,{"world":space})
+        exported = Path(self.temp.name) / "exported-frames.gsv"
+        with self.chooser(exported):
+            w.choose_file("save")
+            self.pump_until(lambda: exported.exists() and not w.file_jobs.running)
+        with Scene(exported) as result:
+            result.validate()
+            self.assertEqual(result.manifest["clocks"]["timeline"],{"unit":"frame"})
+            self.assertEqual(result.manifest["spaces"]["world"],space)
+            self.assertEqual(result.manifest["metadata"]["source_document"]["manifest_sha256"],w.document.manifest_sha256)
+        # Both files are individually valid against the empty source; only the
+        # authoring session knows that this clock name already means frames.
+        candidate = import_camera_animation(conflict,w.document,existing_ids=["authored-frame"])
+        self.assertEqual([track.id for track in candidate],["authored-second"])
+        undo_count, dirty = len(w.history._undo),w.dirty
+        with self.chooser(conflict):
+            w.choose_file("import")
+            self.pump_until(lambda: bool(self.errors) and not w.file_jobs.running)
+        self.assertEqual(len(self.errors),1)
+        self.assertEqual([track.id for track in w.history.tracks],["authored-frame"])
+        self.assertEqual(len(w.history._undo),undo_count)
+        self.assertEqual(w.dirty,dirty)
+        self.assertEqual(w.timeline.unit,"frame")
+        self.assertEqual(float(w.rate.get_text()),30)
+        self.assertEqual(w._supplemental_clocks,{"timeline":{"unit":"frame"}})
+        self.assertEqual(empty.read_bytes(),original)
+
 
 if __name__ == "__main__":
     unittest.main()

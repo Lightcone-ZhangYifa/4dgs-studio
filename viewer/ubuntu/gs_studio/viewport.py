@@ -69,7 +69,9 @@ class Viewport(Gtk.GLArea):
         else:
             self.set_use_es(False)
         self.set_has_depth_buffer(True)
-        self.set_auto_render(True)
+        # Parent labels and accessibility redraws reuse the completed texture.
+        # Projection/sort/render is submitted only for explicit scene/view changes.
+        self.set_auto_render(False)
         self.navigation = Navigation()
         self.frame = None
         self.selected = set()
@@ -94,6 +96,7 @@ class Viewport(Gtk.GLArea):
         self.paths = []
         self.cameras = []
         self.render_error = None
+        self.graphics_info = {}
         self._calibration = None
         self._renderer = None
         self._dirty = True
@@ -102,12 +105,16 @@ class Viewport(Gtk.GLArea):
         self._history = []
         self._history_index = -1
         self._dragged = False
+        self._drag_cancelled = False
+        self._gesture_cancelled = False
+        self._navigation_active = False
         self._previous_delta = np.zeros(2)
         self._scroll_history = 0
         self._history_add()
         self.connect('realize', self._realize)
         self.connect('unrealize', self._unrealize)
         self.connect('render', self._render)
+        self.connect('resize', lambda *_: self.queue_render())
         drag = Gtk.GestureDrag.new()
         drag.set_button(0)
         drag.connect('drag-begin', self._drag_begin)
@@ -120,15 +127,18 @@ class Viewport(Gtk.GLArea):
         keys = Gtk.EventControllerKey.new()
         keys.connect('key-pressed', self._key)
         self.add_controller(keys)
+        focus = Gtk.EventControllerFocus.new()
+        focus.connect('leave', lambda *_: self.cancel_navigation())
+        self.add_controller(focus)
         zoom = Gtk.GestureZoom.new()
         zoom.connect('begin', self._zoom_begin)
         zoom.connect('scale-changed', self._zoom)
-        zoom.connect('end', lambda *_: self._history_add())
+        zoom.connect('end', lambda *_: self._end_navigation())
         self.add_controller(zoom)
         rotate = Gtk.GestureRotate.new()
         rotate.connect('begin', self._roll_begin)
         rotate.connect('angle-changed', self._roll)
-        rotate.connect('end', lambda *_: self._history_add())
+        rotate.connect('end', lambda *_: self._end_navigation())
         self.add_controller(rotate)
 
     def _realize(self, _area):
@@ -137,10 +147,18 @@ class Viewport(Gtk.GLArea):
             self._report_error(str(self.get_error()))
             return
         try:
+            display_type = self.get_display().__gtype__.name
+            self.graphics_info = {
+                'vendor': (gl.glGetString(gl.GL_VENDOR) or b'').decode(errors='replace'),
+                'renderer': (gl.glGetString(gl.GL_RENDERER) or b'').decode(errors='replace'),
+                'version': (gl.glGetString(gl.GL_VERSION) or b'').decode(errors='replace'),
+                'display_backend': 'wayland' if 'Wayland' in display_type else 'x11' if 'X11' in display_type else display_type,
+            }
             self._renderer = Renderer()
             self._renderer.initialize()
             self.render_error = None
             self._dirty = True
+            self.queue_render()
         except Exception as error:
             self._report_error(str(error))
 
@@ -211,8 +229,8 @@ class Viewport(Gtk.GLArea):
         self._calibration = calibration
         self.navigation.c2w = np.array(_get(calibration, 'c2w'), np.float64, copy=True)
         self.navigation.fov = math.degrees(2 * math.atan(_get(calibration, 'height') / (2 * _get(calibration, 'K')[1, 1])))
-        distance = max(float(np.linalg.norm(self.navigation.c2w[:3, 3] - self.navigation.pivot)), 1.)
-        self.navigation.pivot = self.navigation.c2w[:3, 3] + self.navigation.c2w[:3, 2] * distance
+        # Source-camera sampling must preserve an explicit world-space pivot.
+        # Navigation measures its current depth/distance from the new pose.
         self._dirty = True
         if record_history:
             self._history_add()
@@ -225,26 +243,45 @@ class Viewport(Gtk.GLArea):
     def frame_scene(self):
         self._history_add()
         self._calibration = None
-        if self.frame is not None and len(self.frame.means):
-            self._frame_points(self.frame.means, self.frame.covariance)
+        if self.frame is not None and len(self.frame.ids):
+            if getattr(self.frame, 'is_prepared', False):
+                self.navigation.frame(np.stack(self.frame.bounds), *self._dimensions())
+            else:
+                self._frame_points(self.frame.means, self.frame.covariance)
         self._history_add()
         self._changed()
 
     def frame_selection(self):
         if self.frame is None or not self.selected:
             return self.frame_scene()
-        flags = np.zeros(len(self.frame.means), bool)
-        for object_id, identity in self.selected:
-            flags |= ((self.frame.object_ids == object_id) if identity is None else ((self.frame.object_ids == object_id) & (self.frame.ids == identity)))
         self._history_add()
         self._calibration = None
-        if np.any(flags):
-            self._frame_points(self.frame.means[flags], self.frame.covariance[flags])
+        if getattr(self.frame, 'is_prepared', False):
+            bounds = []
+            for owner, identity in self.selected:
+                if identity is None:
+                    owned = getattr(self.frame, 'object_bounds', {}).get(owner)
+                    if owned is not None:
+                        bounds.extend(owned)
+                    elif any(o == owner for o, _, _, _ in self.frame.segments):
+                        bounds.extend(self.frame.bounds)
+                else:
+                    element = self.frame.element(owner, identity)
+                    if element is not None and element.valid:
+                        radius = 3 * self.gaussian_scale * np.linalg.norm(element.scales)
+                        bounds.extend([element.position-radius,element.position+radius])
+            if bounds:
+                self.navigation.frame(np.asarray(bounds), *self._dimensions())
         else:
-            chosen = [self._camera_segments(c) for c in self.cameras
-                      if (_get(c, 'object_id', _get(c, 'id')), None) in self.selected]
-            if chosen:
-                self.navigation.frame(np.concatenate(chosen).reshape(-1, 3), *self._dimensions())
+            flags = np.zeros(len(self.frame.means), bool)
+            for object_id, identity in self.selected:
+                flags |= ((self.frame.object_ids == object_id) if identity is None else ((self.frame.object_ids == object_id) & (self.frame.ids == identity)))
+            if np.any(flags):
+                self._frame_points(self.frame.means[flags], self.frame.covariance[flags])
+        chosen = [self._camera_segments(c) for c in self.cameras
+                  if (_get(c, 'object_id', _get(c, 'id')), None) in self.selected]
+        if chosen:
+            self.navigation.frame(np.concatenate(chosen).reshape(-1,3), *self._dimensions())
         self._history_add()
         self._changed()
 
@@ -287,10 +324,20 @@ class Viewport(Gtk.GLArea):
         self.frame_scene()
 
     def center_on_depth(self):
-        if self.frame is None or not len(self.frame.means):
+        if self.frame is None or not len(self.frame.ids):
             return
         k, pose, width, height = self.get_camera()
-        points = (self.frame.means - pose[:3, 3]) @ pose[:3, :3]
+        if getattr(self.frame, 'is_prepared', False):
+            weight = np.float32(self.frame.weight) if self.frame.weights is None else self.frame.weights[:,None]
+            means = self.frame.first[:,:3]*(1-weight)+self.frame.second[:,:3]*weight
+            valid = np.empty(len(self.frame.ids),bool)
+            for _,start,stop,w in self.frame.segments:
+                a,b = self.frame.first[start:stop,7]>.5,self.frame.second[start:stop,7]>.5
+                valid[start:stop] = a if w==0 else b if w==1 else a&b
+            means = means[valid]
+        else:
+            means = self.frame.means
+        points = (means - pose[:3, 3]) @ pose[:3, :3]
         valid = points[:, 2] > 1e-4
         if not np.any(valid):
             return
@@ -332,7 +379,25 @@ class Viewport(Gtk.GLArea):
         self._changed()
 
     def _begin_navigation(self):
+        self._navigation_active = True
         self._history_add()
+
+    def _end_navigation(self):
+        self._navigation_active = False
+        self._history_add()
+
+    def cancel_navigation(self):
+        """Stop active input at its current pose, matching macOS Escape behavior."""
+        import sys
+        if sys.is_finalizing():
+            return False
+        active = self._navigation_active
+        self._drag_cancelled = self._gesture_cancelled = True
+        if self._scroll_history:
+            GLib.source_remove(self._scroll_history)
+            self._scroll_history = 0
+        self._end_navigation()
+        return active
 
     def _changed(self):
         self._dirty = True
@@ -346,11 +411,14 @@ class Viewport(Gtk.GLArea):
         state = gesture.get_current_event_state()
         self._drag_operation = operation(gesture.get_current_button(), alt=bool(state & Gdk.ModifierType.ALT_MASK), shift=bool(state & Gdk.ModifierType.SHIFT_MASK), control=bool(state & Gdk.ModifierType.CONTROL_MASK), tool=self.tool)
         self._extend = bool(state & Gdk.ModifierType.CONTROL_MASK)
+        self._drag_cancelled = False
         self._drag_origin = np.array([x, y])
         self._previous_delta = np.zeros(2)
         self._dragged = False
 
     def _drag_update(self, _gesture, dx, dy):
+        if self._drag_cancelled:
+            return
         delta = np.array([dx, dy])
         if not self._dragged:
             length = np.linalg.norm(delta)
@@ -369,13 +437,34 @@ class Viewport(Gtk.GLArea):
         elif self._drag_operation == 'pan':
             self.navigation.pan(*change, self.get_camera()[0])
         elif self._drag_operation == 'dolly':
-            self.navigation.dolly((change[0] + change[1]) * .24)
+            self.navigation.dolly((change[0] + change[1]) * .24, pixel=np.array(self._dimensions()) * .5, k=self.get_camera()[0])
         self._changed()
 
     def _drag_end(self, _gesture, dx, dy):
-        if not self._dragged and (self._drag_operation == 'select' or self._extend):
+        if not self._drag_cancelled and not self._dragged and (self._drag_operation == 'select' or self._extend):
             self.pick(*(self._drag_origin + [dx, dy]), extend=self._extend)
-        self._history_add()
+        self._end_navigation()
+
+    def _event_pixel(self, controller):
+        event = controller.get_current_event()
+        if event is not None:
+            valid, x, y = event.get_position()
+            native = self.get_native()
+            if valid and native is not None:
+                gi.require_version('Graphene', '1.0')
+                from gi.repository import Graphene
+                # GDK events use surface coordinates; CSD shadows can translate
+                # that origin before the normal widget-to-widget transformation.
+                offset_x, offset_y = native.get_surface_transform()
+                point = Graphene.Point(); point.init(x + offset_x, y + offset_y)
+                ok, local = native.compute_point(self, point)
+                if ok:
+                    return np.clip([local.x, local.y], [0, 0], self._dimensions())
+        return np.array(self._dimensions()) * .5
+
+    def _gesture_pixel(self, gesture):
+        valid, x, y = gesture.get_bounding_box_center()
+        return np.clip([x, y], [0, 0], self._dimensions()) if valid else self._event_pixel(gesture)
 
     def _scroll(self, controller, dx, dy):
         if not self._scroll_history:
@@ -384,44 +473,55 @@ class Viewport(Gtk.GLArea):
             GLib.source_remove(self._scroll_history)
         state = controller.get_current_event_state()
         if state & Gdk.ModifierType.ALT_MASK:
-            self.navigation.orbit(dx * 8, dy * 8)
+            gain = min(5., max(.05, self.sensitivity))
+            self.navigation.orbit(dx * gain, dy * gain)
         else:
             unit = controller.get_unit() if hasattr(controller, 'get_unit') else None
             smooth = unit == Gdk.ScrollUnit.SURFACE if unit is not None else False
             if smooth and not (state & Gdk.ModifierType.CONTROL_MASK):
-                self.navigation.pan(dx * 8, dy * 8, self.get_camera()[0])
+                gain = min(5., max(.05, self.sensitivity))
+                self.navigation.pan(dx * gain, dy * gain, self.get_camera()[0])
             else:
-                self.navigation.dolly(dy * 1.25)
+                gain = min(5., max(.05, self.sensitivity))
+                self.navigation.dolly(dy * (.18 if smooth else 2) * gain, pixel=self._event_pixel(controller), k=self.get_camera()[0])
         self._changed()
         self._scroll_history = GLib.timeout_add(220, self._finish_scroll)
         return True
 
     def _finish_scroll(self):
         self._scroll_history = 0
-        self._history_add()
+        self._end_navigation()
         return GLib.SOURCE_REMOVE
 
     def _zoom_begin(self, gesture, _sequence):
         gesture._last_scale = 1.
+        self._gesture_cancelled = False
         self._begin_navigation()
 
     def _zoom(self, gesture, scale):
+        if self._gesture_cancelled or not math.isfinite(scale) or scale <= 0:
+            return
         previous = getattr(gesture, '_last_scale', 1.)
-        self.navigation.dolly(-math.log(max(scale, 1e-6) / previous) / .08)
+        self.navigation.dolly(-math.log(max(scale, 1e-6) / previous) / .025, pixel=self._gesture_pixel(gesture), k=self.get_camera()[0])
         gesture._last_scale = scale
         self._changed()
 
     def _roll_begin(self, gesture, _sequence):
         gesture._last_angle = 0.
+        self._gesture_cancelled = False
         self._begin_navigation()
 
     def _roll(self, gesture, _angle, delta):
+        if self._gesture_cancelled or not math.isfinite(delta):
+            return
         previous = getattr(gesture, '_last_angle', 0.)
         gesture._last_angle = delta
-        self.navigation.rotate(self.navigation.c2w[:3, 2], previous - delta)
+        self.navigation.roll(previous - delta)
         self._changed()
 
     def _key(self, _controller, keyval, _keycode, state):
+        if keyval == Gdk.KEY_Escape and self.cancel_navigation():
+            return True
         if self.on_key and self.on_key(keyval, state):
             return True
         if keyval in (Gdk.KEY_f, Gdk.KEY_F):
@@ -435,7 +535,7 @@ class Viewport(Gtk.GLArea):
         return False
 
     def pick(self, x, y, extend=False):
-        if self.frame is None or not len(self.frame.means):
+        if self.frame is None or not len(self.frame.ids):
             if self.on_pick:
                 self.on_pick(None, None, extend)
             return None
@@ -447,17 +547,29 @@ class Viewport(Gtk.GLArea):
         pick_width, pick_height = max(1, round(width * factor * scale)), max(1, round(height * factor * scale))
         sx, sy = pick_width / width, pick_height / height
         pick_k = k.copy(); pick_k[0] *= sx; pick_k[1] *= sy
-        centers, covariance, depth = projected_ellipses(self.frame, pick_k, pose, width=pick_width, height=pick_height, near=self.near_clip, gaussian_scale=self.gaussian_scale)
-        delta = np.array([x * sx, y * sy]) - centers
-        xx, xy, yy = covariance[:, 0, 0], covariance[:, 0, 1], covariance[:, 1, 1]
-        determinant = xx * yy - xy * xy
-        r2 = (yy * delta[:, 0] ** 2 - 2 * xy * delta[:, 0] * delta[:, 1] + xx * delta[:, 1] ** 2) / np.maximum(determinant, 1e-24)
-        valid = (depth > self.near_clip) & np.isfinite(r2) & (r2 <= 9) & (np.clip(np.asarray(self.frame.opacity) * self.opacity_multiplier, 0., .999) * np.exp(-.5 * np.maximum(r2, 0)) >= .1)
-        indices = np.flatnonzero(valid)
-        if len(indices):
-            index = indices[np.argmin(depth[indices])]
+        index = None
+        if getattr(self.frame, 'is_prepared', False):
+            self.make_current()
+            if self._renderer is None or self.render_error or self.get_error():
+                return None
+            self._renderer.upload(self.frame, pose, self.selected)
+            index = self._renderer.pick(pick_k, pose, pick_width, pick_height, [x*sx,y*sy], gaussian_scale=self.gaussian_scale, opacity_scale=self.opacity_multiplier, near_depth=self.near_clip)
+        else:
+            centers, covariance, depth = projected_ellipses(self.frame, pick_k, pose, width=pick_width, height=pick_height, near=self.near_clip, gaussian_scale=self.gaussian_scale)
+            delta = np.array([x * sx, y * sy]) - centers
+            xx, xy, yy = covariance[:, 0, 0], covariance[:, 0, 1], covariance[:, 1, 1]
+            determinant = xx * yy - xy * xy
+            r2 = (yy * delta[:, 0] ** 2 - 2 * xy * delta[:, 0] * delta[:, 1] + xx * delta[:, 1] ** 2) / np.maximum(determinant, 1e-24)
+            valid = (depth > self.near_clip) & np.isfinite(r2) & (r2 <= 9) & (np.clip(np.asarray(self.frame.opacity) * self.opacity_multiplier, 0., .999) * np.exp(-.5 * np.maximum(r2, 0)) >= .1)
+            indices = np.flatnonzero(valid)
+            if len(indices):
+                index = indices[np.argmin(depth[indices])]
+        if index is not None:
             result = (str(self.frame.object_ids[index]), int(self.frame.ids[index]))
-            self.navigation.pivot = np.array(self.frame.means[index], np.float64)
+            if getattr(self.frame, 'is_prepared', False):
+                self.navigation.pivot = self.frame.element(*result).position.astype(np.float64)
+            else:
+                self.navigation.pivot = np.array(self.frame.means[index], np.float64)
             if extend:
                 if result in self.selected:
                     self.selected.remove(result)
@@ -661,5 +773,5 @@ class Viewport(Gtk.GLArea):
             gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, destination)
             self._report_error(str(error))
         if self.on_stats:
-            self.on_stats({'cpu_submission_ms': (clock.perf_counter() - start) * 1000, 'splats': renderer.count, 'render_width': render_width, 'render_height': render_height})
+            self.on_stats({'cpu_submission_ms': (clock.perf_counter() - start) * 1000, 'splats': renderer.count, 'render_width': render_width, 'render_height': render_height, 'sort_backend': renderer.sort_backend, 'sort_reused': renderer.last_sort_reused, 'sort_submission_ms': renderer.last_sort_submission_ms, 'sort_reason': renderer.sort_reason, 'graphics_info': self.graphics_info})
         return True

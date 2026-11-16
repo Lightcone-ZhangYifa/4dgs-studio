@@ -27,9 +27,9 @@ class Inspector(Gtk.Box):
         self.expander.set_child(self.raw)
         self.append(self.expander)
 
-    def update(self, document, primary, selected, frame, calibration, track, time):
+    def update(self, document, primary, selected, frame, calibration, track, time, primary_member=None):
         is_element = any(i is not None for _, i in selected)
-        signature = (id(document), primary, frozenset(selected), time if is_element or calibration else None,
+        signature = (id(document), primary, primary_member, frozenset(selected), time if is_element or calibration else None,
                      repr([(k.time, k.c2w.tolist(), k.K.tolist()) for k in track.keyframes]) if track else None,
                      track.label if track else None)
         if signature == self.signature:
@@ -90,9 +90,10 @@ class Inspector(Gtk.Box):
             if calibration.details:
                 prop(tr("camera.captureContract", "Camera and render contract"), json.dumps(calibration.details, indent=2, ensure_ascii=False))
         if frame is not None:
-            for owner, identity in selected:
+            for owner, identity in sorted(selected, key=lambda pair: (pair != primary_member, pair[0], pair[1] or 0)):
                 if identity is None:
                     continue
+                prop(tr("property.objectID"), owner)
                 if hasattr(frame, 'element'):
                     from gsv.evaluate import quat_matrix
                     element = frame.element(owner, identity)

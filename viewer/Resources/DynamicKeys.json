@@ -50,6 +50,7 @@
   "ubuntu.domain": "Space: {space} · Clock: {clock} · {unit}",
   "ubuntu.domainHint": "Double-click this object to activate its coordinate space and clock.",
   "ubuntu.frame": "{count} Gaussians · t={time}",
+  "ubuntu.graphicsInformation": "Graphics Information",
   "ubuntu.idAbsent": "Identity is not present at the displayed time.",
   "ubuntu.inspectable": "Inspectable source representation. Select its declared evaluated display cache for geometry; no executable decoder is loaded.",
   "ubuntu.light": "Light",

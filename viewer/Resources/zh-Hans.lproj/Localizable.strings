@@ -482,3 +482,4 @@
 "property.type" = "类型";
 "camera.exportOverwrite" = "不能覆盖源重建文件。";
 "ubuntu.submissionTiming" = "CPU 帧提交耗时；未测量 GPU 完成耗时和显示帧率。";
+"ubuntu.graphicsInformation" = "图形信息";

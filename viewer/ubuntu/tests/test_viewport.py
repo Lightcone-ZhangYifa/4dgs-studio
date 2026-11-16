@@ -47,6 +47,37 @@ class NavigationTests(unittest.TestCase):
         self.assertTrue(np.isfinite(nav.c2w).all())
         self.assertGreater(np.linalg.norm(nav.c2w[:3, 3] - nav.pivot), 0)
 
+    def test_dolly_preserves_skewed_cursor_anchor_and_scales_depth(self):
+        nav = Navigation()
+        nav.orbit(37, -15)
+        k = nav.intrinsics(800,600); k[0,1] = 70; k[0,2] = 291; k[1,2] = 240
+        pixel = [637.,117.]
+        anchor = nav.point_on_pivot_plane(pixel,k)
+        distance = np.linalg.norm(nav.c2w[:3,3]-nav.pivot)
+        nav.dolly(-9,pixel=pixel,k=k)
+        camera = nav.c2w[:3,:3].T @ (anchor-nav.c2w[:3,3])
+        projected = k @ camera
+        np.testing.assert_allclose(projected[:2]/projected[2],pixel,atol=1e-10)
+        self.assertAlmostEqual(np.linalg.norm(nav.c2w[:3,3]-nav.pivot)/distance, math.exp(-9*.025))
+
+    def test_trackball_matches_native_composed_camera_rotations(self):
+        from gs_studio.navigation import rotation
+        nav = Navigation(mode='trackball')
+        pose = nav.c2w.copy()
+        expected = rotation(pose[:3,0], .12) @ rotation(pose[:3,1], .06)
+        nav.orbit(10,20)
+        np.testing.assert_allclose(nav.c2w[:3,:3], expected @ pose[:3,:3],atol=1e-12)
+        np.testing.assert_allclose(nav.c2w[:3,3],nav.pivot+expected@(pose[:3,3]-nav.pivot),atol=1e-12)
+
+    def test_roll_preserves_optical_center_and_scene_pivot(self):
+        nav = Navigation()
+        nav.pivot = np.array([1.,.3,-.2])
+        origin,pivot,forward = nav.c2w[:3,3].copy(),nav.pivot.copy(),nav.c2w[:3,2].copy()
+        nav.roll(.3)
+        np.testing.assert_allclose(nav.c2w[:3,3],origin,atol=1e-12)
+        np.testing.assert_array_equal(nav.pivot,pivot)
+        np.testing.assert_allclose(nav.c2w[:3,2],forward,atol=1e-12)
+
     def test_trail_uses_source_intervals(self):
         times = [0., 1., 2., 5., 11.]
         self.assertEqual(trail_start(.5, times, 2), 0)
@@ -201,6 +232,189 @@ class GLViewportTests(unittest.TestCase):
         self.assertEqual(renderer.oit_fbo,0)
         win.destroy();self.pump(2)
 
+    def test_translation_and_selection_reuse_exact_depth_order(self):
+        from gs_studio.viewport import Viewport
+        from OpenGL import GL as gl
+        win = self.Gtk.Window(default_width=128,default_height=128)
+        viewport = Viewport(); viewport.set_frame(frame())
+        win.set_child(viewport);win.present();self.pump()
+        viewport.make_current(); renderer = viewport._renderer
+        _,pose,_,_ = viewport.get_camera()
+        initial = renderer.sort_count
+        translated = pose.copy();translated[:3,3] += [10,-4,2]
+        renderer.upload(viewport.frame,translated,{('field',None)})
+        self.assertTrue(renderer.last_sort_reused)
+        self.assertEqual(renderer.sort_count,initial)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER,renderer.order_buffer)
+        actual = np.frombuffer(gl.glGetBufferSubData(gl.GL_ARRAY_BUFFER,0,8),np.uint32)
+        expected = np.argsort(-(viewport.frame.means@pose[:3,2]),kind='stable')
+        np.testing.assert_array_equal(actual,expected)
+        viewport.navigation.orbit(5,0)
+        renderer.upload(viewport.frame,viewport.navigation.c2w,set())
+        self.assertFalse(renderer.last_sort_reused)
+        self.assertEqual(renderer.sort_count,initial+1)
+        win.destroy();self.pump(2)
+
+    def test_escape_stops_drag_without_picking_or_reverting_pose(self):
+        from gs_studio.viewport import Viewport
+        from gi.repository import Gdk
+        viewport = Viewport();viewport._drag_operation = 'orbit';viewport._extend = False
+        viewport._drag_origin = np.array([10.,20.]);viewport._drag_cancelled = False
+        viewport._begin_navigation();viewport._drag_update(None,20,12)
+        pose = viewport.navigation.c2w.copy()
+        picked=[];viewport.on_pick = lambda *args:picked.append(args)
+        self.assertTrue(viewport._key(None,Gdk.KEY_Escape,0,0))
+        viewport._drag_update(None,100,100);viewport._drag_end(None,100,100)
+        np.testing.assert_array_equal(viewport.navigation.c2w,pose)
+        self.assertEqual(picked,[])
+        self.assertFalse(viewport._navigation_active)
+
+    def test_static_parent_redraw_reuses_texture_and_resize_renders(self):
+        from gs_studio.viewport import Viewport
+        win = self.Gtk.Window(default_width=240, default_height=240)
+        root = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL)
+        caption = self.Gtk.Label(label='Frame latency')
+        viewport = Viewport();viewport.set_frame(frame())
+        submitted=[];viewport.on_stats = lambda stats: submitted.append(stats)
+        root.append(caption);root.append(viewport);win.set_child(root);win.present();self.pump()
+        initial = len(submitted)
+        self.assertGreater(initial,0)
+        caption.set_text('Frame time');caption.queue_draw();root.queue_draw();self.pump(10)
+        self.assertEqual(len(submitted),initial)
+        viewport.queue_render();viewport.queue_render();self.pump(10)
+        self.assertEqual(len(submitted),initial+1)
+        win.set_default_size(320,280);self.pump(10)
+        self.assertGreater(len(submitted),initial+1)
+        self.assertEqual(viewport._renderer.size,(viewport.get_width()*viewport.get_scale_factor(),viewport.get_height()*viewport.get_scale_factor()))
+        win.destroy();self.pump(2)
+
+    def test_prepared_shader_interpolation_residency_and_exact_identity_pick(self):
+        import tempfile
+        from pathlib import Path
+        from gsv import Writer, add_persistent_gaussians
+        from gs_studio.model import SceneDocument
+        from gs_studio.viewport import Viewport
+        from OpenGL import GL as gl
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp)/'resident.gsv'
+            ids = np.array([-2**60-3,7,2**60+5],np.int64)
+            a = np.zeros((3,16),np.float32)
+            a[:,:3] = [[-.25,0,2],[.2,.1,2.5],[.4,-.1,2]]
+            a[:,3] = .8;a[:,4:7] = [.08,.03,.05];a[:,7:9] = 1
+            a[:,12:15] = [[1,.1,.2],[.1,.3,1],[.3,1,.2]];a[:,15] = -1
+            b = a.copy();b[:,0] += .1;b[:,4:7] *= [1.2,.8,1]
+            b[:,8:12] = [math.cos(.6),0,0,math.sin(.6)]
+            b[1,8:12] *= -1
+            b[2,7] = 0
+            with Writer(path) as out:
+                add_persistent_gaussians(out,'field',ids,[0.,1.],[a,b])
+            with SceneDocument(path) as doc:
+                prepared = doc.prepare_frame(.35)
+                win = self.Gtk.Window(default_width=240,default_height=180)
+                viewport = Viewport();viewport.show_grid = viewport.show_pivot = False
+                viewport.set_frame(prepared);win.set_child(viewport);win.present();self.pump()
+                self.assertIsNone(viewport.render_error)
+                viewport.make_current();renderer = viewport._renderer
+                key,capacity = renderer._geometry_key,renderer.capacity
+                actual = viewport.snapshot_rgba()
+                # Same dimensions, pose and overlays; only evaluation backend changes.
+                viewport.set_frame(prepared.materialize());self.pump(10)
+                reference = viewport.snapshot_rgba()
+                np.testing.assert_allclose(actual.astype(int),reference.astype(int),atol=1)
+                viewport.set_frame(prepared);self.pump(5)
+                element = prepared.element('field',int(ids[0]))
+                k,pose,width,height = viewport.get_camera()
+                camera = pose[:3,:3].T@(element.position-pose[:3,3]);pixel = k@camera;pixel=pixel[:2]/pixel[2]
+                result = viewport.pick(*pixel)
+                self.assertEqual(result,('field',int(ids[0])))
+                np.testing.assert_allclose(viewport.navigation.pivot,element.position)
+                # Seeking within this source interval must retain both GPU endpoints.
+                second = doc.prepare_frame(.7)
+                before_a = renderer.buffer;before_b = renderer.second_buffer
+                viewport.set_frame(second);self.pump(5)
+                self.assertEqual(renderer._geometry_key,key)
+                self.assertEqual(renderer.capacity,capacity)
+                self.assertEqual((renderer.buffer,renderer.second_buffer),(before_a,before_b))
+                # An interior Float64 time may round to Float32 zero: gap rows stay hidden.
+                tiny = doc.prepare_frame(np.nextafter(0.,1.))
+                viewport.set_frame(tiny);self.pump(5)
+                missing = tiny.element('field',int(ids[2]))
+                camera = pose[:3,:3].T@(missing.position-pose[:3,3]);pixel=k@camera;pixel=pixel[:2]/pixel[2]
+                self.assertIsNone(viewport.pick(*pixel))
+                self.assertEqual(gl.glGetError(),gl.GL_NO_ERROR)
+                win.destroy();self.pump(2)
+
+    def test_prepared_multiple_cohort_weights_match_cpu_render(self):
+        import tempfile
+        from pathlib import Path
+        from gsv import Writer, add_persistent_gaussians
+        from gs_studio.model import SceneDocument
+        from gs_studio.viewport import Viewport
+        with tempfile.TemporaryDirectory() as temp:
+            path=Path(temp)/'cohorts.gsv'
+            a=np.zeros((1,16),np.float32);a[0,:3]=[-.2,0,2]
+            a[:,3]=.8;a[:,4:7]=[.08,.03,.02];a[:,7:9]=1;a[:,12:15]=[1,.1,.2];a[:,15]=-1
+            b=a.copy();b[:,0]=0;b[:,12:15]=[.1,.8,.3]
+            c=a.copy();c[:,0]=.3;c[:,12:15]=[.1,.2,1]
+            d=c.copy();d[:,1]=.1;d[:,4:7]=[.03,.08,.02]
+            with Writer(path) as out:
+                add_persistent_gaussians(out,'a',np.array([7],np.int64),[0.,1.],[a,b])
+                add_persistent_gaussians(out,'b',np.array([7],np.int64),[0.,2.],[c,d])
+            with SceneDocument(path) as doc:
+                prepared=doc.prepare_frame(.5)
+                self.assertIsNotNone(prepared.weights)
+                win=self.Gtk.Window(default_width=200,default_height=160)
+                viewport=Viewport();viewport.show_grid=viewport.show_pivot=False
+                viewport.set_frame(prepared);win.set_child(viewport);win.present();self.pump()
+                self.assertIsNone(viewport.render_error)
+                actual=viewport.snapshot_rgba()
+                viewport.set_frame(prepared.materialize());self.pump(10)
+                reference=viewport.snapshot_rgba()
+                np.testing.assert_allclose(actual.astype(int),reference.astype(int),atol=1)
+                viewport.set_frame(prepared);self.pump(5)
+                for owner in ('a','b'):
+                    element=prepared.element(owner,7)
+                    k,pose,_,_=viewport.get_camera()
+                    camera=pose[:3,:3].T@(element.position-pose[:3,3]);pixel=k@camera;pixel=pixel[:2]/pixel[2]
+                    self.assertEqual(viewport.pick(*pixel),(owner,7))
+                win.destroy();self.pump(2)
+
+    def test_gpu_pick_preserves_adjacent_float_depth_and_source_ties(self):
+        from gs_studio.viewport import Viewport
+        from OpenGL import GL as gl
+        win=self.Gtk.Window(default_width=128,default_height=128)
+        viewport=Viewport();win.set_child(viewport);win.present();self.pump()
+        viewport.make_current();renderer=viewport._renderer
+        f=frame([[0,0,np.nextafter(np.float32(2),np.float32(3))],[0,0,2]])
+        pose=np.eye(4);k=np.array([[60.,0,64],[0,60.,64],[0,0,1.]])
+        renderer.upload(f,pose,set())
+        self.assertEqual(renderer.pick(k,pose,128,128,[64,64]),1)
+        tied=frame([[0,0,2],[0,0,2]])
+        renderer.upload(tied,pose,set())
+        self.assertEqual(renderer.pick(k,pose,128,128,[64,64]),0)
+        self.assertEqual(gl.glGetError(),gl.GL_NO_ERROR)
+        win.destroy();self.pump(2)
+
+    def test_compute_failure_rebuilds_current_source_order_on_cpu(self):
+        from unittest import mock
+        from gs_studio.viewport import Viewport
+        from gs_studio.gpu_sort import depth_order_cpu
+        from OpenGL import GL as gl
+        win=self.Gtk.Window(default_width=128,default_height=128)
+        viewport=Viewport();win.set_child(viewport);win.present();self.pump()
+        viewport.make_current();renderer=viewport._renderer
+        renderer.sort_mode='gpu';renderer.gpu_sorter.supported=True
+        f=frame([[0,0,2],[0,0,3]])
+        with mock.patch.object(renderer.gpu_sorter,'sort',side_effect=RuntimeError('Synthetic compute allocation failure')):
+            renderer.upload(f,np.eye(4),set())
+        self.assertEqual(renderer.sort_backend,'cpu')
+        self.assertIn('Synthetic compute allocation failure',renderer.sort_reason)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER,renderer.order_buffer)
+        order=np.frombuffer(gl.glGetBufferSubData(gl.GL_ARRAY_BUFFER,0,8),np.uint32)
+        np.testing.assert_array_equal(order,depth_order_cpu(f.means,np.eye(4)))
+        self.assertEqual(gl.glGetError(),gl.GL_NO_ERROR)
+        win.destroy();self.pump(2)
+
     def test_clipped_segments_and_calibrated_integer_center(self):
         from gs_studio.viewport import Viewport, project_segments
         k = np.array([[50., 0., 30.], [0., 50., 20.], [0., 0., 1.]])
@@ -209,7 +423,9 @@ class GLViewportTests(unittest.TestCase):
         self.assertEqual(projected.shape, (2,8))
         self.assertTrue(np.isfinite(projected).all())
         viewport = Viewport()
+        viewport.navigation.pivot=np.array([1.,.5,3.])
         viewport.set_camera(SimpleNamespace(K=k,c2w=np.eye(4),width=64,height=48,pixel_center='integer',distortion='none'))
+        np.testing.assert_array_equal(viewport.navigation.pivot,[1.,.5,3.])
         actual, _, width, height = viewport.get_camera()
         scale = min(width/64,height/48)
         self.assertAlmostEqual(actual[0,2], (30+.5)*scale+(width-64*scale)/2)

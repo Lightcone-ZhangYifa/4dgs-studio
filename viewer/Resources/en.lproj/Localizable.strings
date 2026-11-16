@@ -482,3 +482,4 @@
 "property.type" = "Type";
 "camera.exportOverwrite" = "Source reconstruction cannot be overwritten.";
 "ubuntu.submissionTiming" = "CPU frame submission time; GPU completion and display frame rate are not measured.";
+"ubuntu.graphicsInformation" = "Graphics Information";

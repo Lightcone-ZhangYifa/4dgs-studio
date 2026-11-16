@@ -12,3 +12,4 @@ MimeType=application/x-gsv;
 StartupNotify=true
 DBusActivatable=false
 StartupWMClass=io.github.LightconeZhangYifa.GSVStudio
+PrefersNonDefaultGPU=true

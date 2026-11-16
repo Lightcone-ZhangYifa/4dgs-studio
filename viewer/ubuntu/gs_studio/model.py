@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import os
 import threading
+from types import MappingProxyType
 
 import numpy as np
 
@@ -46,6 +47,10 @@ class _CancellationFile:
 
     def __getattr__(self, name):
         return getattr(self.stream, name)
+
+
+class TrajectoryLimitError(GSVError):
+    """Display annotation capacity exceeded; source geometry remains usable."""
 
 
 @dataclass(frozen=True)
@@ -106,6 +111,7 @@ class _Endpoints:
     first_valid: np.ndarray
     second_valid: np.ndarray
     ranges: tuple
+    object_bounds: object
 
 
 def _mix_records(first, second, weight, *, cancelled=None):
@@ -165,6 +171,7 @@ class PreparedFrame:
         self.first, self.second = endpoints.first, endpoints.second
         self.ids, self.object_ids = endpoints.ids, endpoints.object_ids
         self.bounds = endpoints.low, endpoints.high
+        self.object_bounds = endpoints.object_bounds
         self.endpoint_key, self.time = key, float(time)
         self.count = len(self.ids)
         self.segments = tuple((owner, start, stop, weight)
@@ -594,6 +601,7 @@ class SceneDocument:
             endpoints = self._cached(key)
             if endpoints is None:
                 first, second, identities, owners, ranges = [], [], [], [], []
+                object_bounds = {}
                 lo, hi = np.full(3, np.inf), np.full(3, -np.inf)
                 offset = 0
                 for identifier, a, b in samples:
@@ -613,13 +621,18 @@ class SceneDocument:
                     owners.append(np.full(len(ids), identifier, dtype=object))
                     ranges.append((identifier, offset, offset+len(ids)))
                     offset += len(ids)
+                    if not len(ids):
+                        continue
                     if obj['encoding'] == 'gsv.gaussian.persistent-identity':
                         bound = np.asarray(data['bounds'], np.float64)
                         lo, hi = np.minimum(lo, bound[0]), np.maximum(hi, bound[1])
+                        object_bounds[identifier] = (bound[0].copy(), bound[1].copy())
                     elif len(left):
                         extent = 4 * left[:, 4:7].max(axis=1).astype(np.float64)
-                        lo = np.minimum(lo, np.min(left[:, :3].astype(np.float64)-extent[:, None], axis=0))
-                        hi = np.maximum(hi, np.max(left[:, :3].astype(np.float64)+extent[:, None], axis=0))
+                        field_lo = np.min(left[:, :3].astype(np.float64)-extent[:, None], axis=0)
+                        field_hi = np.max(left[:, :3].astype(np.float64)+extent[:, None], axis=0)
+                        lo, hi = np.minimum(lo, field_lo), np.maximum(hi, field_hi)
+                        object_bounds[identifier] = (field_lo, field_hi)
                 if not offset:
                     return Frame.empty()
                 left = first[0] if len(first) == 1 else np.concatenate(first)
@@ -627,7 +640,11 @@ class SceneDocument:
                 endpoints = _Endpoints(left, right,
                                        identities[0] if len(identities) == 1 else np.concatenate(identities),
                                        owners[0] if len(owners) == 1 else np.concatenate(owners),
-                                       lo, hi, left[:, 7] > .5, right[:, 7] > .5, tuple(ranges))
+                                       lo, hi, left[:, 7] > .5, right[:, 7] > .5, tuple(ranges),
+                                       MappingProxyType(object_bounds))
+                for pair in object_bounds.values():
+                    for array in pair:
+                        array.flags.writeable = False
                 for array in vars(endpoints).values():
                     if isinstance(array, np.ndarray):
                         array.flags.writeable = False
@@ -754,7 +771,7 @@ class SceneDocument:
                 if len(times) < 2:
                     return []
                 if len(times) * 64 > max_bytes:
-                    raise GSVError('Complete trajectories exceed the preview memory budget')
+                    raise TrajectoryLimitError('Complete trajectories exceed the preview memory budget')
                 points = np.array(poses[:, view, :3, 3], np.float64, copy=True)
                 colors = np.tile(np.array([.4, .7, 1.], np.float32), (len(times), 1))
                 return [Trajectory(points, times, colors, None, object_id)]
@@ -773,7 +790,7 @@ class SceneDocument:
             if not len(rows):
                 return []
             if len(rows) * (len(times) * 64 + 512) > max_bytes:
-                raise GSVError('Complete trajectories exceed the preview memory budget; lower trajectory density')
+                raise TrajectoryLimitError('Complete trajectories exceed the preview memory budget; lower trajectory density')
             # Only selected rows are retained; source frames remain byte-bounded.
             points = np.empty((len(times), len(rows), 3), np.float32)
             colors = np.empty_like(points)
