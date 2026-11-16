@@ -63,6 +63,9 @@ def wait_for(check, description, timeout=15):
 
 
 def walk(node):
+    # AT-SPI can publish a transient empty child while a large model rebuilds.
+    if node is None:
+        return
     node.clear_cache()
     yield node
     try:

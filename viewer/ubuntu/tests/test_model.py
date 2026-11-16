@@ -1,11 +1,13 @@
 """Cross-platform scene and authoring acceptance tests, without GTK or GPU."""
 from pathlib import Path
+import gc
 import hashlib
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
+import weakref
 from unittest import mock
 
 import numpy as np
@@ -248,6 +250,152 @@ with SceneDocument(path) as document:
             self.assertIsNone(prepared.element('field', 123456))
         # GPU snapshots and selected-row inspection do not own a live descriptor.
         np.testing.assert_allclose(prepared.materialize().records, cpu.records)
+
+    def test_prepared_active_interval_survives_tiny_optional_caches_and_reuses_neighbor(self):
+        with SceneDocument(self.path) as doc:
+            # The active pair is larger than either optional cache, just as a
+            # production 2.56M-row pair exceeds the default 256 MiB LRU.
+            doc.cache_budget = 1
+            doc.scene.snapshot_budget = 0
+            doc.scene._snapshots.clear()
+            doc.scene._snapshot_bytes = 0
+            with mock.patch.object(doc.scene, '_read_into', wraps=doc.scene._read_into) as reads:
+                first = doc.prepare_frame(.25)
+                self.assertEqual(sum(c.args[0].shape == (2, 16) for c in reads.call_args_list), 2)
+                reads.reset_mock()
+                for time in (.3, .5, .9):
+                    current = doc.prepare_frame(time)
+                    self.assertIs(current.first, first.first)
+                    self.assertIs(current.second, first.second)
+                    np.testing.assert_allclose(current.element('field', -2**60 - 7).position[0], time)
+                self.assertEqual(reads.call_count, 0)
+                following = doc.prepare_frame(1.25)
+                self.assertIs(following.first, first.second)
+                self.assertEqual(sum(c.args[0].shape == (2, 16) for c in reads.call_args_list), 1)
+                reads.reset_mock()
+                previous = doc.prepare_frame(.75)
+                self.assertIs(previous.second, following.first)
+                self.assertEqual(sum(c.args[0].shape == (2, 16) for c in reads.call_args_list), 1)
+            self.assertLessEqual(doc._cache_bytes, doc.cache_budget)
+            np.testing.assert_allclose(previous.materialize().records, doc.evaluate(.75).records)
+
+    def test_prepared_retains_only_current_cohort_and_releases_it_on_close(self):
+        doc = SceneDocument(self.path)
+        try:
+            doc.cache_budget = 0
+            doc.scene.snapshot_budget = 0
+            doc.scene._snapshots.clear()
+            doc.scene._snapshot_bytes = 0
+            frame = doc.prepare_frame(.5)
+            old_source = weakref.ref(frame.first)
+            del frame
+            doc.prepare_frame(2.5)
+            gc.collect()
+            self.assertIsNone(old_source())
+            current = weakref.ref(doc.prepare_frame(3.5).second)
+            self.assertIsNotNone(current())
+            doc.close()
+            gc.collect()
+            self.assertIsNone(current())
+        finally:
+            doc.close()
+
+    def test_prepared_empty_source_cohort_releases_previous_active_geometry(self):
+        path = Path(self.temp.name) / 'empty-cohort.gsv'
+        with Writer(path) as out:
+            add_persistent_gaussians(out, 'field', np.array([3, 7], np.int64), [0., 1.],
+                                     [record(), record(1)])
+            add_persistent_gaussians(out, 'empty', np.empty(0, np.int64), [], [])
+        with SceneDocument(path) as doc:
+            doc.cache_budget = 0
+            doc.scene.snapshot_budget = 0
+            doc.scene._snapshots.clear()
+            doc.scene._snapshot_bytes = 0
+            old_source = weakref.ref(doc.prepare_frame(.5, ['field']).first)
+            self.assertIsNotNone(old_source())
+            self.assertEqual(len(doc.prepare_frame(.5, ['empty'])), 0)
+            gc.collect()
+            self.assertIsNone(old_source())
+
+    def test_prepared_multifield_neighbor_reuse_preserves_owner_local_records(self):
+        path = Path(self.temp.name) / 'resident-mixed.gsv'
+        ids = np.array([-2**60 - 7, 2**60 + 3], np.int64)
+        with Writer(path) as out:
+            add_persistent_gaussians(out, 'one', ids, [0., 1., 2.],
+                                     [record(), record(1), record(2)])
+            add_persistent_gaussians(out, 'two', ids, [0., 2., 4.],
+                                     [record(-4), record(-2), record()])
+            add_static(out)
+        with SceneDocument(path) as doc:
+            doc.cache_budget = 0
+            doc.scene.snapshot_budget = 0
+            doc.scene._snapshots.clear()
+            doc.scene._snapshot_bytes = 0
+            order = ['two', 'static', 'one']
+            doc.prepare_frame(.25, order)
+            with mock.patch.object(doc.scene, '_read_into', wraps=doc.scene._read_into) as reads:
+                following = doc.prepare_frame(1.25, order)
+            self.assertEqual(sum(c.args[0].shape == (2, 16) for c in reads.call_args_list), 1)
+            self.assertEqual(following.object_ids.tolist(), ['two', 'two', 'static', 'one', 'one'])
+            self.assertIsNone(following.element(None, int(ids[0])))
+            self.assertAlmostEqual(following.element('one', int(ids[0])).position[0], 1.25)
+            self.assertAlmostEqual(following.element('two', int(ids[0])).position[0], -2.75)
+            np.testing.assert_allclose(following.materialize().records, doc.evaluate(1.25, order).records)
+
+    def test_cancelled_interval_does_not_replace_accepted_resident_pair(self):
+        with SceneDocument(self.path) as doc:
+            doc.cache_budget = 0
+            accepted = doc.prepare_frame(.25)
+            original = doc.scene.array
+            canceled = False
+
+            def read_then_cancel(key, **kwargs):
+                nonlocal canceled
+                value = original(key, **kwargs)
+                if key == 'field/frame/2':
+                    canceled = True
+                return value
+
+            with mock.patch.object(doc.scene, 'array', side_effect=read_then_cancel):
+                with self.assertRaises(InterruptedError):
+                    doc.prepare_frame(1.5, cancelled=lambda: canceled)
+            with mock.patch.object(doc.scene, 'array', side_effect=AssertionError('accepted interval reread')):
+                resumed = doc.prepare_frame(.75)
+            self.assertIs(resumed.first, accepted.first)
+            self.assertIs(resumed.second, accepted.second)
+
+    def test_prepared_cached_interval_still_rejects_source_mutation(self):
+        with SceneDocument(self.path) as doc:
+            doc.cache_budget = 0
+            doc.prepare_frame(.25)
+            before = self.path.stat()
+            os.utime(self.path, ns=(before.st_atime_ns, before.st_mtime_ns + 1))
+            with self.assertRaises(GSVError):
+                doc.prepare_frame(.75)
+
+    def test_prepared_validity_counts_are_cached_for_exact_and_interior_multifield_times(self):
+        path = Path(self.temp.name) / 'counted-mixed.gsv'
+        ids = np.array([-2**60 - 7, 2**60 + 3], np.int64)
+        one = [record(i) for i in range(3)]
+        two = [record(i * 2) for i in range(3)]
+        one[0][:, 7], one[1][:, 7] = [0, 1], [1, 0]
+        two[1][:, 7] = [1, 0]
+        with Writer(path) as out:
+            add_persistent_gaussians(out, 'one', ids, [0., 1., 2.], one)
+            add_persistent_gaussians(out, 'two', ids, [0., 2., 4.], two)
+        with SceneDocument(path) as doc:
+            doc.cache_budget = 0
+            self.assertEqual(doc.prepare_frame(0).valid_count, 3)
+            with mock.patch.object(model.np, 'count_nonzero', side_effect=AssertionError('validity rescanned')):
+                for time in (.1, .5, .9):
+                    frame = doc.prepare_frame(time)
+                    self.assertEqual(frame.valid_count, 1)
+                    self.assertIsNone(frame.element(None, ids[0]))
+                    self.assertFalse(frame.element('one', int(ids[0])).valid)
+                    self.assertTrue(frame.element('two', int(ids[0])).valid)
+            self.assertEqual(doc.prepare_frame(1).valid_count, 2)
+            self.assertEqual(doc.prepare_frame(2).valid_count, 3)
+            self.assertEqual(doc.prepare_frame(4).valid_count, 4)
 
     def test_prepared_validity_preserves_inactive_identities_at_sample_boundaries(self):
         path = Path(self.temp.name) / 'prepared-gaps.gsv'

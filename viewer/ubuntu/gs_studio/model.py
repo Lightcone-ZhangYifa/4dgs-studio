@@ -123,10 +123,25 @@ class _Endpoints:
     object_ids: np.ndarray
     low: np.ndarray
     high: np.ndarray
-    first_valid: np.ndarray
-    second_valid: np.ndarray
     ranges: tuple
     object_bounds: object
+    valid_counts: tuple
+
+
+def _endpoint_valid_counts(first, second, ranges, cancelled=None):
+    """Count exact endpoint/interior validity once, with bounded scratch."""
+    counts = []
+    for _, start, stop in ranges:
+        left_count = right_count = interior_count = 0
+        for begin in range(start, stop, 65_536):
+            _check_cancel(cancelled)
+            end = min(begin + 65_536, stop)
+            left, right = first[begin:end, 7] > .5, second[begin:end, 7] > .5
+            left_count += int(np.count_nonzero(left))
+            right_count += int(np.count_nonzero(right))
+            interior_count += int(np.count_nonzero(left & right))
+        counts.append((left_count, right_count, interior_count))
+    return tuple(counts)
 
 
 def _mix_records(first, second, weight, *, cancelled=None):
@@ -205,15 +220,9 @@ class PreparedFrame:
                 self.weights[start:stop] = weight
             self.weights.flags.writeable = False
         self.valid_count = 0
-        for _, start, stop, weight in self.segments:
+        for (_, _, _, weight), counts in zip(self.segments, endpoints.valid_counts):
             _check_cancel(cancelled)
-            if weight == 0:
-                valid = endpoints.first_valid[start:stop]
-            elif weight == 1:
-                valid = endpoints.second_valid[start:stop]
-            else:
-                valid = endpoints.first_valid[start:stop] & endpoints.second_valid[start:stop]
-            self.valid_count += int(np.count_nonzero(valid))
+            self.valid_count += counts[0 if weight == 0 else 1 if weight == 1 else 2]
 
     def __len__(self):
         return self.count
@@ -281,6 +290,13 @@ class SceneDocument:
             self._cache = OrderedDict()
             self.cache_budget = 256 * 1024**2
             self._cache_bytes = 0
+            # Exactly one current GPU cohort owns its required two endpoint
+            # buffers, even when those buffers exceed the optional LRU budget.
+            # Source-record views share that storage rather than retaining a
+            # second copy. Replacing a cohort/interval releases the old views.
+            self._active_endpoints_key = None
+            self._active_endpoints = None
+            self._active_records = {}
             self._object_time_cache = {}
             self._scaffold_sizes = {}
             self._active_render_view = self.render_views[0]['id'] if self.render_views else None
@@ -502,6 +518,9 @@ class SceneDocument:
         return sum(array.nbytes for array in roots.values())
 
     def _cached(self, key):
+        active = self._active_records.get(key)
+        if active is not None:
+            return active
         if key in self._cache:
             self._cache.move_to_end(key)
             return self._cache[key]
@@ -516,7 +535,7 @@ class SceneDocument:
             self._cache_bytes += size
         return value
 
-    def _records(self, obj, time, cancelled=None):
+    def _records(self, obj, time, cancelled=None, *, cache=True):
         """Byte-bounded source-sample LRU; interpolation scratch stays chunked."""
         codec, data = obj['encoding'], obj['data']
         if codec in ('gsv.gaussian.persistent-identity', 'gsv.scaffold.graph'):
@@ -540,7 +559,7 @@ class SceneDocument:
                     row = self.scene.array(data['frames'][index], cancelled=cancelled)
                     _check_cancel(cancelled)
                     row.flags.writeable = False
-                    return self._remember(key, row)
+                    return self._remember(key, row) if cache else row
                 positions = self.scene.array_rows(data['positions'], np.arange(n), prefix=(index,), cancelled=cancelled)
                 row = np.zeros((n, 16), np.float32)
                 row[:, :3] = positions
@@ -561,7 +580,7 @@ class SceneDocument:
                 row[:, 15] = -1
                 _check_cancel(cancelled)
                 row.flags.writeable = False
-                return self._remember(key, row)
+                return self._remember(key, row) if cache else row
 
             first = at(a)
             if not w:
@@ -580,7 +599,7 @@ class SceneDocument:
             records = evaluate_native(self.scene, obj['id'], time)
             _check_cancel(cancelled)
             records.flags.writeable = False
-            return self._remember(key, records)
+            return self._remember(key, records) if cache else records
         records.flags.writeable = False
         return records
 
@@ -600,10 +619,15 @@ class SceneDocument:
             identifiers = list(dict.fromkeys(self.visible_ids if object_ids is None else object_ids))
             self._check_domains(identifiers)
             if not identifiers:
+                self._active_endpoints_key = self._active_endpoints = None
+                self._active_records.clear()
                 return Frame.empty()
             if any(self.object(x)['encoding'] not in ('gsv.gaussian.static', 'gsv.gaussian.persistent-identity')
                    for x in identifiers):
-                return self.evaluate(time, identifiers, cancelled=cancelled)
+                frame = self.evaluate(time, identifiers, cancelled=cancelled)
+                self._active_endpoints_key = self._active_endpoints = None
+                self._active_records.clear()
+                return frame
             samples, weights = [], []
             for identifier in identifiers:
                 obj = self.object(identifier)
@@ -621,7 +645,8 @@ class SceneDocument:
                 samples.append((identifier, a, b))
                 weights.append(_time_weight(time, times[a], times[b]) if a != b else 0.)
             key = ('endpoints', tuple(samples))
-            endpoints = self._cached(key)
+            endpoints = self._active_endpoints if key == self._active_endpoints_key else None
+            records = None
             if endpoints is None:
                 first, second, identities, owners, ranges = [], [], [], [], []
                 object_bounds = {}
@@ -633,11 +658,11 @@ class SceneDocument:
                     data = obj['data']
                     ids = self.scene.array(data['ids'])
                     if a is None:
-                        left = right = self._records(obj, time, cancelled)
+                        left = right = self._records(obj, time, cancelled, cache=False)
                     else:
                         times = self.object_times(identifier)
-                        left = self._records(obj, float(times[a]), cancelled)
-                        right = self._records(obj, float(times[b]), cancelled)
+                        left = self._records(obj, float(times[a]), cancelled, cache=False)
+                        right = left if a == b else self._records(obj, float(times[b]), cancelled, cache=False)
                     first.append(left)
                     second.append(right)
                     identities.append(ids)
@@ -657,14 +682,18 @@ class SceneDocument:
                         lo, hi = np.minimum(lo, field_lo), np.maximum(hi, field_hi)
                         object_bounds[identifier] = (field_lo, field_hi)
                 if not offset:
+                    _check_cancel(cancelled)
+                    self.scene._unchanged()
+                    self._active_endpoints_key = self._active_endpoints = None
+                    self._active_records.clear()
                     return Frame.empty()
                 left = first[0] if len(first) == 1 else np.concatenate(first)
                 right = second[0] if len(second) == 1 else np.concatenate(second)
+                counts = _endpoint_valid_counts(left, right, ranges, cancelled)
                 endpoints = _Endpoints(left, right,
                                        identities[0] if len(identities) == 1 else np.concatenate(identities),
                                        owners[0] if len(owners) == 1 else np.concatenate(owners),
-                                       lo, hi, left[:, 7] > .5, right[:, 7] > .5, tuple(ranges),
-                                       MappingProxyType(object_bounds))
+                                       lo, hi, tuple(ranges), MappingProxyType(object_bounds), counts)
                 for pair in object_bounds.values():
                     for array in pair:
                         array.flags.writeable = False
@@ -672,11 +701,31 @@ class SceneDocument:
                     if isinstance(array, np.ndarray):
                         array.flags.writeable = False
                 _check_cancel(cancelled)
-                self._remember(key, endpoints)
+                self.scene._unchanged()
+                records = {}
+                for (identifier, a, b), (_, start, stop) in zip(samples, ranges):
+                    # A single-field frame preserves array identity across
+                    # adjacent intervals. Multi-field slices own no extra data.
+                    first_record = left if start == 0 and stop == len(left) else left[start:stop]
+                    second_record = right if start == 0 and stop == len(right) else right[start:stop]
+                    if a is None:
+                        records[('native', identifier, 0.)] = first_record
+                    else:
+                        records[('sample', identifier, a)] = first_record
+                        records[('sample', identifier, b)] = second_record
             self.scene._unchanged()
             endpoint_key = (str(self.path), self.manifest_sha256, tuple(samples))
-            return PreparedFrame(endpoints, weights, endpoint_key, time,
-                                 source_layout=self._source_layout(identifiers),cancelled=cancelled)
+            frame = PreparedFrame(endpoints, weights, endpoint_key, time,
+                                  source_layout=self._source_layout(identifiers),cancelled=cancelled)
+            _check_cancel(cancelled)
+            self.scene._unchanged()
+            if records is not None:
+                # Publish only after every read, cancellation and mutation
+                # check succeeds. An aborted seek keeps the accepted cohort.
+                self._active_endpoints_key = key
+                self._active_endpoints = endpoints
+                self._active_records = records
+            return frame
 
     def evaluate(self, time, object_ids=None, *, cancelled=None):
         with self._lock:
@@ -967,6 +1016,8 @@ class SceneDocument:
                 self._object_time_cache.clear()
                 self._scaffold_sizes.clear()
                 self._cache_bytes = 0
+                self._active_endpoints_key = self._active_endpoints = None
+                self._active_records.clear()
                 self.scene.close()
 
     def __enter__(self):
