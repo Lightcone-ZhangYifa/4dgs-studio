@@ -1,5 +1,8 @@
 """Cross-platform scene and authoring acceptance tests, without GTK or GPU."""
 from pathlib import Path
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -9,7 +12,7 @@ import numpy as np
 from gsv import GSVError, Scene, Writer, add_camera, add_persistent_gaussians
 from gs_studio.model import SceneDocument, PreparedFrame, density_rows
 from gs_studio.camera import (CameraHistory, CameraTrack, export_camera_animation,
-                              import_camera_animation)
+                              import_camera_animation, SnapshotScene)
 from gs_studio import model
 
 
@@ -61,6 +64,109 @@ class ModelTests(unittest.TestCase):
 
     def tearDown(self):
         self.temp.cleanup()
+
+    def test_nonregular_inputs_fail_without_blocking_source_or_camera_import(self):
+        fifo = Path(self.temp.name) / 'named-pipe.gsv'
+        os.mkfifo(fifo)
+        script = '''
+import sys
+from gsv import GSVError
+from gs_studio.model import SceneDocument
+from gs_studio.camera import import_camera_animation
+for operation in (SceneDocument, lambda path: import_camera_animation(path, None)):
+    try:
+        operation(sys.argv[1])
+    except GSVError as error:
+        assert 'regular file' in str(error), error
+    else:
+        raise AssertionError('nonregular source accepted')
+'''
+        result = subprocess.run([sys.executable, '-c', script, str(fifo)],
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_owned_source_snapshots_survive_truncation_without_sigbus(self):
+        # Isolate a regression to mmap's fatal SIGBUS from the test runner.
+        script = '''
+import sys
+from pathlib import Path
+import numpy as np
+from gsv import GSVError
+from gs_studio.model import SceneDocument
+path = Path(sys.argv[1])
+with SceneDocument(path) as document:
+    frame = document.prepare_frame(.25)
+    snapshot = document.scene.array('field/frame/0')
+    expected = snapshot.copy()
+    path.write_bytes(b'')
+    np.testing.assert_array_equal(snapshot, expected)
+    np.testing.assert_allclose(frame.element('field', -2**60-7).position, [.25,0,2])
+    try:
+        document.evaluate(.5)
+    except GSVError as error:
+        assert 'changed' in str(error), error
+    else:
+        raise AssertionError('changed source accepted')
+'''
+        result = subprocess.run([sys.executable, '-c', script, str(self.path)],
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_truncation_during_snapshot_read_fails_and_closes_descriptor(self):
+        scene = SnapshotScene(self.path)
+        real_read = os.preadv
+        def truncate_after_read(*args):
+            size = real_read(*args)
+            self.path.write_bytes(b'')
+            return size
+        try:
+            with mock.patch.object(os, 'preadv', side_effect=truncate_after_read):
+                with self.assertRaisesRegex(GSVError, 'changed|truncated'):
+                    scene.array('field/frame/0')
+        finally:
+            scene.close()
+        self.assertTrue(scene._file.closed)
+
+    def test_failed_snapshot_constructor_cleans_up_before_cache_initialization(self):
+        self.path.write_bytes(b'not a GSV container')
+        with self.assertRaises(GSVError):
+            SnapshotScene(self.path)
+
+    def test_inactive_source_element_keeps_raw_values_and_foreign_domain(self):
+        self.path.unlink()
+        write(self.path, gap=True, clocks=True)
+        with SceneDocument(self.path) as doc:
+            state = doc.space, doc.clock, list(doc.visible_ids)
+            element = doc.element('field', -2**60-7, 2.)
+            self.assertFalse(element.valid)
+            np.testing.assert_allclose(element.position, [2.,0,2.])
+            np.testing.assert_allclose(element.scales, [.1,.2,.3])
+            np.testing.assert_allclose(element.color, [1.,.1,.2])
+            self.assertEqual(element.confidence, -1.)
+            self.assertIsNotNone(doc.element('foreign', 2**60+3, 0.))
+            self.assertEqual((doc.space, doc.clock, doc.visible_ids), state)
+            self.assertIsNone(doc.element('field', 9, 2.))
+
+    def test_selected_persistent_rows_do_not_copy_whole_frames(self):
+        count = 50_000
+        path = Path(self.temp.name) / 'sparse-inspection.gsv'
+        first = np.tile(record()[0], (count, 1))
+        with Writer(path) as out:
+            add_persistent_gaussians(out, 'large', np.arange(count, dtype=np.int64),
+                                     [0., 1.], [first, first])
+        with SceneDocument(path) as doc:
+            doc.object_times('large')
+            doc.scene.array(doc.object('large')['data']['ids'])
+            with mock.patch.object(os, 'preadv', wraps=os.preadv) as read:
+                self.assertIsNotNone(doc.element('large', 42, .5))
+                paths = doc.trajectories('large', ids=[42], density=0)
+            self.assertEqual(len(paths), 1)
+            self.assertEqual(sum(sum(len(buffer) for buffer in call.args[1])
+                                 for call in read.call_args_list), 4*16*4)
+
+    def test_zero_path_density_does_not_rank_the_entire_source(self):
+        with mock.patch.object(model.np, 'argsort', side_effect=AssertionError('unnecessary full rank')):
+            self.assertEqual(density_rows(np.arange(1000), 'field', 0).tolist(), [])
 
     def test_owner_metadata_shares_one_immutable_identity_per_field(self):
         with SceneDocument(self.path) as doc:
@@ -435,6 +541,29 @@ class ModelTests(unittest.TestCase):
             self.assertEqual(len(doc.evaluate(.5).edges), 0)
             self.assertEqual(len(doc.evaluate(1).edges), 0)
             self.assertEqual(len(doc.evaluate(2).edges), 1)
+            first, last = doc.evaluate(0), doc.evaluate(2)
+            np.testing.assert_array_equal(first.bounds, last.bounds)
+            np.testing.assert_array_equal(first.object_bounds['graph'], [[0,0,2],[1,2,2]])
+            self.assertFalse(first.bounds[0].flags.writeable)
+            self.assertTrue(doc.element('graph', 3, 0).valid)  # Uncertain still present.
+            inactive = doc.element('graph', 3, 1)
+            self.assertFalse(inactive.valid)
+            np.testing.assert_allclose(inactive.position, [0,1,2])
+            self.assertEqual(inactive.details['visibility'], [False,False])
+
+    def test_empty_scaffold_timeline_has_no_samples_but_preserves_identity_table(self):
+        path = Path(self.temp.name) / 'empty-scaffold.gsv'
+        with Writer(path) as out:
+            out.manifest['spaces']['world'] = {'unit':'meter', 'axes':['x','y','z'], 'handedness':'right'}
+            out.manifest['clocks']['scene'] = {'unit':'second'}
+            data = {name:out.add_array(name,value) for name,value in {
+                'ids':np.array([3],np.int64), 'times':np.empty(0,np.float64),
+                'positions':np.empty((0,1,3),np.float32)}.items()}
+            out.add_object('graph','scaffold','gsv.scaffold.graph',data,space='world',clock='scene')
+        with SceneDocument(path) as doc:
+            self.assertEqual(len(doc.evaluate(0)),0)
+            self.assertIsNone(doc.element('graph',3,0))
+            self.assertEqual(doc.trajectories('graph'),[])
 
 
 class AuthoringTests(unittest.TestCase):
@@ -611,6 +740,90 @@ class AuthoringTests(unittest.TestCase):
             history.tracks[1].keyframes[0].K[0, 0] = 1
         with self.assertRaises(GSVError):
             CameraHistory(limit=0)
+
+
+@unittest.skipUnless(os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY'),
+                     'Inspector needs GTK; use xvfb-run')
+class InspectorParityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import gi
+        gi.require_version('Gtk','4.0')
+        gi.require_version('Adw','1')
+        from gi.repository import Gtk,Adw,GLib
+        from gs_studio.inspector import Inspector
+        Gtk.init()
+        Adw.init()
+        cls.Inspector,cls.GLib=Inspector,GLib
+
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory()
+        self.path=Path(self.temp.name)/'source.gsv'
+        write(self.path,gap=True)
+        self.doc=SceneDocument(self.path)
+        self.inspector=self.Inspector()
+
+    def tearDown(self):
+        self.doc.close()
+        self.temp.cleanup()
+
+    def test_document_has_coordinate_clock_storage_and_source_counts(self):
+        from gs_studio.i18n import tr
+        self.inspector.document(self.doc,self.doc.prepare_frame(2))
+        rows={row.get_title():row.get_subtitle() for row in self.inspector.rows}
+        for key in ('document.coordinates','document.clock','document.storage'):
+            self.assertIn(self.GLib.markup_escape_text(tr(key)),rows)
+        self.assertEqual(rows[self.GLib.markup_escape_text(tr('document.primitives'))],'2')
+        self.assertIn('x · y · z',rows[self.GLib.markup_escape_text(tr('document.coordinates'))])
+
+    def test_inactive_element_details_arriving_at_same_time_refresh_and_escape_markup(self):
+        from gs_studio.i18n import tr
+        identifier=-2**60-7
+        self.doc.object('field')['label']='<b>field & source</b>'
+        frame=self.doc.evaluate(2)
+        self.inspector.update(self.doc,'field',{('field',identifier)},frame,None,None,2)
+        elements={('field',identifier):self.doc.element('field',identifier,2)}
+        self.inspector.update(self.doc,'field',{('field',identifier)},frame,None,None,2,elements=elements)
+        rows={row.get_title():row.get_subtitle() for row in self.inspector.rows}
+        # Adwaita exposes the decoded title; markup characters remain literal.
+        self.assertEqual(self.inspector.group.get_title(),'<b>field & source</b>')
+        self.assertEqual(rows[tr('property.present')],tr('element.absent'))
+        self.assertIn('2.',rows[tr('property.position')])
+        self.assertIn(tr('property.sigma'),rows)
+
+    def test_comparison_preview_has_no_scoring_rows(self):
+        from types import SimpleNamespace
+        preview=SimpleNamespace(role=None,render=np.zeros((2,3,3)),color_space='linear-srgb',
+                                metrics=None,details={'source':'a & b'})
+        self.inspector.comparison(preview)
+        titles={row.get_title() for row in self.inspector.rows}
+        self.assertNotIn('PSNR',titles)
+        preview.metrics={'psnr':float('inf'),'valid_pixels':6,'ssim_windows':0}
+        self.inspector.comparison(preview)
+        self.assertIn('PSNR',{row.get_title() for row in self.inspector.rows})
+
+    def test_playback_updates_values_in_place_without_rebuilding_accessible_rows(self):
+        from gs_studio.i18n import tr
+        member=('field',-2**60-7)
+        def update(time):
+            elements={member:self.doc.element(*member,time)}
+            self.inspector.update(self.doc,'field',{member},None,None,None,time,elements=elements)
+        update(0.)
+        rows=tuple(self.inspector.rows)
+        initial={row.get_title():row.get_subtitle() for row in rows}
+        unchanged_notifications=[]
+        rows[0].connect('notify::subtitle',lambda *args:unchanged_notifications.append(True))
+        raw_changes=[]
+        self.inspector.raw.get_buffer().connect('changed',lambda *args:raw_changes.append(True))
+        self.inspector.expander.set_expanded(True)
+        for time in np.linspace(.1,4.,40):
+            update(float(time))
+            self.assertEqual(tuple(self.inspector.rows),rows)
+        current={row.get_title():row.get_subtitle() for row in rows}
+        self.assertNotEqual(current[tr('property.position')],initial[tr('property.position')])
+        self.assertEqual(unchanged_notifications,[])
+        self.assertEqual(raw_changes,[])
+        self.assertTrue(self.inspector.expander.get_expanded())
 
 
 if __name__ == '__main__':

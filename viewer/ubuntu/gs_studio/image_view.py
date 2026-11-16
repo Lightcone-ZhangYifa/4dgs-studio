@@ -12,8 +12,10 @@ from .i18n import tr
 
 class ComparisonCanvas(Gtk.DrawingArea):
     def __init__(self):
-        super().__init__(hexpand=True, vexpand=True)
+        super().__init__(hexpand=True, vexpand=True, focusable=True)
+        self.set_accessible_role(Gtk.AccessibleRole.IMG)
         self.images = []
+        self.reference_role = "reference"
         self.zoom = 1.0
         self.pan = (0.0, 0.0)
         self._pointer = None
@@ -29,19 +31,26 @@ class ComparisonCanvas(Gtk.DrawingArea):
         zoom.connect("scale-changed", self._pinch)
         self.add_controller(zoom)
         drag = Gtk.GestureDrag()
-        drag.connect("drag-begin", lambda *_: setattr(self, "_start_pan", self.pan))
+        drag.connect("drag-begin", self._begin_drag)
         drag.connect("drag-update", self._drag)
         self.add_controller(drag)
-        self.update_property([Gtk.AccessibleProperty.LABEL], [tr("ubuntu.renderAccessibility")])
+        self.update_property([Gtk.AccessibleProperty.LABEL,Gtk.AccessibleProperty.DESCRIPTION],
+                             [tr("compare.title","Image comparison"),tr("compare.navigation")])
+        self.set_tooltip_text(tr("compare.navigation"))
 
-    def set_images(self, render, reference, color_space):
+    def set_images(self, render, reference, color_space, *, reference_role="reference"):
         self.images = []
+        self.reference_role = reference_role if reference_role in ("ground_truth","reference","prediction") else "reference"
         for image in [render, reference]:
             if image is None:
                 continue
+            # A render-only view may explicitly retain HDR/negative RGB. Clamp
+            # its display copy before transfer conversion, as the macOS preview
+            # does; scientific pixels and metrics remain in their source domain.
+            image = np.clip(image, 0, 1)
             if color_space == "linear-srgb":
                 image = convert_rgb(image, source=color_space, target="srgb")
-            rgb = (np.clip(image, 0, 1) * 255 + .5).astype(np.uint8)
+            rgb = (image * 255 + .5).astype(np.uint8)
             pixels = np.empty((*rgb.shape[:2], 4), np.uint8)
             pixels[:, :, :3] = rgb[:, :, ::-1]
             pixels[:, :, 3] = 255
@@ -106,6 +115,10 @@ class ComparisonCanvas(Gtk.DrawingArea):
         self.pan = (self._start_pan[0]+dx, self._start_pan[1]+dy)
         self.queue_draw()
 
+    def _begin_drag(self, gesture, x, y):
+        self.grab_focus()
+        self._start_pan = self.pan
+
     def _draw(self, widget, cr, width, height):
         cr.set_source_rgb(.05, .06, .075)
         cr.paint()
@@ -120,7 +133,7 @@ class ComparisonCanvas(Gtk.DrawingArea):
             cr.translate(i*pane_width+(pane_width-w*scale)/2+self.pan[0], 28+(height-28-h*scale)/2+self.pan[1])
             cr.scale(scale, scale)
             cr.set_source_surface(surface)
-            cr.get_source().set_filter(cairo.FILTER_NEAREST if self.zoom > 3 else cairo.FILTER_BILINEAR)
+            cr.get_source().set_filter(cairo.FILTER_NEAREST if self.zoom >= 1.5 else cairo.FILTER_BILINEAR)
             cr.paint()
             cr.restore()
         cr.set_source_rgb(.7, .74, .8)
@@ -129,7 +142,7 @@ class ComparisonCanvas(Gtk.DrawingArea):
         cr.show_text(tr("ubuntu.renderLabel"))
         if len(self.images) == 2:
             cr.move_to(pane_width+12, 19)
-            cr.show_text(tr("ubuntu.referenceLabel"))
+            cr.show_text(tr("role."+self.reference_role,self.reference_role))
             cr.set_source_rgba(.5, .5, .5, .4)
             cr.rectangle(pane_width, 0, 1, height)
             cr.fill()

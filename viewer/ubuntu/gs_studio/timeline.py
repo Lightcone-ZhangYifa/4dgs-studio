@@ -35,9 +35,11 @@ def interpolate(lower, upper, weight):
 class Timeline(Gtk.DrawingArea):
     def __init__(self):
         super().__init__(content_height=108, hexpand=True, focusable=True)
+        self._user_range = False
         self.times = np.array([0.0])
         self.time = 0.0
         self.keys = []
+        self.key_name = ""
         self.selected_key = None
         self.lower, self.upper = -0.5, 0.5
         self.snap = True
@@ -55,6 +57,7 @@ class Timeline(Gtk.DrawingArea):
         self._start_x = 0
         self.set_draw_func(self._draw)
         self.set_tooltip_text(tr("timeline.canvas", "Timeline. Click to scrub; drag a camera keyframe to retime."))
+        self.set_accessible_role(Gtk.AccessibleRole.SLIDER)
         self.update_property([Gtk.AccessibleProperty.LABEL], [tr("timeline.canvas")])
         drag = Gtk.GestureDrag(button=1)
         drag.connect("drag-begin", self._begin)
@@ -65,7 +68,7 @@ class Timeline(Gtk.DrawingArea):
         pan.connect("drag-begin", lambda *_: setattr(self, "_pan_range", (self.lower, self.upper)))
         pan.connect("drag-update", self._pan)
         self.add_controller(pan)
-        scroll = Gtk.EventControllerScroll(flags=Gtk.EventControllerScrollFlags.VERTICAL)
+        scroll = Gtk.EventControllerScroll(flags=Gtk.EventControllerScrollFlags.BOTH_AXES)
         scroll.connect("scroll", self._scroll)
         self.add_controller(scroll)
         motion = Gtk.EventControllerMotion()
@@ -74,12 +77,49 @@ class Timeline(Gtk.DrawingArea):
         keys = Gtk.EventControllerKey()
         keys.connect("key-pressed", self._key)
         self.add_controller(keys)
+        focus = Gtk.EventControllerFocus()
+        focus.connect("leave", lambda *_: self._cancel_drag())
+        self.add_controller(focus)
         zoom = Gtk.GestureZoom()
         zoom.connect("begin", lambda *_: setattr(self, "_last_zoom", 1.))
         zoom.connect("scale-changed", self._pinch)
         self.add_controller(zoom)
 
+    @property
+    def times(self):
+        return self._times
+
+    @times.setter
+    def times(self, values):
+        values = np.asarray(values,dtype=np.float64)
+        if values.ndim != 1 or not len(values) or not np.isfinite(values).all() or np.any(values[1:] <= values[:-1]):
+            raise ValueError("Timeline samples must be nonempty, finite and strictly increasing")
+        changed = not np.array_equal(values,getattr(self,"_times",None))
+        self._times = values
+        if changed and hasattr(self,"lower") and not self._user_range:
+            self.fit()
+        self.queue_draw()
+
+    @property
+    def keys(self):
+        return self._keys
+
+    @keys.setter
+    def keys(self, values):
+        values = list(values)
+        changed = values != getattr(self, "_keys", [])
+        self._keys = values
+        if changed:
+            self._cancel_drag()
+
+    def _cancel_drag(self):
+        self._cancelled = True
+        self._moving = self._ghost = None
+        self._snap_bypass = False
+        self.queue_draw()
+
     def fit(self):
+        self._user_range = False
         lo, hi = float(self.times[0]), float(self.times[-1])
         if lo == hi:
             delta = max(1., math.ulp(lo) * 8)
@@ -98,10 +138,13 @@ class Timeline(Gtk.DrawingArea):
     def _x(self, value):
         return 112 + fraction(value, self.lower, self.upper) * max(1, self.get_width() - 128)
 
-    def _time(self, x):
-        weight = min(1., max(0., (x - 112) / max(1, self.get_width() - 128)))
+    def _time(self, x, *, clamp_to_samples=True):
+        weight = (x - 112) / max(1, self.get_width() - 128)
         value = interpolate(self.lower, self.upper, weight)
-        value = min(float(self.times[-1]), max(float(self.times[0]), value))
+        if not math.isfinite(value):
+            value = self.lower if weight < 0 else self.upper
+        if clamp_to_samples:
+            value = min(float(self.times[-1]), max(float(self.times[0]), value))
         if self.snap and not self._snap_bypass:
             i = int(np.searchsorted(self.times, value))
             nearest = min((self.times[max(0, i-1)], self.times[min(i, len(self.times)-1)]), key=lambda t: abs(self._x(float(t))-x))
@@ -111,6 +154,9 @@ class Timeline(Gtk.DrawingArea):
 
     def _begin(self, gesture, x, y):
         self.grab_focus()
+        self._cancel_drag()
+        if x < 112:
+            return
         self._cancelled = False
         self._snap_bypass = bool(gesture.get_current_event_state() & Gdk.ModifierType.ALT_MASK)
         self._start_x = x
@@ -129,8 +175,10 @@ class Timeline(Gtk.DrawingArea):
     def _update(self, gesture, dx, dy):
         if self._cancelled:
             return
+        if self._moving is None and self._start_x+dx < 112:
+            return
         self._snap_bypass = bool(gesture.get_current_event_state() & Gdk.ModifierType.ALT_MASK)
-        value = self._time(self._start_x + dx)
+        value = self._time(self._start_x + dx,clamp_to_samples=self._moving is None)
         if self._moving is not None:
             self._ghost = value
             self.queue_draw()
@@ -152,6 +200,7 @@ class Timeline(Gtk.DrawingArea):
     def _assign(self, lo, hi):
         if math.isfinite(lo) and math.isfinite(hi) and hi > lo:
             self.lower, self.upper = lo, hi
+            self._user_range = True
             self.queue_draw()
 
     def _zoom_at_pointer(self, factor):
@@ -161,6 +210,11 @@ class Timeline(Gtk.DrawingArea):
                      interpolate(self.lower,self.upper,weight+(1-weight)*factor))
 
     def _scroll(self, controller, dx, dy):
+        state = controller.get_current_event_state() if controller is not None else 0
+        if state & Gdk.ModifierType.SHIFT_MASK or abs(dx)>abs(dy):
+            shift = (dx if dx else dy)/max(1,self.get_width()-128)
+            self._assign(interpolate(self.lower,self.upper,shift),interpolate(self.lower,self.upper,1+shift))
+            return True
         self._zoom_at_pointer(math.exp(max(-2,min(2,dy*.16))))
         return True
 
@@ -171,9 +225,7 @@ class Timeline(Gtk.DrawingArea):
 
     def _key(self, controller, keyval, keycode, state):
         if keyval == Gdk.KEY_Escape:
-            self._cancelled = True
-            self._moving = self._ghost = None
-            self.queue_draw()
+            self._cancel_drag()
         elif keyval == Gdk.KEY_Home:
             self.fit()
         elif keyval == Gdk.KEY_space:
@@ -197,7 +249,11 @@ class Timeline(Gtk.DrawingArea):
             cr.show_text(str(value))
         text(12, 22, tr("timeline.time", "TIME") + " · " + tr("unit."+self.unit, self.unit))
         text(12, 52, tr("timeline.source", "Source samples"))
-        text(12, 84, tr("timeline.cameraKeys", "Camera keys"))
+        cr.save()
+        cr.rectangle(0,62,108,height-62)
+        cr.clip()
+        text(12, 84, self.key_name or tr("timeline.cameraKeys", "Camera keys"))
+        cr.restore()
         cr.save()
         cr.rectangle(110, 0, max(1, width-110), height)
         cr.clip()
@@ -246,3 +302,7 @@ class Timeline(Gtk.DrawingArea):
             cr.rectangle(x, 25, 1.5, height-25)
             cr.fill()
         cr.restore()
+        self.update_property([Gtk.AccessibleProperty.VALUE_MIN,Gtk.AccessibleProperty.VALUE_MAX,
+                              Gtk.AccessibleProperty.VALUE_NOW,Gtk.AccessibleProperty.VALUE_TEXT],
+                             [float(self.times[0]),float(self.times[-1]),float(self.time),
+                              f"{self.time:.17g} {tr('unit.'+self.unit,self.unit)}"])

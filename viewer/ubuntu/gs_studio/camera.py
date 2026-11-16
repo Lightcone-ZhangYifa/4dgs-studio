@@ -2,8 +2,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from collections import OrderedDict
 import copy
+import math
+import os
 from pathlib import Path
+import stat
 import uuid
 
 import numpy as np
@@ -11,7 +15,132 @@ import numpy as np
 from gsv import GSVError, Scene, Writer, add_camera
 from gsv.codecs import validate_object
 from gsv.evaluate import _time_weight, matrix_quat, quat_matrix
-from gsv.container import SHA_RE
+from gsv.container import SHA_RE, DTYPES
+
+
+class SnapshotScene(Scene):
+    """SDK validation with owned pread snapshots instead of faultable mappings.
+
+    A trainer truncating its source file cannot SIGBUS a GTK/GPU reader. The
+    original SDK remains authoritative for the envelope, hashes, Boolean
+    canonicalization and object semantics. Only typed-array storage differs.
+    """
+    snapshot_budget = 64 * 1024**2
+
+    def __init__(self, *args, **kwargs):
+        self._snapshots = OrderedDict()
+        self._snapshot_bytes = 0
+        self._position_bounds = {}
+        self._position_keys = set()
+        super().__init__(*args, **kwargs)
+        self._position_keys = {o['data'].get('positions') for o in self.objects
+                               if o['encoding'] == 'gsv.scaffold.graph'
+                               and isinstance(o['data'].get('positions'), str)}
+
+    def _array_info(self, key):
+        self._unchanged()
+        a = self.manifest['arrays'][key]
+        b = self.manifest['buffers'][a['buffer']]
+        dtype = np.dtype(DTYPES[a['dtype']])
+        if math.prod(a['shape']) * dtype.itemsize > self.max_array_bytes:
+            raise GSVError('Array exceeds configured access limit')
+        if self.verify:
+            self.verify_buffer(a['buffer'])
+        return a, b['offset'] + a.get('byte_offset', 0), dtype
+
+    def _read_into(self, destination, position, cancelled=None):
+        self._unchanged()
+        if destination.nbytes:
+            raw = memoryview(destination).cast('B')
+            done = 0
+            while done < len(raw):
+                if cancelled is not None and cancelled():
+                    raise InterruptedError('Scene request was superseded')
+                chunk = raw[done:done+8*1024**2]
+                count = os.preadv(self._file.fileno(), [chunk], position+done)
+                if count <= 0:
+                    raise GSVError('Source array was truncated during snapshot read')
+                done += count
+        self._unchanged()
+
+    def array(self, key, *, cancelled=None):
+        self._unchanged()
+        if key in self._snapshots:
+            self._snapshots.move_to_end(key)
+            return self._snapshots[key]
+        a, position, dtype = self._array_info(key)
+        value = np.empty(a['shape'], dtype=dtype)
+        self._read_into(value, position, cancelled)
+        if dtype.kind == 'b' and np.any(value.view(np.uint8) > 1):
+            raise GSVError('Boolean arrays require canonical 0/1 bytes')
+        if (key in self._position_keys and key not in self._position_bounds and value.size
+                and value.ndim == 3 and value.shape[-1] == 3):
+            points = value.reshape(-1, 3)
+            self._position_bounds[key] = (points.min(axis=0).astype(np.float64),
+                                          points.max(axis=0).astype(np.float64))
+        value.flags.writeable = False
+        if value.nbytes <= self.snapshot_budget:
+            while self._snapshots and self._snapshot_bytes + value.nbytes > self.snapshot_budget:
+                _, old = self._snapshots.popitem(last=False)
+                self._snapshot_bytes -= old.nbytes
+            self._snapshots[key] = value
+            self._snapshot_bytes += value.nbytes
+        return value
+
+    def array_rows(self, key, rows, *, prefix=(), cancelled=None):
+        """Read selected contiguous row runs without mapping/copying the field."""
+        a, position, dtype = self._array_info(key)
+        shape = a['shape']
+        if len(prefix) >= len(shape):
+            raise GSVError('Row snapshot requires a remaining array axis')
+        for axis, index in enumerate(prefix):
+            if not 0 <= index < shape[axis]:
+                raise GSVError('Array prefix index is out of range')
+            position += int(index) * math.prod(shape[axis+1:]) * dtype.itemsize
+        rows = np.asarray(rows, dtype=np.int64)
+        count = shape[len(prefix)]
+        if (rows.ndim != 1 or np.any(rows < 0) or np.any(rows >= count)
+                or np.any(rows[1:] <= rows[:-1])):
+            raise GSVError('Row snapshots require sorted unique in-range indices')
+        tail = shape[len(prefix)+1:]
+        out = np.empty((len(rows), *tail), dtype=dtype)
+        row_bytes = math.prod(tail) * dtype.itemsize
+        boundaries = np.r_[0, np.flatnonzero(np.diff(rows) != 1)+1, len(rows)]
+        for start, stop in zip(boundaries[:-1], boundaries[1:]):
+            if start == stop:
+                continue
+            self._read_into(out[start:stop], position+int(rows[start])*row_bytes, cancelled)
+        if dtype.kind == 'b' and np.any(out.view(np.uint8) > 1):
+            raise GSVError('Boolean arrays require canonical 0/1 bytes')
+        out.flags.writeable = False
+        return out
+
+    def position_bounds(self, key):
+        self._unchanged()
+        if key not in self._position_bounds:
+            self.array(key)
+        return self._position_bounds.get(key, (np.full(3, -1.), np.full(3, 1.)))
+
+    def close(self):
+        self._snapshots.clear()
+        self._snapshot_bytes = 0
+        self._position_bounds.clear()
+        if hasattr(self, '_file'):
+            super().close()
+
+
+def open_regular_scene(path, *, factory=SnapshotScene):
+    """Pin a checked regular descriptor so FIFO paths and replacement cannot hang."""
+    path = Path(path).resolve()
+    fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NONBLOCK)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise GSVError('GSV input must be a regular file')
+        scene = factory(Path('/proc/self/fd') / str(fd))
+        scene.path = path
+        return scene
+    finally:
+        os.close(fd)
 
 
 @dataclass(frozen=True)
@@ -251,7 +380,7 @@ def export_camera_animation(path, tracks, source, *, overwrite=False):
 
 def import_camera_animation(path, source, existing_ids=()):
     """Validate every camera before returning any authored data to the caller."""
-    with Scene(path) as incoming:
+    with open_regular_scene(path) as incoming:
         objects = incoming.objects
         if not objects or any(o['encoding'] != 'gsv.camera.pinhole' or o['type'] != 'camera' for o in objects):
             raise GSVError('Import a camera-only animation GSV created for this source scene')

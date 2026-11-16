@@ -124,6 +124,8 @@ def _project(frame, K, c2w, width, height, profile, volume, cancelled):
             far, far_inclusive = vf, True
     R = np.asarray(c2w[:3, :3], np.float64).T
     camera = (np.asarray(frame[:, :3], np.float64) - c2w[:3, 3]) @ R.T
+    if not np.isfinite(camera).all():
+        raise GSVError("Camera-space geometry exceeds the supported numeric range")
     z = camera[:, 2]
     valid = np.isfinite(camera).all(axis=1) & (z > 0)
     valid &= (z >= near) if near_inclusive else (z > near)
@@ -162,18 +164,17 @@ def _project(frame, K, c2w, width, height, profile, volume, cancelled):
     cov[:, 0, 0] += dilation
     cov[:, 1, 1] += dilation
     det = np.linalg.det(cov)
-    valid = np.isfinite(cov).all(axis=(1, 2)) & np.isfinite(xy).all(axis=1) & (det > 0)
-    xy, cov, det, frame, z, det_original = (
-        a[valid] for a in (xy, cov, det, frame, z, det_original)
-    )
-    if not len(z):
-        return None
+    if not (np.isfinite(cov).all() and np.isfinite(xy).all() and np.isfinite(det).all()
+            and np.isfinite(det_original).all() and np.all(det > 0)):
+        raise GSVError("Projected covariance or image coordinates exceed the supported numeric range")
     alpha = np.array(frame[:, 3], np.float64, copy=True)
     if p["filter"]["antialias_compensation"]:
         alpha *= np.sqrt(np.maximum(0, det_original) / det)
     eig = np.linalg.eigvalsh(cov)[:, 1]
     radius = np.ceil(p["support"]["sigma"] * np.sqrt(eig))
-    valid = np.isfinite(radius) & (radius > p["filter"]["radius_clip"])
+    if not np.isfinite(radius).all():
+        raise GSVError("Projected Gaussian support exceeds the supported numeric range")
+    valid = radius > p["filter"]["radius_clip"]
     if p["support"]["bounds"] == "tile-major-radius":
         radii = np.repeat(radius[:, None], 2, axis=1)
     else:
@@ -204,7 +205,8 @@ def render_ewa(frame, K, c2w, width, height, profile, *, pixel_center="half", ba
     rgb = np.zeros((height, width, 3), np.float32)
     T = np.ones((height, width), np.float32)
     stopped = np.zeros((height, width), bool)
-    projected = _project(frame, K, c2w, width, height, profile, volume, cancelled)
+    with np.errstate(over="ignore",under="ignore",invalid="ignore",divide="ignore"):
+        projected = _project(frame, K, c2w, width, height, profile, volume, cancelled)
     if projected is not None:
         means, inverse, radii, opacity, colors = projected
         tile = np.array(profile["support"]["tile_size"])
@@ -290,7 +292,7 @@ def render_view(document, view_id, time, *, cancelled=lambda: False):
     """Render an exact calibrated view without requiring a reference image."""
     scene, view, camera, sample = _binding(document, view_id, time, cancelled)
     rgb = _capture(scene, view, camera, sample, time, cancelled)
-    return ComparisonResult(rgb, None, None, view.get("label", view_id), view["data"]["output"]["color_space"],
+    return ComparisonResult(rgb, None, None, view.get("label", view_id), view["data"]["output"]["color_space"], role="",
                             details="CPU EWA reference · Float32 front-to-back · stable source-order depth ties · declared profile policies. Source-renderer pixel parity is unverified.")
 
 

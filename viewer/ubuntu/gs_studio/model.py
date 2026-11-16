@@ -9,6 +9,7 @@ an identity is visible between samples only when both endpoints are valid.
 from __future__ import annotations
 
 from collections import OrderedDict
+from collections.abc import Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -18,12 +19,12 @@ from types import MappingProxyType
 
 import numpy as np
 
-from gsv import GSVError, Scene
+from gsv import GSVError
 from gsv.codecs import RGB_GAUSSIAN_CODECS, validate_object
 from gsv.container import HEADER
 from gsv.evaluate import evaluate as evaluate_native, quat_matrix, _time_weight
 
-from .camera import Calibration, interpolate_pose, slerp
+from .camera import Calibration, SnapshotScene as Scene, open_regular_scene, interpolate_pose, slerp
 
 
 def _check_cancel(cancelled):
@@ -72,6 +73,8 @@ class Frame:
     object_ids: np.ndarray
     records: np.ndarray
     edges: np.ndarray = field(default_factory=lambda: np.empty((0, 2, 3), np.float32))
+    bounds: tuple | None = None
+    object_bounds: object = field(default_factory=lambda: MappingProxyType({}))
 
     @classmethod
     def empty(cls):
@@ -107,6 +110,7 @@ class GaussianElement:
     opacity: float
     valid: bool
     confidence: float
+    details: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -145,7 +149,7 @@ def _mix_records(first, second, weight, *, cancelled=None):
     return records
 
 
-def _cpu_frame(packed, ids, owners, *, edges=None, cancelled=None):
+def _cpu_frame(packed, ids, owners, *, edges=None, bounds=None, object_bounds=None, cancelled=None):
     """Shared CPU materialization; never runs implicitly from prepared properties."""
     cov = np.empty((len(packed), 3, 3), np.float32)
     try:
@@ -160,9 +164,11 @@ def _cpu_frame(packed, ids, owners, *, edges=None, cancelled=None):
     except FloatingPointError as error:
         raise GSVError('Gaussian covariance exceeds the preview Float32 range; source parameters remain unchanged') from error
     frame = Frame(packed[:, :3], cov, packed[:, 12:15], packed[:, 3], ids, owners, packed,
-                  np.empty((0, 2, 3), np.float32) if edges is None else edges)
+                  np.empty((0, 2, 3), np.float32) if edges is None else edges,
+                  bounds, MappingProxyType({}) if object_bounds is None else object_bounds)
     for array in vars(frame).values():
-        array.flags.writeable = False
+        if isinstance(array, np.ndarray):
+            array.flags.writeable = False
     _check_cancel(cancelled)
     return frame
 
@@ -244,7 +250,7 @@ class SceneDocument:
         self._lock = threading.RLock()
         self._closed = False
         _check_cancel(cancelled)
-        self.scene = Scene(self.path)
+        self.scene = open_regular_scene(self.path, factory=Scene)
         original_file = self.scene._file
         if cancelled is not None:
             self.scene._file = _CancellationFile(original_file, cancelled)
@@ -472,6 +478,12 @@ class SceneDocument:
     def _cache_size(value):
         if isinstance(value, np.ndarray):
             return value.nbytes
+        if isinstance(value, Mapping):
+            return sum(SceneDocument._cache_size(item) for item in value.values())
+        if isinstance(value, (tuple, list)):
+            return sum(SceneDocument._cache_size(item) for item in value)
+        if value is None:
+            return 0
         roots = {}
         for array in vars(value).values():
             if not isinstance(array, np.ndarray):
@@ -517,31 +529,25 @@ class SceneDocument:
                 if cached is not None:
                     return cached
                 if codec == 'gsv.gaussian.persistent-identity':
-                    row = np.array(self.scene.array(data['frames'][index]), copy=True)
+                    row = self.scene.array(data['frames'][index], cancelled=cancelled)
                     _check_cancel(cancelled)
                     row.flags.writeable = False
                     return self._remember(key, row)
-                positions = self.scene.array(data['positions'])
+                positions = self.scene.array_rows(data['positions'], np.arange(n), prefix=(index,), cancelled=cancelled)
                 row = np.zeros((n, 16), np.float32)
-                row[:, :3] = positions[index]
+                row[:, :3] = positions
                 row[:, 3] = .95
                 # Glyph dimensions are a display choice, independent of node
                 # topology and source certainty/visibility/validity evidence.
                 if obj['id'] not in self._scaffold_sizes:
-                    points = positions.reshape(-1, 3)
-                    lo, hi = np.full(3, np.inf), np.full(3, -np.inf)
-                    for start in range(0, len(points), 65_536):
-                        _check_cancel(cancelled)
-                        chunk = points[start:start + 65_536]
-                        lo = np.minimum(lo, np.min(chunk, axis=0))
-                        hi = np.maximum(hi, np.max(chunk, axis=0))
-                    span = hi - lo if len(points) else np.ones(3)
+                    lo, hi = self.scene.position_bounds(data['positions'])
+                    span = hi - lo if n else np.ones(3)
                     self._scaffold_sizes[obj['id']] = max(float(np.linalg.norm(span)) * .0015, .0001)
                 row[:, 4:7] = self._scaffold_sizes[obj['id']]
                 row[:, 7] = 1
                 for mask in ('visibility', 'validity'):
                     if mask in data:
-                        row[:, 7] *= self.scene.array(data[mask])[index]
+                        row[:, 7] *= self.scene.array_rows(data[mask], np.arange(n), prefix=(index,), cancelled=cancelled)
                 row[:, 8] = 1
                 row[:, 12:15] = [.3, .95, .6]
                 row[:, 15] = -1
@@ -617,7 +623,7 @@ class SceneDocument:
                     _check_cancel(cancelled)
                     obj = self.object(identifier)
                     data = obj['data']
-                    ids = np.array(self.scene.array(data['ids']), copy=True)
+                    ids = self.scene.array(data['ids'])
                     if a is None:
                         left = right = self._records(obj, time, cancelled)
                     else:
@@ -693,21 +699,119 @@ class SceneDocument:
                 obj = self.object(identifier)
                 packed = self._records(obj, time, cancelled)
                 valid = packed[:, 7] > .5
-                if obj['encoding'] == 'gsv.scaffold.graph' and 'edges' in obj['data']:
+                if len(packed) and obj['encoding'] == 'gsv.scaffold.graph' and 'edges' in obj['data']:
                     topology = np.asarray(self.scene.array(obj['data']['edges']), np.int64)
                     visible_edges = valid[topology].all(axis=1)
                     edges.append(packed[topology[visible_edges], :3].copy())
                 records.append(packed if np.all(valid) else packed[valid])
-                ids.append(np.asarray(self.scene.array(obj['data']['ids']))[valid])
+                ids.append(np.asarray(self.scene.array(obj['data']['ids']))[:len(packed)][valid])
                 owners.append(_owner_array(int(valid.sum()), identifier))
             _check_cancel(cancelled)
             self.scene._unchanged()
             if not records:
                 return Frame.empty()
             packed = records[0] if len(records) == 1 else np.concatenate(records)
+            bounds, object_bounds = self._source_bounds(identifiers, cancelled)
             frame = _cpu_frame(packed, np.concatenate(ids), np.concatenate(owners),
-                               edges=np.concatenate(edges) if edges else None, cancelled=cancelled)
+                               edges=np.concatenate(edges) if edges else None, bounds=bounds,
+                               object_bounds=object_bounds, cancelled=cancelled)
             return self._remember(frame_key, frame)
+
+    def _source_bounds(self, identifiers, cancelled=None):
+        """Time-independent framing metadata, cached per compatible cohort."""
+        key = ('source-bounds', tuple(identifiers))
+        cached = self._cached(key)
+        if cached is not None:
+            return cached
+        objects = {}
+        for identifier in identifiers:
+            obj = self.object(identifier)
+            if obj['encoding'] == 'gsv.scaffold.graph':
+                pair = self.scene.position_bounds(obj['data']['positions'])
+            elif 'bounds' in obj['data']:
+                pair = obj['data']['bounds']
+            elif obj['encoding'] == 'gsv.gaussian.static':
+                records = self._records(obj, 0., cancelled)
+                if not len(records):
+                    pair = (np.full(3, -1.), np.full(3, 1.))
+                else:
+                    support = 4 * records[:, 4:7].max(axis=1).astype(np.float64)
+                    points = records[:, :3].astype(np.float64)
+                    pair = ((points-support[:, None]).min(axis=0), (points+support[:, None]).max(axis=0))
+            else:
+                continue
+            pair = tuple(np.array(value, np.float64, copy=True) for value in pair)
+            for value in pair:
+                value.flags.writeable = False
+            objects[identifier] = pair
+        bounds = None
+        if objects and len(objects) == len(identifiers):
+            bounds = (np.min([value[0] for value in objects.values()], axis=0),
+                      np.max([value[1] for value in objects.values()], axis=0))
+            for value in bounds:
+                value.flags.writeable = False
+        return self._remember(key, (bounds, MappingProxyType(objects)))
+
+    def element(self, object_id, identity, time, *, cancelled=None):
+        """Inspect one source identity, including inactive or hidden identities.
+
+        Persistent/scaffold reads touch only the selected rows. This is the
+        worker-side inspection path for CPU fallback frames whose visible arrays
+        deliberately omit inactive rows; it does not change the active domain.
+        """
+        with self._lock:
+            self._require_open()
+            _check_cancel(cancelled)
+            if not isinstance(identity, (int, np.integer)) or not -(1 << 63) <= int(identity) < (1 << 63):
+                raise GSVError('Identity must be an exact signed 64-bit integer')
+            time = float(time)
+            if not np.isfinite(time):
+                raise GSVError('Time must be finite')
+            obj = self.object(object_id)
+            if not self.supports(obj):
+                return None
+            data, codec = obj['data'], obj['encoding']
+            ids = self.scene.array(data['ids'])
+            index = int(np.searchsorted(ids, identity))
+            if index == len(ids) or int(ids[index]) != identity:
+                return None
+            details = {}
+            if codec in ('gsv.gaussian.persistent-identity', 'gsv.scaffold.graph'):
+                times = self.object_times(object_id)
+                if not len(times):
+                    return None
+                b = min(int(np.searchsorted(times, time)), len(times)-1)
+                a = max(0, b-1)
+                weight = _time_weight(time, times[a], times[b]) if a != b else 0.
+                if time >= times[b]:
+                    a, weight = b, 0.
+                def row(sample):
+                    if codec == 'gsv.gaussian.persistent-identity':
+                        return self.scene.array_rows(data['frames'][sample], [index], cancelled=cancelled)
+                    record = np.zeros((1, 16), np.float32)
+                    record[:, :3] = self.scene.array_rows(data['positions'], [index], prefix=(sample,), cancelled=cancelled)
+                    record[:, 3:7] = [.95, .0001, .0001, .0001]
+                    record[:, 7:9] = 1
+                    record[:, 12:15] = [.3, .95, .6]
+                    record[:, 15] = -1
+                    for name in ('visibility', 'validity'):
+                        if name in data:
+                            record[:, 7] *= self.scene.array_rows(data[name], [index], prefix=(sample,), cancelled=cancelled)
+                    return record
+                first = row(a)
+                record = _mix_records(first, row(b), weight, cancelled=cancelled)[0] if weight else first[0]
+                if codec == 'gsv.scaffold.graph':
+                    details['source_samples'] = [float(times[a]), float(times[b])]
+                    for name in ('certainty', 'visibility', 'validity'):
+                        if name in data:
+                            details[name] = [bool(self.scene.array_rows(data[name], [index], prefix=(i,))[0])
+                                             for i in (a, b)]
+            else:
+                record = self._records(obj, time, cancelled)[index]
+            self.scene._unchanged()
+            return GaussianElement(int(identity), object_id, record[:3].copy(), record[4:7].copy(),
+                                   record[8:12].copy(), record[12:15].copy(), float(record[3]),
+                                   bool(record[7] > .5), float(record[15]), details)
 
     def camera(self, object_id, time, view=0):
         with self._lock:
@@ -744,6 +848,7 @@ class SceneDocument:
                     far = float((1 - weight) * values[a, view] + weight * values[b, view])
             nearest = a if weight <= .5 else b
             details = {'view_id': data['view_ids'][view],
+                       'evaluated_time': float(time),
                        'inspection_sample_time': float(times[nearest]),
                        'distortion': projection['distortion']['model']}
             if 'coefficients' in projection['distortion']:
@@ -808,19 +913,18 @@ class SceneDocument:
                 if cancelled and cancelled():
                     raise InterruptedError('Trajectory request was superseded')
                 if obj['encoding'] == 'gsv.gaussian.persistent-identity':
-                    # Native timestamps need no interpolation. Advanced indexing
-                    # reads just requested mmap rows; selecting one identity must
-                    # not copy every source primitive or evict playback buffers.
-                    records = self.scene.array(obj['data']['frames'][i])[rows]
+                    # Native timestamps need no interpolation. Owned pread rows
+                    # keep selected paths independent of full-frame caches.
+                    records = self.scene.array_rows(obj['data']['frames'][i], rows, cancelled=cancelled)
                     points[i], colors[i], valid[i] = records[:, :3], records[:, 12:15], records[:, 7] > .5
                 elif obj['encoding'] == 'gsv.scaffold.graph':
                     data = obj['data']
-                    points[i] = self.scene.array(data['positions'])[i, rows]
+                    points[i] = self.scene.array_rows(data['positions'], rows, prefix=(i,), cancelled=cancelled)
                     colors[i] = [.3, .95, .6]
                     valid[i] = True
                     for mask in ('visibility', 'validity'):
                         if mask in data:
-                            valid[i] &= self.scene.array(data[mask])[i, rows]
+                            valid[i] &= self.scene.array_rows(data[mask], rows, prefix=(i,), cancelled=cancelled)
                 else:
                     records = self._records(obj, float(time))[rows]
                     points[i], colors[i], valid[i] = records[:, :3], records[:, 12:15], records[:, 7] > .5
@@ -857,6 +961,8 @@ class SceneDocument:
 def density_rows(ids, object_id, density):
     """Same FNV1a / SplitMix ordering as macOS, preserving signed int64 IDs."""
     count = int(len(ids) * min(1., max(0., density)))
+    if count == 0:
+        return np.empty(0, np.int64)
     if count == len(ids):
         return np.arange(len(ids), dtype=np.int64)
     mask = (1 << 64) - 1

@@ -118,6 +118,16 @@ class AnalyticalTests(unittest.TestCase):
         with self.assertRaises(GSVError):
             render_ewa(gaussian(), np.eye(3), np.eye(4), 20000, 1, profile())
 
+    def test_unrepresentable_projection_is_an_error_not_an_empty_capture(self):
+        K = np.array([[1e308,0,5],[0,1e308,5],[0,0,1]],np.float64)
+        with self.assertRaisesRegex(GSVError,"numeric range"):
+            render_ewa(gaussian(),K,np.eye(4),11,11,profile())
+        p = profile()
+        p["support"]["sigma"] = 1e308
+        K[:2,:2] = [[100,0],[0,100]]
+        with self.assertRaisesRegex(GSVError,"numeric range"):
+            render_ewa(gaussian(),K,np.eye(4),11,11,p)
+
     def test_strip_metrics_match_sdk_without_double_counting_halos(self):
         rng = np.random.default_rng(178)
         a, b = [rng.random((287, 17, 3), dtype=np.float32) for _ in range(2)]
@@ -216,6 +226,7 @@ class ContractTests(unittest.TestCase):
             result = compare_view(scene, "view", 0)
             self.assertIsNone(result.reference)
             self.assertIsNone(result.metrics)
+            self.assertEqual(result.role, "")
 
     def test_transformed_output_can_preview_but_cannot_score(self):
         self.write(transformed=True)

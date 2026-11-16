@@ -143,6 +143,73 @@ class InspectionControlsTests(unittest.TestCase):
         self.assertGreaterEqual(timeline.upper, 100)
         self.assertFalse(controller.emit("key-pressed", self.Gdk.KEY_a, 0, self.Gdk.ModifierType(0)))
 
+    def test_horizontal_and_shift_scroll_pan_without_changing_time_scale(self):
+        timeline = self.timeline()
+        lower,upper = timeline.lower,timeline.upper
+        timeline._scroll(self.modifiers(),20,0)
+        self.assertGreater(timeline.lower,lower)
+        self.assertAlmostEqual(timeline.upper-timeline.lower,upper-lower)
+        previous = timeline.lower
+        shift = SimpleNamespace(get_current_event_state=lambda:self.Gdk.ModifierType.SHIFT_MASK)
+        timeline._scroll(shift,0,-20)
+        self.assertLess(timeline.lower,previous)
+        self.assertAlmostEqual(timeline.lower,lower,places=10)
+        self.assertAlmostEqual(timeline.upper,upper,places=10)
+
+    def test_new_authored_extent_autofits_until_user_changes_timeline_window(self):
+        timeline = self.timeline()
+        timeline.times = np.array([0,20,50,100,200],np.float64)
+        self.assertGreaterEqual(timeline.upper,200)
+        timeline._scroll(self.modifiers(),0,-2)
+        manual = timeline.lower,timeline.upper
+        timeline.times = np.array([0,20,50,100,200,300],np.float64)
+        self.assertEqual((timeline.lower,timeline.upper),manual)
+        self.key_controller(timeline).emit("key-pressed",self.Gdk.KEY_Home,0,self.Gdk.ModifierType(0))
+        self.assertGreaterEqual(timeline.upper,300)
+        timeline.times = np.array([0,20,50,100,200,300,400],np.float64)
+        self.assertGreaterEqual(timeline.upper,400)
+
+    def test_label_gutter_does_not_seek_and_key_can_retime_beyond_source_end(self):
+        timeline = self.timeline()
+        sought,moved = [],[]
+        timeline.on_seek = sought.append
+        timeline.on_key_move = lambda index,value:moved.append((index,value))
+        timeline._begin(self.modifiers(),30,35)
+        timeline._update(self.modifiers(),20,0)
+        timeline._end(self.modifiers(),20,0)
+        self.assertEqual(sought,[])
+        timeline.lower,timeline.upper = 0,200
+        timeline.keys = [20,50]
+        x,target = timeline._x(50),timeline._x(150)
+        timeline._begin(self.modifiers(),x,78)
+        timeline._update(self.modifiers(),target-x,0)
+        timeline._end(self.modifiers(),target-x,0)
+        self.assertEqual(moved,[(1,150)])
+        # Ordinary source scrubbing retains the document playback bounds.
+        timeline._begin(self.modifiers(),target,35)
+        self.assertEqual(sought[-1],100)
+
+    def test_changed_camera_keys_or_focus_loss_cancel_the_old_drag(self):
+        timeline = self.timeline()
+        timeline.keys = [20,50]
+        moved = []
+        timeline.on_key_move = lambda index,value:moved.append((index,value))
+        x = timeline._x(20)
+        timeline._begin(self.modifiers(),x,78)
+        timeline._update(self.modifiers(),60,0)
+        timeline.keys = [40,80]
+        timeline._end(self.modifiers(),60,0)
+        self.assertEqual(moved,[])
+        x = timeline._x(40)
+        timeline._begin(self.modifiers(),x,78)
+        timeline._update(self.modifiers(),60,0)
+        controllers = timeline.observe_controllers()
+        focus = next(controllers.get_item(i) for i in range(controllers.get_n_items())
+                     if isinstance(controllers.get_item(i),self.Gtk.EventControllerFocus))
+        focus.emit("leave")
+        timeline._end(self.modifiers(),60,0)
+        self.assertEqual(moved,[])
+
     def test_preview_range_shades_only_its_native_time_interval(self):
         import cairo
         timeline = self.timeline()
@@ -211,6 +278,16 @@ class InspectionControlsTests(unittest.TestCase):
         self.assertEqual((pair.get_width(),pair.get_height()),(256,96))
         for (_,pixels),original in zip(canvas.images,images):
             np.testing.assert_array_equal(pixels,original)
+
+    def test_linear_hdr_preview_clamps_only_display_copy_and_is_focusable(self):
+        canvas = self.mapped(self.ComparisonCanvas())
+        image = np.array([[[-.2,.2,2.]]],np.float32)
+        original = image.copy()
+        canvas.set_images(image,None,"linear-srgb")
+        np.testing.assert_array_equal(canvas.images[0][1][0,0,:3],[255,124,0])
+        np.testing.assert_array_equal(image,original)
+        self.assertTrue(canvas.get_focusable())
+        self.assertEqual(canvas.get_accessible_role(),self.Gtk.AccessibleRole.IMG)
 
 
 if __name__ == "__main__":
