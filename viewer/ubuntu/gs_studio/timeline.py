@@ -32,7 +32,7 @@ def interpolate(lower, upper, weight):
     return ((1 - weight) * (lower * .5) + weight * (upper * .5)) * 2
 
 
-class Timeline(Gtk.DrawingArea):
+class Timeline(Gtk.DrawingArea, Gtk.AccessibleRange):
     def __init__(self):
         super().__init__(content_height=108, hexpand=True, focusable=True)
         self._user_range = False
@@ -84,6 +84,21 @@ class Timeline(Gtk.DrawingArea):
         zoom.connect("begin", lambda *_: setattr(self, "_last_zoom", 1.))
         zoom.connect("scale-changed", self._pinch)
         self.add_controller(zoom)
+
+    def do_set_current_value(self, value):
+        """Seek in document units through GTK's native assistive range API.
+
+        Accessibility values are exact native times, independent of the ruler's
+        zoom, pointer snap threshold and displayed unit label. The application
+        commits ``time`` when its normal on_seek/frame path completes, just as
+        for a pointer scrub; do not publish an optimistic playhead value here.
+        """
+        if (not self.is_sensitive() or not math.isfinite(value)
+                or value < float(self.times[0]) or value > float(self.times[-1])):
+            return False
+        self._cancel_drag()
+        self.on_seek(float(value))
+        return True
 
     @property
     def times(self):

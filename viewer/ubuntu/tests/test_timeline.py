@@ -57,6 +57,55 @@ class TimelineInteractionTests(unittest.TestCase):
         self.assertGreater(self.timeline.upper, self.timeline.lower)
         self.assertEqual(self.timeline._time(self.timeline._x(sys.float_info.max)), sys.float_info.max)
 
+    def test_native_accessible_range_seeks_exact_unsnapped_document_time(self):
+        t = self.timeline
+        self.assertIsInstance(t, Gtk.AccessibleRange)
+        t.times = np.array([0., .5, 1.])
+        t.snap = True
+        t.unit = 'frame'
+        t._assign(.4, .6)
+        t._moving, t._ghost = 1, .75
+        seeks = []
+        t.on_seek = seeks.append
+        value = 1/3
+        # Invoke the registered interface vfunc through GI, rather than the
+        # Python method, to cover the GObject AccessibleRange implementation.
+        invoke = Gtk.AccessibleRange.__info__.get_vfuncs()[0].invoke
+        self.assertTrue(invoke(t.__gtype__, t, value))
+        self.assertEqual(seeks, [value])
+        self.assertIsNone(t._moving)
+        self.assertIsNone(t._ghost)
+        self.assertEqual(t.time, 0., 'Only the application may commit an evaluated frame time')
+        self.assertTrue(invoke(t.__gtype__, t, 0.))
+        self.assertTrue(invoke(t.__gtype__, t, 1.))
+        self.assertEqual(seeks, [value, 0., 1.])
+
+    def test_accessible_range_rejects_nonfinite_outside_and_insensitive_values(self):
+        t = self.timeline
+        t.times = np.array([-1e308, 0., 1e308])
+        seeks = []
+        t.on_seek = seeks.append
+        invoke = Gtk.AccessibleRange.__info__.get_vfuncs()[0].invoke
+        for value in (math.nan, math.inf, -math.inf, -sys.float_info.max, sys.float_info.max):
+            with self.subTest(value=value):
+                self.assertFalse(invoke(t.__gtype__, t, value))
+        self.assertEqual(seeks, [])
+        self.assertTrue(invoke(t.__gtype__, t, -1e308))
+        self.assertTrue(invoke(t.__gtype__, t, 1e308))
+        t.set_sensitive(False)
+        self.assertFalse(invoke(t.__gtype__, t, 0.))
+        self.assertEqual(seeks, [-1e308, 1e308])
+
+    def test_accessible_single_sample_range_accepts_only_its_exact_native_time(self):
+        t = self.timeline
+        t.times = np.array([sys.float_info.max])
+        seeks = []
+        t.on_seek = seeks.append
+        invoke = Gtk.AccessibleRange.__info__.get_vfuncs()[0].invoke
+        self.assertTrue(invoke(t.__gtype__, t, sys.float_info.max))
+        self.assertFalse(invoke(t.__gtype__, t, math.nextafter(sys.float_info.max, 0.)))
+        self.assertEqual(seeks, [sys.float_info.max])
+
 
 if __name__ == '__main__':
     unittest.main()

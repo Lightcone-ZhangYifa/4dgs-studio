@@ -1,5 +1,8 @@
 """PNG encoding/atomic writes and actual GTK workspace/GL capture checks."""
 import os
+import shutil
+import subprocess
+import sys
 from concurrent.futures import CancelledError
 from pathlib import Path
 import struct
@@ -13,7 +16,8 @@ import zlib
 
 import numpy as np
 from gs_studio.snapshots import (snapshot_png, write_png, PNG_SIGNATURE,
-                                 capture_png_when_ready, SnapshotPendingError)
+                                 capture_png_when_ready, SnapshotPendingError,
+                                 _workspace_pixel_size,MAX_WORKSPACE_PIXELS,MAX_WORKSPACE_SIDE)
 
 
 def decode_png(data):
@@ -55,6 +59,18 @@ def decode_png(data):
 
 
 class EncodingTests(unittest.TestCase):
+    def test_workspace_backing_extent_limits_are_checked_before_allocation(self):
+        self.assertEqual(_workspace_pixel_size(8192,2048,2),(MAX_WORKSPACE_SIDE,4096))
+        self.assertEqual(16384*4096,MAX_WORKSPACE_PIXELS)
+        for width,height,scale in ((8193,1,2),(8192,2049,2),(0,10,2),(10,10,0)):
+            with self.subTest(size=(width,height,scale)):
+                widget=SimpleNamespace(get_width=lambda:width,get_height=lambda:height,
+                    get_scale_factor=lambda:scale,get_mapped=lambda:True,
+                    get_native=mock.Mock(side_effect=AssertionError('allocation attempted')))
+                with self.assertRaises(ValueError):
+                    snapshot_png(widget)
+                widget.get_native.assert_not_called()
+
     def test_rgba_rows_colors_alpha_and_noncontiguous_input(self):
         pixels = np.array([[[255, 0, 0, 255], [0, 0, 255, 128]],
                            [[0, 255, 0, 1], [250, 130, 30, 0]]], np.uint8)
@@ -137,9 +153,50 @@ class NativeSnapshotTests(unittest.TestCase):
         window.present()
         self.pump(lambda: drawn and canvas.get_mapped())
         pixels = decode_png(snapshot_png(canvas))
-        self.assertEqual(pixels.shape[:2], (canvas.get_height(), canvas.get_width()))
+        scale=canvas.get_scale_factor()
+        self.assertEqual(pixels.shape[:2], (canvas.get_height()*scale, canvas.get_width()*scale))
+        expected_scale=os.environ.get('GSV_EXPECT_SNAPSHOT_SCALE')
+        if expected_scale:
+            self.assertEqual(scale,int(expected_scale))
         np.testing.assert_array_equal(pixels[10, 10, :3], [255, 0, 0])
         np.testing.assert_array_equal(pixels[-10, 10, :3], [0, 0, 255])
+
+    def test_hidpi_widget_framebuffer_and_comparison_exports_in_independent_display(self):
+        launcher=shutil.which('xvfb-run')
+        if not launcher:
+            self.skipTest('Independent HiDPI GTK verification requires xvfb-run')
+        env=os.environ.copy()
+        env.update(GDK_BACKEND='x11',GDK_SCALE='2',GDK_DPI_SCALE='1',GDK_DEBUG='no-vsync',
+                   GTK_A11Y='none',GIO_USE_VFS='local',GSV_EXPECT_SNAPSHOT_SCALE='2')
+        env.pop('WAYLAND_DISPLAY',None)
+        tests=Path(__file__).resolve().parent
+        env['PYTHONPATH']=str(tests)+os.pathsep+env.get('PYTHONPATH','')
+        methods=('test_native_widget_snapshot_preserves_raster_and_color',
+                 'test_gl_snapshot_has_preview_pixels_and_preserves_bindings',
+                 'test_queued_gl_frame_cannot_export_previous_resolution',
+                 'test_comparison_export_retains_source_raster_at_display_scale')
+        result=subprocess.run([launcher,'-a','-s','-screen 0 1920x1080x24',sys.executable,
+            '-m','unittest',*[f'test_snapshots.NativeSnapshotTests.{method}' for method in methods],'-v'],
+            env=env,text=True,capture_output=True,timeout=60)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+
+    def test_comparison_export_retains_source_raster_at_display_scale(self):
+        from gs_studio.image_view import ComparisonCanvas
+        canvas=ComparisonCanvas()
+        render=np.zeros((12,20,3),np.float32);render[:,:,0]=1
+        reference=np.zeros((12,20,3),np.float32);reference[:,:,2]=1
+        canvas.set_images(render,reference,'srgb')
+        window=self.Gtk.Window(child=canvas,default_width=320,default_height=180)
+        self.addCleanup(window.destroy)
+        window.present()
+        self.pump(lambda:canvas.get_mapped() and canvas.get_width()>0)
+        surface=canvas.snapshot_surface()
+        self.assertEqual((surface.get_width(),surface.get_height()),(40,12))
+        pixels=np.frombuffer(surface.get_data(),np.uint8).reshape(12,surface.get_stride())[:,:160].reshape(12,40,4)
+        np.testing.assert_array_equal(pixels[5,5,:3],[0,0,255])
+        np.testing.assert_array_equal(pixels[5,25,:3],[255,0,0])
+        np.testing.assert_array_equal(render[:,:,0],1)
+        np.testing.assert_array_equal(reference[:,:,2],1)
 
     def test_gl_snapshot_has_preview_pixels_and_preserves_bindings(self):
         from OpenGL import GL

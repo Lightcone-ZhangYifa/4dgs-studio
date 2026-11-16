@@ -12,6 +12,8 @@ import numpy as np
 
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+MAX_WORKSPACE_SIDE = 16_384
+MAX_WORKSPACE_PIXELS = 64 * 1024**2
 
 
 class SnapshotPendingError(RuntimeError):
@@ -40,38 +42,55 @@ def _rgba_png(pixels):
     return PNG_SIGNATURE + _chunk(b"IHDR", header) + _chunk(b"IDAT", b"".join(blocks)) + _chunk(b"IEND", b"")
 
 
+def _workspace_pixel_size(width,height,scale):
+    if min(width,height,scale) <= 0:
+        raise ValueError("Workspace snapshot dimensions and display scale must be positive")
+    backing_width,backing_height = width*scale,height*scale
+    if (max(backing_width,backing_height)>MAX_WORKSPACE_SIDE
+            or backing_width*backing_height>MAX_WORKSPACE_PIXELS):
+        raise ValueError("Workspace snapshot exceeds 64 Mi pixels or 16,384 pixels per side at this display scale")
+    return backing_width,backing_height
+
+
 def snapshot_png(widget) -> bytes:
     """Capture a visible widget on GTK's UI thread, returning encoded PNG bytes.
 
     GLArea exports its completed private framebuffer to avoid capturing an
     unpopulated GTK paintable between GL frames. A workspace/comparison widget
-    uses GTK's renderer so native text, controls and images retain their layout.
+    uses GTK's renderer at the widget's backing scale so text, controls and
+    images retain their layout and display pixel density.
     """
     capture = getattr(widget, "snapshot_rgba", None)
     if callable(capture):
         return _rgba_png(capture())
+    width,height = widget.get_width(),widget.get_height()
+    if width<=0 or height<=0 or not widget.get_mapped():
+        raise ValueError("Show the workspace before exporting a snapshot")
+    scale = widget.get_scale_factor()
+    backing_width,backing_height = _workspace_pixel_size(width,height,scale)
     import gi
     gi.require_version("Gtk", "4.0")
     gi.require_version("Gdk", "4.0")
     gi.require_version("Gsk", "4.0")
+    gi.require_version("Graphene", "1.0")
     # Import Gsk before to_node(): PyGObject needs the registered render-node
     # subclasses to convert the native snapshot into a Python wrapper.
-    from gi.repository import Gdk, Gsk, Gtk
+    from gi.repository import Gdk, Gsk, Gtk, Graphene
     del Gdk, Gsk
-    width, height = widget.get_width(), widget.get_height()
-    if width <= 0 or height <= 0 or not widget.get_mapped():
-        raise ValueError("Show the workspace before exporting a snapshot")
     native = widget.get_native()
     renderer = native.get_renderer() if native is not None else None
     if renderer is None:
         raise ValueError("The workspace does not have a realized GTK renderer")
     paintable = Gtk.WidgetPaintable.new(widget)
     snapshot = Gtk.Snapshot.new()
+    snapshot.scale(float(scale),float(scale))
     paintable.snapshot(snapshot, float(width), float(height))
     node = snapshot.to_node()
     if node is None:
         raise SnapshotPendingError("The workspace has not produced a completed frame yet")
-    texture = renderer.render_texture(node, None)
+    viewport = Graphene.Rect()
+    viewport.init(0,0,float(backing_width),float(backing_height))
+    texture = renderer.render_texture(node,viewport)
     data = texture.save_to_png_bytes()
     return bytes(data.get_data())
 
