@@ -415,6 +415,67 @@ class GLViewportTests(unittest.TestCase):
         self.assertEqual(gl.glGetError(),gl.GL_NO_ERROR)
         win.destroy();self.pump(2)
 
+    def test_source_interval_rotation_uploads_only_new_endpoint_both_directions(self):
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        from gsv import Writer, add_persistent_gaussians
+        from gs_studio.model import SceneDocument
+        from gs_studio.viewport import Viewport
+        from gs_studio.gl_renderer import Renderer
+        from OpenGL import GL as gl
+        with tempfile.TemporaryDirectory() as temp:
+            path=Path(temp)/'stream.gsv'
+            frames=[]
+            for step in range(4):
+                packed=np.zeros((2,16),np.float32)
+                packed[:,:3]=[[-.3+step*.04,0,2],[.3,step*.02,2.5]]
+                packed[:,3]=.8;packed[:,4:7]=[.08,.04,.03];packed[:,7]=1
+                packed[:,8]=math.cos(step*.2);packed[:,11]=math.sin(step*.2)
+                packed[:,12:15]=[[1,.1,.3],[.2,.3,1]];packed[:,15]=-1
+                frames.append(packed)
+            with Writer(path) as out:
+                add_persistent_gaussians(out,'field',np.array([-7,2**60+3],np.int64),[0.,1.,2.,3.],frames)
+            with SceneDocument(path) as doc:
+                states=[doc.prepare_frame(t) for t in (.25,1.25,2.25)]
+                self.assertIs(states[0].second,states[1].first)
+                self.assertIs(states[1].second,states[2].first)
+                win=self.Gtk.Window(default_width=128,default_height=128)
+                viewport=Viewport();win.set_child(viewport);win.present();self.pump()
+                viewport.make_current();renderer=Renderer();renderer.initialize()
+                pose=np.eye(4);k=np.array([[80.,0,64],[0,80.,64],[0,0,1.]])
+                def image(active):
+                    renderer.upload(active,pose,set());renderer.target(128,128)
+                    renderer.begin(k,pose,128,128);renderer.splats()
+                    return bytes(gl.glReadPixels(0,0,128,128,gl.GL_RGBA,gl.GL_UNSIGNED_BYTE))
+                try:
+                    with mock.patch.object(renderer,'_upload_texture_buffer',wraps=renderer._upload_texture_buffer) as uploads:
+                        image(states[0]);self.assertEqual(uploads.call_count,2)
+                        old_pair=(renderer.buffer,renderer.second_buffer)
+                        for active in [states[1],states[2],states[1],states[0]]:
+                            before=uploads.call_count
+                            actual=image(active)
+                            self.assertEqual(uploads.call_count-before,1)
+                            self.assertTrue(renderer.last_endpoint_swapped)
+                            self.assertEqual(renderer.last_endpoint_upload_bytes,active.first.nbytes)
+                            self.assertEqual((renderer.buffer,renderer.second_buffer),old_pair[::-1])
+                            old_pair=(renderer.buffer,renderer.second_buffer)
+                            # Independent non-reusing renderer proves pixels after rotation.
+                            reference=Renderer(reuse_endpoints=False);reference.initialize()
+                            try:
+                                reference.upload(active.materialize(),pose,set());reference.target(128,128)
+                                reference.begin(k,pose,128,128);reference.splats()
+                                expected=bytes(gl.glReadPixels(0,0,128,128,gl.GL_RGBA,gl.GL_UNSIGNED_BYTE))
+                                np.testing.assert_allclose(np.frombuffer(actual,np.uint8).astype(int),np.frombuffer(expected,np.uint8).astype(int),atol=1)
+                            finally:
+                                reference.close()
+                        before=uploads.call_count
+                        image(doc.prepare_frame(.6))
+                        self.assertEqual(uploads.call_count,before)
+                        self.assertEqual(renderer.last_endpoint_uploads,0)
+                finally:
+                    renderer.close();win.destroy();self.pump(2)
+
     def test_clipped_segments_and_calibrated_integer_center(self):
         from gs_studio.viewport import Viewport, project_segments
         k = np.array([[50., 0., 30.], [0., 50., 20.], [0., 0., 1.]])

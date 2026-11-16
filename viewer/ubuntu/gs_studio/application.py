@@ -111,6 +111,7 @@ class StudioWindow(Adw.ApplicationWindow):
         self._edit_revision = 0
         self._stats_source = 0
         self._pending_stats = None
+        self._snapshot_request = None
         self.file_jobs = CommandJobs(lambda fn: GLib.idle_add(fn, priority=GLib.PRIORITY_DEFAULT))
         self.loader = LatestJob(lambda fn: GLib.idle_add(fn, priority=GLib.PRIORITY_DEFAULT))
         self.frames = LatestJob(lambda fn: GLib.idle_add(fn, priority=GLib.PRIORITY_DEFAULT), allow_intermediate=True)
@@ -612,8 +613,13 @@ class StudioWindow(Adw.ApplicationWindow):
         self.image_view.reset()
         self._comparison_result = None
         self._chooser_generation += 1
+        if self._snapshot_request:
+            self._snapshot_request.cancel()
+            self._snapshot_request = None
         self._file_busy = False
         old, self.document = self.document, document
+        self.frame = None
+        self.viewport.set_frame(None)
         if old is not None:
             self.frames.executor.submit(old.close)
         self.history = CameraHistory()
@@ -1248,7 +1254,12 @@ class StudioWindow(Adw.ApplicationWindow):
             return
         track = next((t for t in self.history.tracks if t.id == self.primary), None)
         calibration = track.at(self.time) if track else self._calibrations.get((self.primary, self._inspected_views.get(self.primary, 0)))
-        self.selection_label.set_text(tr("ubuntu.selected").format(count=len(self.selected)) + (" · "+self.primary if self.primary else ""))
+        source = next((obj for obj in self.document.objects if obj["id"] == self.primary), None)
+        caption = track.label if track else source.get("label", self.primary) if source else self.primary
+        if self.primary_member and self.primary_member[1] is not None:
+            caption = (caption or "")+" · "+str(self.primary_member[1])
+        self.selection_label.set_text(tr("ubuntu.selected").format(count=len(self.selected)) + (" · "+caption if caption else ""))
+        self.selection_label.set_tooltip_text(self.primary or "")
         self.detail_view.update(self.document, self.primary, self.selected, self.frame, calibration, track, self.time, self.primary_member)
 
     def _render_selected(self):
@@ -1422,6 +1433,7 @@ class StudioWindow(Adw.ApplicationWindow):
             self.performance_label.set_text("")
             self._set_playing(False)
             self.stack.set_visible_child_name("comparison")
+            self.tabs.set_current_page(0)
             self._rebuild_capture_rows()
             self._activate_capture()
         else:
@@ -1523,21 +1535,36 @@ class StudioWindow(Adw.ApplicationWindow):
     def export_image(self, workspace=False):
         if self._file_busy:
             return
-        from .snapshots import snapshot_png
-        try:
-            # Capture before a portal/save sheet dims the parent window.
-            if workspace:
-                png = snapshot_png(self)
-            elif self.compare_toggle.get_active():
+        from .snapshots import capture_png_when_ready
+        self._file_busy = True
+        generation = self._chooser_generation
+        def completed(png, error):
+            if self.closed or generation != self._chooser_generation:
+                return
+            self._snapshot_request = None
+            if error:
+                self._file_busy = False
+                self.error(error)
+                return
+            self._save_captured_png(workspace, png, generation)
+        if not workspace and self.compare_toggle.get_active():
+            try:
+                if not self.image_view.images:
+                    raise ValueError(tr("compare.snapshotPending"))
                 import io
                 stream = io.BytesIO()
                 self.image_view.snapshot_surface().write_to_png(stream)
-                png = stream.getvalue()
-            else:
-                png = snapshot_png(self.viewport)
-        except Exception as exc:
-            self.error(exc)
-            return
+                completed(stream.getvalue(), None)
+            except Exception as error:
+                completed(None, error)
+        else:
+            # Wait for GTK's completed native snapshot rather than opening a
+            # save sheet against an invalidated layout or an old GL framebuffer.
+            self._snapshot_request = capture_png_when_ready(self if workspace else self.viewport,
+                completed, cancelled=lambda: self.closed or generation != self._chooser_generation,
+                ready=lambda: self.document is None or (self.frame is not None and not self._domain_busy))
+
+    def _save_captured_png(self, workspace, png, generation):
         dialog = Gtk.FileDialog(title=tr("file.workspaceSnapshot" if workspace else "file.screenshot"), modal=True)
         dialog.set_initial_name("4dgs-workspace.png" if workspace else "4dgs-screenshot.png")
         image_filters = Gio.ListStore.new(Gtk.FileFilter)
@@ -1546,7 +1573,6 @@ class StudioWindow(Adw.ApplicationWindow):
         image_filters.append(image_filter)
         dialog.set_filters(image_filters)
         self._file_busy = True
-        generation = self._chooser_generation
         def done(dialog, result):
             if self.closed or generation != self._chooser_generation:
                 return
@@ -1630,6 +1656,9 @@ class StudioWindow(Adw.ApplicationWindow):
     def _finish_close(self):
         self.closed = True
         self._chooser_generation += 1
+        if self._snapshot_request:
+            self._snapshot_request.cancel()
+            self._snapshot_request = None
         self._set_playing(False)
         self._compare_revision += 1
         GLib.source_remove(self._timer)

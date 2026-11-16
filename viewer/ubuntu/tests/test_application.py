@@ -522,8 +522,10 @@ class ApplicationTests(unittest.TestCase):
         w = self.window
         w._scrub(.25)
         self.pump_until(lambda: w.time == .25 and not w.frames.running)
+        w.tabs.set_current_page(1)
         w.compare_toggle.set_active(True)
         self.pump_until(lambda: w.time == 0 and w._comparison_result is not None and not w.comparisons.running)
+        self.assertEqual(w.tabs.get_current_page(), 0)
         self.assertEqual(w.capture_entries[w.capture_drop.get_selected()].time, 0)
         w.capture_drop.set_selected(1)
         self.pump_until(lambda: w.time == 1 and w._comparison_result is not None and not w.comparisons.running)

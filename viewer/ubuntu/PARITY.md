@@ -237,6 +237,42 @@ separate workloads. The SDK-backed warm `prepare_frame` path separately measured
 about 0.20 ms median for one million source identities; cold endpoint preparation
 and source validation are not included in steady resident playback numbers.
 
+### Source-interval streaming boundary
+
+`tools/benchmark_streaming.py --count 1000000 --intervals 4` creates a temporary
+five-sample GSV and uses an NVIDIA EGL-device pbuffer (RTX 4090, OpenGL 4.3,
+driver 620.70.06) at 1280×720. It opens no desktop window. Actual SDK preparation
+is timed separately from GPU upload, sorting and completed draw. Buffer identity,
+not a floating-point approximation or content sample, decides endpoint reuse.
+
+| Work | Measured time / transfer |
+| --- | --- |
+| Source open and validation | 1401.9 ms |
+| Cold preparation before shared owner-label allocation | 122.9 / 112.0 / 105.6 / 114.2 ms |
+| Cold preparation with shared owner labels, four intervals | 45.6 / 35.8 / 35.1 / 35.5 ms |
+| Later interval completed draw, upload both endpoints | 31.6 / 31.0 / 31.5 ms; 128 MB each |
+| Later interval completed draw, rotate resident endpoint | 22.3 / 20.1 / 19.5 ms; 64 MB each |
+
+When the next immutable first endpoint is the previous second endpoint, their
+GPU buffers/textures/capacities exchange roles and only the new second endpoint
+uploads. Backward seeking performs the corresponding inverse rotation. If
+array identity does not match (including newly assembled mixed cohorts), the
+ordinary two-endpoint upload remains correct. Regression tests check forward
+and backward upload counts, zero uploads within a resident interval and images
+against independently materialized CPU geometry within one output byte.
+
+This reduces the measured interval transfer by half. Separately, owner-label
+metadata arrays now share one immutable Python string per field, eliminating
+one million duplicate string allocations; this reduced later cold preparation
+from roughly 110 ms to roughly 35 ms in the fixture. That preparation still
+precedes GPU work. First allocation also differs from
+updating an existing allocation. Source intervals that change frequently can
+therefore produce animation hitches despite a fast resident-frame renderer.
+Those intervals are prepared off the GTK thread, with the prior committed frame
+retained while work is pending; that preserves UI responsiveness, not a promise
+of continuous full-rate source streaming. The implementation and evidence do
+not justify an unconditional 60 FPS playback claim for large files.
+
 ### Desktop release acceptance
 
 Before publishing a hardware-qualified build, record the Ubuntu version, display

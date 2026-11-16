@@ -100,6 +100,7 @@ class Viewport(Gtk.GLArea):
         self._calibration = None
         self._renderer = None
         self._dirty = True
+        self._render_pending = True
         self._last_upload_pose = None
         self._last_selection = None
         self._history = []
@@ -140,6 +141,10 @@ class Viewport(Gtk.GLArea):
         rotate.connect('angle-changed', self._roll)
         rotate.connect('end', lambda *_: self._end_navigation())
         self.add_controller(rotate)
+
+    def queue_render(self):
+        self._render_pending = True
+        super().queue_render()
 
     def _realize(self, _area):
         self.make_current()
@@ -700,11 +705,14 @@ class Viewport(Gtk.GLArea):
         Must run on GTK's main thread while this viewport is realized. The image
         has a top-left origin, owns its bytes, and never alters scene/camera state.
         """
+        from .snapshots import SnapshotPendingError
         if not self.get_realized():
-            raise RuntimeError('The viewport must be visible before saving a screenshot')
+            raise SnapshotPendingError('The viewport has not produced its first visible frame')
         self.make_current()
-        if self.get_error() or self.render_error or self._renderer is None or not self._renderer.fbo:
-            raise RuntimeError(str(self.get_error() or self.render_error or 'No completed viewport image'))
+        if self.get_error() or self.render_error:
+            raise RuntimeError(str(self.get_error() or self.render_error))
+        if self._renderer is None or not self._renderer.fbo or self._render_pending:
+            raise SnapshotPendingError('Wait for the queued viewport frame before saving')
         draw = int(gl.glGetIntegerv(gl.GL_DRAW_FRAMEBUFFER_BINDING))
         read = int(gl.glGetIntegerv(gl.GL_READ_FRAMEBUFFER_BINDING))
         pack = int(gl.glGetIntegerv(gl.GL_PACK_ALIGNMENT))
@@ -772,6 +780,7 @@ class Viewport(Gtk.GLArea):
         except Exception as error:
             gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, destination)
             self._report_error(str(error))
+        self._render_pending = False
         if self.on_stats:
-            self.on_stats({'cpu_submission_ms': (clock.perf_counter() - start) * 1000, 'splats': renderer.count, 'render_width': render_width, 'render_height': render_height, 'sort_backend': renderer.sort_backend, 'sort_reused': renderer.last_sort_reused, 'sort_submission_ms': renderer.last_sort_submission_ms, 'sort_reason': renderer.sort_reason, 'graphics_info': self.graphics_info})
+            self.on_stats({'cpu_submission_ms': (clock.perf_counter() - start) * 1000, 'splats': renderer.count, 'render_width': render_width, 'render_height': render_height, 'sort_backend': renderer.sort_backend, 'sort_reused': renderer.last_sort_reused, 'sort_submission_ms': renderer.last_sort_submission_ms, 'sort_reason': renderer.sort_reason, 'graphics_info': self.graphics_info, 'endpoint_upload_bytes': renderer.last_endpoint_upload_bytes, 'endpoint_swapped': renderer.last_endpoint_swapped})
         return True

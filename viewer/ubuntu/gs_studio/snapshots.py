@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from concurrent.futures import CancelledError
 from pathlib import Path
 import struct
 import tempfile
@@ -11,6 +12,10 @@ import numpy as np
 
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+
+
+class SnapshotPendingError(RuntimeError):
+    """The widget has not completed the requested frame yet; retry after paint."""
 
 
 def _chunk(kind, data):
@@ -65,10 +70,152 @@ def snapshot_png(widget) -> bytes:
     paintable.snapshot(snapshot, float(width), float(height))
     node = snapshot.to_node()
     if node is None:
-        raise ValueError("The workspace has not produced a completed frame yet")
+        raise SnapshotPendingError("The workspace has not produced a completed frame yet")
     texture = renderer.render_texture(node, None)
     data = texture.save_to_png_bytes()
     return bytes(data.get_data())
+
+
+class _PendingCapture:
+    """One main-thread capture request with bounded, disconnected completion."""
+    def __init__(self, widget, complete, cancelled, ready):
+        import gi
+        gi.require_version("Gdk", "4.0")
+        from gi.repository import Gdk, GLib
+        self._Gdk, self._GLib = Gdk, GLib
+        self.pending = True
+        self._widget, self._complete = widget, complete
+        self._cancelled, self._ready = cancelled, ready
+        self._clock, self._clock_handler = None, 0
+        self._widget_handlers = []
+        self._timeout = 0
+        self._retry = 0
+        self._ever_mapped = widget.get_mapped()
+        self._ever_rooted = widget.get_root() is not None
+        self._widget_handlers = [widget.connect("map", self._mapped),
+                                 widget.connect("unmap", self._unmapped),
+                                 widget.connect("realize", self._mapped),
+                                 widget.connect("unrealize", lambda *_: self.cancel()),
+                                 widget.connect("notify::root", self._root_changed)]
+        self._timeout = GLib.timeout_add(2000, self._expired)
+        self._queue_frame()
+
+    def _mapped(self, *_):
+        if not self.pending:
+            return
+        self._ever_mapped = self._ever_mapped or self._widget.get_mapped()
+        self._queue_frame()
+
+    def _unmapped(self, *_):
+        if self.pending and self._ever_mapped:
+            self.cancel()
+
+    def _root_changed(self, *_):
+        if not self.pending:
+            return
+        rooted = self._widget.get_root() is not None
+        if self._ever_rooted and not rooted:
+            self.cancel()
+        else:
+            self._ever_rooted = self._ever_rooted or rooted
+            self._queue_frame()
+
+    def _queue_frame(self):
+        if not self.pending:
+            return
+        try:
+            if self._cancelled():
+                self.cancel()
+                return
+            clock = self._widget.get_frame_clock()
+            if clock is not self._clock:
+                if self._clock_handler:
+                    self._clock.disconnect(self._clock_handler)
+                self._clock, self._clock_handler = clock, 0
+                if clock is not None:
+                    self._clock_handler = clock.connect("after-paint", self._after_paint)
+            self._widget.queue_draw()
+            if clock is not None:
+                clock.request_phase(self._Gdk.FrameClockPhase.AFTER_PAINT)
+        except Exception as error:
+            self._finish(None, error)
+
+    def _after_paint(self, *_):
+        if not self.pending:
+            return
+        try:
+            if self._cancelled():
+                self.cancel()
+                return
+            if (not self._widget.get_mapped() or self._widget.get_width() <= 0 or
+                    self._widget.get_height() <= 0 or not self._ready()):
+                self._schedule_retry()
+                return
+            png = snapshot_png(self._widget)
+        except SnapshotPendingError:
+            self._schedule_retry()
+        except Exception as error:
+            self._finish(None, error)
+        else:
+            self._finish(png, None)
+
+    def _schedule_retry(self):
+        # A no-vsync frame clock can repaint continuously at a higher priority
+        # than idle work. Give the rest of GTK a turn between readiness checks.
+        if self.pending and not self._retry:
+            self._retry = self._GLib.timeout_add(16, self._retry_frame)
+
+    def _retry_frame(self):
+        self._retry = 0
+        self._queue_frame()
+        return False
+
+    def _expired(self):
+        self._timeout = 0
+        try:
+            error = CancelledError() if self._cancelled() else TimeoutError("The workspace did not finish a snapshot within two seconds")
+        except Exception as failure:
+            error = failure
+        self._finish(None, error)
+        return False
+
+    def _finish(self, png, error):
+        if not self.pending:
+            return
+        self.pending = False
+        if self._timeout:
+            self._GLib.source_remove(self._timeout)
+            self._timeout = 0
+        if self._retry:
+            self._GLib.source_remove(self._retry)
+            self._retry = 0
+        if self._clock_handler:
+            self._clock.disconnect(self._clock_handler)
+            self._clock_handler = 0
+        self._clock = None
+        for handler in self._widget_handlers:
+            self._widget.disconnect(handler)
+        self._widget_handlers = []
+        complete = self._complete
+        self._widget = self._complete = self._cancelled = self._ready = None
+        complete(png, error)
+
+    def cancel(self):
+        """Cancel on GTK's main thread; completion is delivered exactly once."""
+        self._finish(None, CancelledError())
+
+
+def capture_png_when_ready(widget, complete, *, cancelled=lambda: False, ready=lambda: True):
+    """Capture after a completed GTK paint, without blocking its event loop.
+
+    Call on the UI thread. complete(bytes, None) or complete(None, error) runs
+    there exactly once. The returned handle supports cancel() and pending.
+    SnapshotPendingError retries after paint for up to two seconds; other
+    errors are reported immediately. Unmapping/unrealizing or cancellation
+    disconnects all handlers. Callers can open the native save dialog from
+    complete: the PNG has already been captured before that dialog dims it.
+    """
+    return _PendingCapture(widget, complete, cancelled, ready)
 
 
 def write_png(target, png: bytes) -> None:

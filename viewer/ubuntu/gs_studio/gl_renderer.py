@@ -210,10 +210,14 @@ def projected_ellipses(frame, k, c2w, pixel_shift=.0, near=.001, width=None, hei
 
 
 class Renderer:
-    def __init__(self, sort_mode='auto'):
+    def __init__(self, sort_mode='auto', *, reuse_endpoints=True):
         if sort_mode not in ('auto', 'cpu', 'gpu'):
             raise ValueError('Sort mode must be auto, cpu or gpu')
         self.sort_mode = sort_mode
+        self.reuse_endpoints = bool(reuse_endpoints)
+        self._first_source = self._second_source = None
+        self.last_endpoint_uploads = self.last_endpoint_upload_bytes = 0
+        self.last_endpoint_swapped = False
         self.gpu_sorter = GpuSorter()
         self.sort_backend = 'cpu'
         self.sort_reason = 'Stable CPU depth sort'
@@ -314,10 +318,13 @@ class Renderer:
         gl.glTexBuffer(gl.GL_TEXTURE_BUFFER, fmt, buffer)
 
     def upload(self, frame, c2w, selected):
+        self.last_endpoint_uploads = self.last_endpoint_upload_bytes = 0
+        self.last_endpoint_swapped = False
         n = len(frame.ids) if frame is not None else 0
         if not n:
             self.count = 0
             self._frame = self._geometry_key = self._selected = None
+            self._first_source = self._second_source = None
             self._sort_frame = self._sort_forward = None
             self.last_sort_reused = False
             return
@@ -328,9 +335,27 @@ class Renderer:
         geometry_changed = geometry_key != self._geometry_key
         if geometry_changed:
             if self.prepared_mode:
-                data = frame.first
-                self._upload_texture_buffer(self.second_buffer, self.second_texture, frame.second, 'second_capacity', gl.GL_RGBA32F)
+                # Source arrays are immutable. Forward/backward interval changes
+                # often share exactly one endpoint; rotate its GPU ownership
+                # instead of copying that 64-byte record per primitive again.
+                reuse = self.reuse_endpoints and not frame.first.flags.writeable and not frame.second.flags.writeable
+                if reuse and (frame.first is self._second_source or frame.second is self._first_source):
+                    self.buffer, self.second_buffer = self.second_buffer, self.buffer
+                    self.data_texture, self.second_texture = self.second_texture, self.data_texture
+                    self.capacity, self.second_capacity = self.second_capacity, self.capacity
+                    self._first_source, self._second_source = self._second_source, self._first_source
+                    self.last_endpoint_swapped = True
+                if not reuse or frame.first is not self._first_source:
+                    self._upload_texture_buffer(self.buffer, self.data_texture, frame.first, 'capacity', gl.GL_RGBA32F)
+                    self.last_endpoint_uploads += 1
+                    self.last_endpoint_upload_bytes += frame.first.nbytes
+                if not reuse or frame.second is not self._second_source:
+                    self._upload_texture_buffer(self.second_buffer, self.second_texture, frame.second, 'second_capacity', gl.GL_RGBA32F)
+                    self.last_endpoint_uploads += 1
+                    self.last_endpoint_upload_bytes += frame.second.nbytes
+                self._first_source, self._second_source = frame.first, frame.second
             else:
+                self._first_source = self._second_source = None
                 data = np.empty((n, 16), np.float32)
                 data[:, :3] = frame.means
                 data[:, 3] = frame.opacity
@@ -341,7 +366,8 @@ class Renderer:
                 data[:, 10:12] = 0
                 data[:, 12:15] = frame.colors
                 data[:, 15] = 0
-            self._upload_texture_buffer(self.buffer, self.data_texture, data, 'capacity', gl.GL_RGBA32F)
+            if not self.prepared_mode:
+                self._upload_texture_buffer(self.buffer, self.data_texture, data, 'capacity', gl.GL_RGBA32F)
             self._geometry_key = geometry_key
         self._frame = frame
         self.per_row_weights = self.prepared_mode and frame.weights is not None
@@ -696,6 +722,7 @@ class Renderer:
         self.order_buffer = self.mask_buffer = self.data_texture = self.mask_texture = 0
         self.order_capacity = self.mask_capacity = 0
         self._frame = self._geometry_key = None
+        self._first_source = self._second_source = None
         self._selected = None
         self.second_buffer = self.second_texture = self.weight_buffer = self.weight_texture = 0
         self.second_capacity = self.weight_capacity = 0

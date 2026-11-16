@@ -1,5 +1,6 @@
 """PNG encoding/atomic writes and actual GTK workspace/GL capture checks."""
 import os
+from concurrent.futures import CancelledError
 from pathlib import Path
 import struct
 import tempfile
@@ -11,7 +12,8 @@ from unittest import mock
 import zlib
 
 import numpy as np
-from gs_studio.snapshots import snapshot_png, write_png, PNG_SIGNATURE
+from gs_studio.snapshots import (snapshot_png, write_png, PNG_SIGNATURE,
+                                 capture_png_when_ready, SnapshotPendingError)
 
 
 def decode_png(data):
@@ -99,6 +101,10 @@ class NativeSnapshotTests(unittest.TestCase):
         gi.require_foreign("cairo")
         gi.require_version("Gtk", "4.0")
         from gi.repository import Gtk, GLib
+        # Import the GL frontend before GSK can leave an ES context current;
+        # this is also the application's startup/import order on Ubuntu.
+        from gs_studio.viewport import Viewport
+        cls.Viewport = Viewport
         cls.Gtk, cls.GLib = Gtk, GLib
         Gtk.init()
 
@@ -136,10 +142,9 @@ class NativeSnapshotTests(unittest.TestCase):
         np.testing.assert_array_equal(pixels[-10, 10, :3], [0, 0, 255])
 
     def test_gl_snapshot_has_preview_pixels_and_preserves_bindings(self):
-        from gs_studio.viewport import Viewport
         from OpenGL import GL
         from gs_studio.camera import Calibration
-        viewport = Viewport()
+        viewport = self.Viewport()
         viewport.show_grid = False
         viewport.set_frame(SimpleNamespace(means=np.array([[0, 0, 2]], np.float32),
             covariance=np.array([np.eye(3)*.01], np.float32), colors=np.array([[1, 0, 0]], np.float32),
@@ -162,6 +167,134 @@ class NativeSnapshotTests(unittest.TestCase):
         self.assertEqual(pixels.shape[:2], viewport._renderer.size[::-1])
         self.assertGreater(pixels[:, :, 0].max(), 200)
         self.assertTrue(np.any(pixels[:, :, 0].astype(int) - pixels[:, :, 1].astype(int) > 150))
+
+    def assert_disconnected(self, handle):
+        self.assertFalse(handle.pending)
+        self.assertIsNone(handle._clock)
+        self.assertEqual(handle._clock_handler,0)
+        self.assertEqual(handle._timeout,0)
+        self.assertEqual(handle._retry,0)
+        self.assertEqual(handle._widget_handlers,[])
+
+    def painted_area(self, color, width=180, height=90):
+        area = self.Gtk.DrawingArea(content_width=width,content_height=height)
+        painted = []
+        def draw(widget,cr,w,h):
+            cr.set_source_rgb(*color)
+            cr.paint()
+            painted.append((w,h))
+        area.set_draw_func(draw)
+        return area,painted
+
+    def test_async_capture_waits_for_first_real_paint_and_finishes_once(self):
+        canvas,painted = self.painted_area((.1,.8,.2))
+        window = self.Gtk.Window(child=canvas)
+        self.addCleanup(window.destroy)
+        completed = []
+        handle = capture_png_when_ready(window,lambda data,error: completed.append((data,error)))
+        self.assertTrue(handle.pending)
+        window.present()
+        self.pump(lambda: bool(completed))
+        png,error = completed[0]
+        self.assertIsNone(error)
+        self.assertTrue(painted)
+        pixels = decode_png(png)
+        self.assertGreater(pixels[pixels.shape[0]//2,pixels.shape[1]//2,1],180)
+        self.assert_disconnected(handle)
+        previous = len(painted)
+        canvas.queue_draw()
+        self.pump(lambda: len(painted)>previous)
+        handle.cancel()
+        self.assertEqual(len(completed),1)
+
+    def test_async_capture_includes_new_layout_and_real_pixels(self):
+        first,painted = self.painted_area((.1,.8,.2),height=80)
+        content = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL)
+        caption = self.Gtk.Label(label="Initial layout")
+        content.append(caption)
+        content.append(first)
+        window = self.Gtk.Window(child=content)
+        self.addCleanup(window.destroy)
+        window.present()
+        self.pump(lambda: bool(painted))
+        blue,blue_painted = self.painted_area((.1,.2,.9),height=50)
+        caption.set_label("Updated layout\nWith another line")
+        content.append(blue)
+        completed = []
+        handle = capture_png_when_ready(window,lambda data,error: completed.append((data,error)),
+                                        ready=lambda: blue.get_height()>0)
+        self.pump(lambda: bool(completed))
+        png,error = completed[0]
+        self.assertIsNone(error)
+        self.assertTrue(blue_painted)
+        pixels = decode_png(png)
+        self.assertGreater(pixels[-10,pixels.shape[1]//2,2],200)
+        self.assertLess(pixels[-10,pixels.shape[1]//2,0],50)
+        self.assert_disconnected(handle)
+
+    def test_async_cancel_and_unrealize_disconnect_without_late_completion(self):
+        for mode in ("cancel","unrealize","token"):
+            with self.subTest(mode=mode):
+                canvas,painted = self.painted_area((.7,.2,.1))
+                window = self.Gtk.Window(child=canvas)
+                window.present()
+                self.pump(lambda: bool(painted))
+                completed,cancelled = [],[False]
+                handle = capture_png_when_ready(window,lambda data,error: completed.append((data,error)),
+                                                ready=lambda:False,cancelled=lambda:cancelled[0])
+                if mode == "cancel":
+                    handle.cancel()
+                elif mode == "unrealize":
+                    window.destroy()
+                else:
+                    cancelled[0] = True
+                    canvas.queue_draw()
+                self.pump(lambda: bool(completed))
+                self.assertIsNone(completed[0][0])
+                self.assertIsInstance(completed[0][1],CancelledError)
+                self.assert_disconnected(handle)
+                handle.cancel()
+                self.assertEqual(len(completed),1)
+                window.destroy()
+
+    def test_async_readiness_timeout_is_bounded_and_event_loop_runs(self):
+        canvas,painted = self.painted_area((.7,.2,.1))
+        window = self.Gtk.Window(child=canvas)
+        self.addCleanup(window.destroy)
+        window.present()
+        self.pump(lambda: bool(painted))
+        completed,heartbeat = [],[]
+        start = time.monotonic()
+        handle = capture_png_when_ready(window,lambda data,error: completed.append((data,error)),ready=lambda:False)
+        self.GLib.idle_add(lambda: heartbeat.append(True) or False)
+        self.pump(lambda: bool(completed),timeout=4)
+        self.assertTrue(heartbeat)
+        self.assertLess(time.monotonic()-start,3.5)
+        self.assertIsNone(completed[0][0])
+        self.assertIsInstance(completed[0][1],TimeoutError)
+        self.assert_disconnected(handle)
+
+    def test_queued_gl_frame_cannot_export_previous_resolution(self):
+        viewport = self.Viewport()
+        window = self.Gtk.Window(child=viewport,default_width=200,default_height=160)
+        self.addCleanup(window.destroy)
+        window.present()
+        self.pump(lambda: viewport._renderer is not None and viewport._renderer.fbo and not viewport._render_pending)
+        viewport.resolution_scale = .5
+        viewport.queue_render()
+        with self.assertRaises(SnapshotPendingError):
+            snapshot_png(viewport)
+        completed = []
+        handle = capture_png_when_ready(viewport,lambda data,error: completed.append((data,error)))
+        self.pump(lambda: bool(completed))
+        png,error = completed[0]
+        self.assertIsNone(error)
+        pixels = decode_png(png)
+        expected = tuple(max(1,round(value*viewport.get_scale_factor()*.5))
+                         for value in (viewport.get_width(),viewport.get_height()))
+        self.assertEqual(pixels.shape[:2],expected[::-1])
+        self.assertFalse(viewport._render_pending)
+        self.assert_disconnected(handle)
 
 
 if __name__ == "__main__":

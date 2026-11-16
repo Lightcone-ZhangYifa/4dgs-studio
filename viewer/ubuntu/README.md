@@ -169,3 +169,17 @@ A reproducible renderer benchmark is available at
 the software reference. Resident playback timing does not include source-file
 reads, first endpoint uploads or desktop presentation. Run the same benchmark
 and manual acceptance checklist for each target driver before release.
+
+## Actual GNOME desktop acceptance
+
+The [desktop acceptance record](DESKTOP_VALIDATION.md) describes real Wayland and
+NVIDIA Xwayland runs, including native open/save portals, camera roundtrips and
+calibrated image exports. `tools/test_desktop_session.py` requires explicit
+`--allow-desktop-input`; it never runs from unit-test discovery or CI by accident.
+A disconnected session can opt into a temporary Mutter output with
+`--virtual-output`, which is removed on completion.
+
+`tools/benchmark_streaming.py` separately measures source validation, cold CPU
+endpoint preparation and GPU interval upload in an EGL device context without
+creating a desktop window. It complements the resident renderer benchmark;
+source streaming and first allocation must not be reported as steady-state FPS.

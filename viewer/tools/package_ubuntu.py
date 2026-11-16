@@ -53,6 +53,7 @@ def build(destination):
         shutil.copy2(ROOT / "LICENSE", doc / "copyright")
         shutil.copy2(ROOT / "viewer/ubuntu/README.md", doc / "README.md")
         shutil.copy2(ROOT / "viewer/ubuntu/PARITY.md", doc / "PARITY.md")
+        shutil.copy2(ROOT / "viewer/ubuntu/DESKTOP_VALIDATION.md", doc / "DESKTOP_VALIDATION.md")
         control = stage / "DEBIAN"
         control.mkdir()
         (control / "control").write_text(f'''Package: 4dgs-studio

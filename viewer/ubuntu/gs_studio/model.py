@@ -49,6 +49,15 @@ class _CancellationFile:
         return getattr(self.stream, name)
 
 
+def _owner_array(count, identifier):
+    # np.full(..., str, dtype=object) casts one new Python string per row.
+    # fill() instead shares the immutable owner identity, keeping metadata
+    # proportional to the pointer array rather than millions of Python strings.
+    result = np.empty(count, dtype=object)
+    result.fill(identifier)
+    return result
+
+
 class TrajectoryLimitError(GSVError):
     """Display annotation capacity exceeded; source geometry remains usable."""
 
@@ -618,7 +627,7 @@ class SceneDocument:
                     first.append(left)
                     second.append(right)
                     identities.append(ids)
-                    owners.append(np.full(len(ids), identifier, dtype=object))
+                    owners.append(_owner_array(len(ids), identifier))
                     ranges.append((identifier, offset, offset+len(ids)))
                     offset += len(ids)
                     if not len(ids):
@@ -690,7 +699,7 @@ class SceneDocument:
                     edges.append(packed[topology[visible_edges], :3].copy())
                 records.append(packed if np.all(valid) else packed[valid])
                 ids.append(np.asarray(self.scene.array(obj['data']['ids']))[valid])
-                owners.append(np.full(int(valid.sum()), identifier, dtype=object))
+                owners.append(_owner_array(int(valid.sum()), identifier))
             _check_cancel(cancelled)
             self.scene._unchanged()
             if not records:

@@ -62,6 +62,16 @@ class ModelTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
+    def test_owner_metadata_shares_one_immutable_identity_per_field(self):
+        with SceneDocument(self.path) as doc:
+            prepared = doc.prepare_frame(.5)
+            self.assertEqual(prepared.object_ids.tolist(), ['field', 'field'])
+            self.assertIs(prepared.object_ids[0], prepared.object_ids[1])
+            cpu = doc.evaluate(.5)
+            self.assertIs(cpu.object_ids[0], cpu.object_ids[1])
+            self.assertFalse(prepared.object_ids.flags.writeable)
+            self.assertFalse(cpu.object_ids.flags.writeable)
+
     def test_interpolation_covariance_and_int64_identity(self):
         with SceneDocument(self.path) as doc:
             frame = doc.evaluate(.5)
