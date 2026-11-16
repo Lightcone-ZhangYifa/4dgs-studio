@@ -91,7 +91,8 @@ def process_resources(pid):
 
 
 def code_hashes():
-    names=('application.py','model.py','camera.py','viewport.py','gl_renderer.py','gpu_sort.py')
+    names=('application.py','model.py','camera.py','viewport.py','gl_renderer.py','gpu_sort.py',
+           'gpu_visibility.py')
     return {name:hashlib.sha256((ROOT/'viewer/ubuntu/gs_studio'/name).read_bytes()).hexdigest()
             for name in names}
 

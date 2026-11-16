@@ -466,9 +466,9 @@ def run_gui(args, profile):
             metrics = renderer.performance_metrics()
             row = {key: value for key, value in current.items() if not key.endswith('_at') and key not in ('fence', 'submission_stats')}
             row.update(current['submission_stats'])
-            row.update({key: metrics.get(key) for key in ('gpu_ms', 'gpu_sort_ms', 'gpu_render_ms',
-                'completed_frame_count', 'gpu_completed_fps', 'gpu_timing_available', 'gpu_timing_reason',
-                'source_count', 'active_count', 'visible_count', 'resident_bytes', 'resident_bytes_estimated')})
+            # A count and its source time/pose/sequence must come from the same
+            # completed snapshot, including samples newer than on_stats().
+            row.update(metrics)
             row.update(memory())
             row['queue_to_render_end_ms'] = (current['render_end_at']-current['queue_requested_at'])*1000
             row['queue_to_gl_complete_ms'] = (completed-current['queue_requested_at'])*1000

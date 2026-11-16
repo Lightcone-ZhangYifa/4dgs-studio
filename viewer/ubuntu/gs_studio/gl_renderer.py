@@ -774,7 +774,7 @@ class Renderer:
             return
         if not depth_only and self._visibility_arguments is not None:
             k,pose,width,height,controls=self._visibility_arguments
-            def count_visible(program):
+            def count_visible(program,capture):
                 previous_program=int(gl.glGetIntegerv(gl.GL_CURRENT_PROGRAM))
                 previous_vao=int(gl.glGetIntegerv(gl.GL_VERTEX_ARRAY_BINDING))
                 discarded=bool(gl.glIsEnabled(gl.GL_RASTERIZER_DISCARD))
@@ -783,13 +783,13 @@ class Renderer:
                     self._bind_splat_textures()
                     gl.glBindVertexArray(self.vao)
                     gl.glEnable(gl.GL_RASTERIZER_DISCARD)
-                    gl.glDrawArraysInstanced(gl.GL_POINTS,0,1,self.count)
+                    capture(lambda:gl.glDrawArraysInstanced(gl.GL_POINTS,0,1,self.count))
                 finally:
                     if not discarded:gl.glDisable(gl.GL_RASTERIZER_DISCARD)
                     gl.glUseProgram(previous_program)
                     gl.glBindVertexArray(previous_vao)
             self.gpu_visibility.submit(count_visible,self._frame_sequence,
-                {'source_time':getattr(self._frame,'time',None),'pose':pose.tolist()})
+                {'source_time':getattr(self._frame,'time',None),'pose':pose.tolist()},maximum_primitives=self.count)
         gl.glUseProgram(self.program)
         gl.glBindVertexArray(self.vao)
         self._bind_splat_textures()
@@ -1022,7 +1022,7 @@ class Renderer:
         metrics=self.gpu_metrics.summary()
         metrics.update(self.gpu_visibility.summary())
         buffers=self.capacity+self.second_capacity+self.weight_capacity+self.mask_capacity+self.order_capacity+self.line_capacity+self.pick_capacity+self.marker_capacity
-        scratch=self.gpu_sorter.capacity*16+(self.gpu_sorter.group_capacity*2+1)*16*4 if self.gpu_sorter.buffers else 0
+        scratch=(self.gpu_sorter.capacity*16+(self.gpu_sorter.group_capacity*2+1)*16*4 if self.gpu_sorter.buffers else 0)+self.gpu_visibility.proof_capacity
         pixels=self.size[0]*self.size[1]
         textures=pixels*7 if self.fbo else 0
         if self.oit_fbo:textures+=pixels*18

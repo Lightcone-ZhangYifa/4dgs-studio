@@ -1,4 +1,5 @@
 """Nonblocking query lifecycle and real GL3.3 frustum-count correctness."""
+import ctypes
 import os
 import time
 from types import SimpleNamespace
@@ -186,6 +187,77 @@ class VisibilityGLTests(unittest.TestCase):
         self.assertIsNone(self.renderer.performance_metrics()['visible_count'])
         self.draw(self.fixture())
         self.assertEqual(self.gl.glGetError(),self.gl.GL_NO_ERROR)
+
+    def test_feedback_capture_is_bounded_gpu_only_and_restores_buffer_ranges(self):
+        gl=self.gl
+        indexed,generic=map(int,np.asarray(gl.glGenBuffers(2)).reshape(-1))
+        try:
+            gl.glBindBuffer(gl.GL_TRANSFORM_FEEDBACK_BUFFER,indexed)
+            gl.glBufferData(gl.GL_TRANSFORM_FEEDBACK_BUFFER,256,None,gl.GL_STREAM_COPY)
+            gl.glBindBufferRange(gl.GL_TRANSFORM_FEEDBACK_BUFFER,0,indexed,16,80)
+            gl.glBindBuffer(gl.GL_TRANSFORM_FEEDBACK_BUFFER,generic)
+            gl.glBufferData(gl.GL_TRANSFORM_FEEDBACK_BUFFER,32,None,gl.GL_STREAM_COPY)
+            # Only the scalar, availability-guarded query may come back to CPU.
+            with mock.patch.object(gl,'glGetBufferSubData',side_effect=AssertionError('per-Gaussian readback')):
+                self.draw(self.fixture())
+                self.assertEqual(self.completed_count(),3)
+                tracker=self.renderer.gpu_visibility
+                proof=tracker.proof_buffer
+                self.assertEqual(tracker.proof_capacity,10*4)
+                self.draw(self.fixture(),opacity_scale=0)
+                self.assertEqual(self.completed_count(),0)
+                self.assertEqual(tracker.proof_buffer,proof)
+                self.assertEqual(tracker.proof_capacity,10*4)
+                self.assertLessEqual(len(tracker.objects),tracker.maximum_queries)
+            self.assertEqual(int(gl.glGetIntegerv(gl.GL_TRANSFORM_FEEDBACK_BUFFER_BINDING)),generic)
+            self.assertEqual(int(np.asarray(gl.glGetIntegeri_v(gl.GL_TRANSFORM_FEEDBACK_BUFFER_BINDING,0)).reshape(-1)[0]),indexed)
+            start,size=ctypes.c_int64(),ctypes.c_int64()
+            gl.glGetInteger64i_v(gl.GL_TRANSFORM_FEEDBACK_BUFFER_START,0,ctypes.byref(start))
+            gl.glGetInteger64i_v(gl.GL_TRANSFORM_FEEDBACK_BUFFER_SIZE,0,ctypes.byref(size))
+            self.assertEqual((start.value,size.value),(16,80))
+            gl.glBindBuffer(gl.GL_TRANSFORM_FEEDBACK_BUFFER,proof)
+            self.assertEqual(int(gl.glGetBufferParameteriv(gl.GL_TRANSFORM_FEEDBACK_BUFFER,gl.GL_BUFFER_SIZE)),40)
+        finally:
+            gl.glBindBufferBase(gl.GL_TRANSFORM_FEEDBACK_BUFFER,0,0)
+            gl.glBindBuffer(gl.GL_TRANSFORM_FEEDBACK_BUFFER,0)
+            gl.glDeleteBuffers(2,[indexed,generic])
+        self.assertEqual(gl.glGetError(),gl.GL_NO_ERROR)
+
+    def test_feedback_draw_failure_ends_capture_and_preserves_rendering(self):
+        gl=self.gl
+        original=gl.glDrawArraysInstanced
+        def fail_counter(mode,*args):
+            if mode==gl.GL_POINTS:
+                raise RuntimeError('injected visibility draw failure')
+            return original(mode,*args)
+        with mock.patch.object(gl,'glDrawArraysInstanced',side_effect=fail_counter):
+            self.draw(self.fixture())
+        tracker=self.renderer.gpu_visibility
+        self.assertFalse(tracker.supported)
+        self.assertIsNone(tracker.summary()['visible_count'])
+        self.assertIn('injected visibility draw failure',tracker.reason)
+        self.assertEqual(int(gl.glGetQueryiv(gl.GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN,gl.GL_CURRENT_QUERY)),0)
+        self.draw(self.fixture())
+        self.assertEqual(gl.glGetError(),gl.GL_NO_ERROR)
+
+    def test_visibility_does_not_change_completed_pixels_and_close_releases_proof(self):
+        gl=self.gl
+        self.draw(self.fixture())
+        self.assertEqual(self.completed_count(),3)
+        gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER,self.destination)
+        counted=np.asarray(gl.glReadPixels(0,0,128,96,gl.GL_RGBA,gl.GL_UNSIGNED_BYTE)).tobytes()
+        tracker=self.renderer.gpu_visibility
+        proof,queries=tracker.proof_buffer,tuple(tracker.objects)
+        tracker.enabled=False
+        self.draw(self.fixture())
+        gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER,self.destination)
+        uncounted=np.asarray(gl.glReadPixels(0,0,128,96,gl.GL_RGBA,gl.GL_UNSIGNED_BYTE)).tobytes()
+        self.assertEqual(counted,uncounted)
+        tracker.close()
+        self.assertFalse(gl.glIsBuffer(proof))
+        self.assertTrue(all(not gl.glIsQuery(query) for query in queries))
+        self.assertEqual((tracker.proof_buffer,tracker.proof_capacity),(0,0))
+        self.assertEqual(gl.glGetError(),gl.GL_NO_ERROR)
 
     def test_multiple_endpoint_segments_keep_tiny_interior_validity_and_exact_endpoints(self):
         first=np.zeros((3,16),np.float32)
