@@ -1,0 +1,65 @@
+{
+  "backend": "wayland",
+  "started_utc": "2026-11-16T06:54:11Z",
+  "source_commit": "599ca1c0be9ddeec372795bbbdd14ae499294005",
+  "working_tree_changes": [],
+  "initial_logical_monitors": 0,
+  "temporary_virtual_output": true,
+  "steps": [
+    "native-open-dialog",
+    "play-pause",
+    "outliner-field-selection-and-path-request",
+    "two-key-camera-authoring-and-native-save",
+    "native-camera-undo-redo-delete-import-roundtrip",
+    "native-workspace-png-save",
+    "render-reference-metrics-and-native-resolution-png"
+  ],
+  "artifacts": {
+    "synthetic.gsv": {
+      "bytes": 2137406,
+      "sha256": "5a70cc062e17e5676e4103299ec11d967023c964af436fe689b9911af34aba89"
+    },
+    "authored-cameras.gsv": {
+      "bytes": 134802,
+      "sha256": "e07bf86f4b8b7d417387021bbbc305ca5b6479dc4ed1cf03f7f84b8a82e0366b"
+    },
+    "roundtrip-cameras.gsv": {
+      "bytes": 134802,
+      "sha256": "e07bf86f4b8b7d417387021bbbc305ca5b6479dc4ed1cf03f7f84b8a82e0366b"
+    },
+    "workspace.png": {
+      "bytes": 116662,
+      "sha256": "302cdeec5c8de52c410b2453a9d35445e72010a71fbbe2babb0284232dd90ffe"
+    },
+    "comparison.png": {
+      "bytes": 10279,
+      "sha256": "33e90a717dee420ba30d10b2b2acd99f88c43535e19f2d9d74e0ff0055680378"
+    }
+  },
+  "runtime_libraries": {
+    "python": "3.12.3",
+    "PyOpenGL": "3.1.7",
+    "PyOpenGL_file": "/tmp/gsv-distro-opengl/usr/lib/python3/dist-packages/OpenGL/__init__.py",
+    "numpy": "1.26.4",
+    "Gtk": [
+      4,
+      14,
+      5
+    ],
+    "Adw": [
+      1,
+      5,
+      0
+    ]
+  },
+  "pid": 1691694,
+  "orbit_input_tested": false,
+  "comparison_metrics": "reference-view · reference · CPU reference · PSNR 5.15735 · SSIM 0.00715091 · MSE 0.304975 · MAE 0.473774",
+  "graphics_information": [
+    "CPU frame submission time; GPU completion and display frame rate are not measured.\nllvmpipe (LLVM 20.1.2, 256 bits)\nSoftware OpenGL uses stable CPU depth sort",
+    "vendor: Mesa\n\nrenderer: llvmpipe (LLVM 20.1.2, 256 bits)\n\nversion: 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4\n\ndisplay_backend: wayland\n\nsorting: cpu\n\nsorting_details: Software OpenGL uses stable CPU depth sort"
+  ],
+  "source_unchanged": true,
+  "passed": true,
+  "final_logical_monitors": 0
+}

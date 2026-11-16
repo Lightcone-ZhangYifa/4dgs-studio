@@ -46,6 +46,26 @@ reported PSNR near **5.15735** verifies comparison plumbing, not reconstruction
 quality. Quantitative renderer tests and cross-platform contract fixtures are
 listed in [PARITY.md](PARITY.md).
 
+### Final committed-source acceptance
+
+Both final runs tested commit
+`599ca1c0be9ddeec372795bbbdd14ae499294005` with an empty working-tree change
+list. The unmodified machine-readable reports are retained in
+[validation/2026-11-16/wayland.json](validation/2026-11-16/wayland.json) and
+[validation/2026-11-16/xwayland.json](validation/2026-11-16/xwayland.json).
+Wayland completed all seven workflow steps; Xwayland completed those steps plus
+the pointer-input check. Both reports confirm source integrity, byte-identical
+camera export/import/export, successful PNG export and zero remaining logical
+outputs. Both owned application processes were verified to have exited.
+
+The original reports, application logs, GSV exports and PNG images are also
+retained in the verification workspace under
+`viewer/dist/desktop-validation/{wayland,xwayland}/`. The common synthetic source
+has SHA256
+`5a70cc062e17e5676e4103299ec11d967023c964af436fe689b9911af34aba89`;
+the calibrated comparison PNG from both protocols has SHA256
+`33e90a717dee420ba30d10b2b2acd99f88c43535e19f2d9d74e0ff0055680378`.
+
 ## Reproduce
 
 Run from a GNOME session with the application's distribution dependencies and
