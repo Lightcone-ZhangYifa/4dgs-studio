@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "records": 255,
+  "rtol": 1e-12,
+  "atol": 1e-12,
+  "maximum_absolute_error": {
+    "K": 0.0,
+    "c2w": 0.0,
+    "near": 0.0,
+    "far": 0.0
+  },
+  "all_metadata_equal": true,
+  "reference_npz_sha256": "df28de80db9e1b2bb584efcf2e5e617fc2d66b4364530ee1412a22203ab743d7",
+  "code_sha256": {
+    "model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+    "camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967"
+  },
+  "scope": "255 source calibrations: 51 views at first, interior midpoint, last and both outside times. Comparison assertions excluded from performance timings. No source matrices published.",
+  "local_report_sha256": "2f39ca921aa1aac4ff288be07638fe19a68dd66b9ce7053f7d10c3454421bed1"
+}

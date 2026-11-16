@@ -1,0 +1,5352 @@
+{
+  "schema_version": 1,
+  "scope": "Read-only real production files; CPU-only, no GTK/GPU/presentation FPS. Aliases replace private source paths. Six intervals x15 warm prepares per dataset; OS cache and concurrent training uncontrolled. Loading differences do not establish optimization. Source reads are API traffic, not physical disk reads.",
+  "before_product_commit": "76f95454478b693dc929b142a4aeafe3625dd60d",
+  "final_product_commit": "bf7a410",
+  "datasets": [
+    {
+      "dataset": "production-160k",
+      "identities": 160000,
+      "samples": 36,
+      "camera_views": 51,
+      "bytes": 1234229797,
+      "manifest_sha256": "fbd37363e281b10582509f3f5b7e3c7a463ef98cd7b63e9299a43ef41428380c",
+      "reports_sha256": {
+        "before": "8eb9611e3a38c54a7a402acb953e691da9957b90d79690190d6c996768fa2ba4",
+        "endpoint_repair": "ad392e33116ab2dc2a607e269eee100b2b293b99e1e0a8e015729ea0b64b56e1",
+        "final": "47c17452e3435c309340c9204cb6b9b84e2fd91643414a330343d372149ad692"
+      },
+      "source_unchanged": true,
+      "before": {
+        "source_commit": "76f95454478b693dc929b142a4aeafe3625dd60d",
+        "runtime_sha256": null,
+        "load": {
+          "ms": 1569.7161499992944,
+          "python_source_reads": {
+            "pread": {
+              "calls": 85,
+              "requested_bytes": 370376768,
+              "returned_bytes": 370376768
+            },
+            "preadv": {
+              "calls": 79,
+              "requested_bytes": 370288472,
+              "returned_bytes": 370288472
+            },
+            "total_calls": 164,
+            "total_returned_bytes": 740665240
+          },
+          "memory": {
+            "rss_MiB": 132.9609375,
+            "vmhwm_MiB": 132.9609375
+          }
+        },
+        "intervals": [
+          {
+            "index": 0,
+            "time_range": [
+              0.0,
+              0.03333330154418945
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 5.939197028055787,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 5,
+                  "requested_bytes": 21760000,
+                  "returned_bytes": 21760000
+                },
+                "total_calls": 5,
+                "total_returned_bytes": 21760000
+              },
+              "memory": {
+                "rss_MiB": 133.03125,
+                "vmhwm_MiB": 133.03125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.04146998981013894,
+              "p95_ms": 0.06489051738753912,
+              "min_ms": 0.03994401777163148,
+              "max_ms": 0.08667103247717023,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 43840048,
+            "memory": {
+              "rss_MiB": 133.1328125,
+              "vmhwm_MiB": 133.1328125
+            }
+          },
+          {
+            "index": 1,
+            "time_range": [
+              0.03333330154418945,
+              0.0666666030883789
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 3.71840299339965,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 2,
+                  "requested_bytes": 10240000,
+                  "returned_bytes": 10240000
+                },
+                "total_calls": 2,
+                "total_returned_bytes": 10240000
+              },
+              "memory": {
+                "rss_MiB": 133.13671875,
+                "vmhwm_MiB": 133.13671875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.04395400173962116,
+              "p95_ms": 0.08921529515646395,
+              "min_ms": 0.04226196324452758,
+              "max_ms": 0.10376900900155306,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 77440096,
+            "memory": {
+              "rss_MiB": 133.13671875,
+              "vmhwm_MiB": 133.13671875
+            }
+          },
+          {
+            "index": 2,
+            "time_range": [
+              0.0666666030883789,
+              0.10000002384185791
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 3.753195982426405,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 2,
+                  "requested_bytes": 10240000,
+                  "returned_bytes": 10240000
+                },
+                "total_calls": 2,
+                "total_returned_bytes": 10240000
+              },
+              "memory": {
+                "rss_MiB": 133.13671875,
+                "vmhwm_MiB": 133.13671875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.04347198409959674,
+              "p95_ms": 0.054529192857444266,
+              "min_ms": 0.04204397555440664,
+              "max_ms": 0.06893096724525094,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 100800144,
+            "memory": {
+              "rss_MiB": 133.14453125,
+              "vmhwm_MiB": 133.14453125
+            }
+          },
+          {
+            "index": 3,
+            "time_range": [
+              0.10000002384185791,
+              0.13333332538604736
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 6.107210007030517,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 2,
+                  "requested_bytes": 10240000,
+                  "returned_bytes": 10240000
+                },
+                "total_calls": 2,
+                "total_returned_bytes": 10240000
+              },
+              "memory": {
+                "rss_MiB": 105.67578125,
+                "vmhwm_MiB": 131.640625
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.04180904943495989,
+              "p95_ms": 0.08273022249341008,
+              "min_ms": 0.03947998629882932,
+              "max_ms": 0.0990779954008758,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 100800144,
+            "memory": {
+              "rss_MiB": 105.67578125,
+              "vmhwm_MiB": 131.640625
+            }
+          },
+          {
+            "index": 17,
+            "time_range": [
+              0.5666667222976685,
+              0.6000000238418579
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 7.597232004627585,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 4,
+                  "requested_bytes": 20480000,
+                  "returned_bytes": 20480000
+                },
+                "total_calls": 4,
+                "total_returned_bytes": 20480000
+              },
+              "memory": {
+                "rss_MiB": 115.296875,
+                "vmhwm_MiB": 131.640625
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.04037702456116676,
+              "p95_ms": 0.05143479793332515,
+              "min_ms": 0.03955798456445336,
+              "max_ms": 0.06542500341311097,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 87680096,
+            "memory": {
+              "rss_MiB": 115.296875,
+              "vmhwm_MiB": 131.640625
+            }
+          },
+          {
+            "index": 34,
+            "time_range": [
+              1.1333333253860474,
+              1.1666666269302368
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 6.143523962236941,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 4,
+                  "requested_bytes": 20480000,
+                  "returned_bytes": 20480000
+                },
+                "total_calls": 4,
+                "total_returned_bytes": 20480000
+              },
+              "memory": {
+                "rss_MiB": 115.30078125,
+                "vmhwm_MiB": 131.640625
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.041929015424102545,
+              "p95_ms": 0.08274108986370261,
+              "min_ms": 0.04128098953515291,
+              "max_ms": 0.11405703844502568,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 87680096,
+            "memory": {
+              "rss_MiB": 115.30859375,
+              "vmhwm_MiB": 131.640625
+            }
+          }
+        ],
+        "selected_identity": {
+          "owner": "prediction-gaussians",
+          "element_found": true,
+          "inspection": {
+            "ms": 0.19093096489086747,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 1,
+                "requested_bytes": 64,
+                "returned_bytes": 64
+              },
+              "total_calls": 1,
+              "total_returned_bytes": 64
+            },
+            "memory": {
+              "rss_MiB": 115.30859375,
+              "vmhwm_MiB": 131.640625
+            }
+          },
+          "trajectory": {
+            "ms": 3.0551640084013343,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 36,
+                "requested_bytes": 2304,
+                "returned_bytes": 2304
+              },
+              "total_calls": 36,
+              "total_returned_bytes": 2304
+            },
+            "memory": {
+              "rss_MiB": 115.515625,
+              "vmhwm_MiB": 131.640625
+            }
+          },
+          "paths": 1,
+          "path_samples": 36
+        },
+        "all_camera_calibrations": null,
+        "memory": {
+          "rss_MiB": 115.515625,
+          "vmhwm_MiB": 131.640625
+        }
+      },
+      "endpoint_repair": {
+        "source_commit": "76f95454478b693dc929b142a4aeafe3625dd60d",
+        "runtime_sha256": {
+          "viewer/ubuntu/gs_studio/model.py": "e8c22a8fcadf20c84dfa9147695bae21f6063983178128afaa121067fa018341",
+          "viewer/ubuntu/gs_studio/camera.py": "aa6a7686c0c99d2e676a1d603e1ba971fe8a5027145c3360652c584699fbfdae"
+        },
+        "load": {
+          "ms": 1553.9274320472032,
+          "python_source_reads": {
+            "pread": {
+              "calls": 85,
+              "requested_bytes": 370376768,
+              "returned_bytes": 370376768
+            },
+            "preadv": {
+              "calls": 79,
+              "requested_bytes": 370288472,
+              "returned_bytes": 370288472
+            },
+            "total_calls": 164,
+            "total_returned_bytes": 740665240
+          },
+          "memory": {
+            "rss_MiB": 131.76953125,
+            "vmhwm_MiB": 131.76953125
+          }
+        },
+        "intervals": [
+          {
+            "index": 0,
+            "time_range": [
+              0.0,
+              0.03333330154418945
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 5.555292998906225,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 5,
+                  "requested_bytes": 21760000,
+                  "returned_bytes": 21760000
+                },
+                "total_calls": 5,
+                "total_returned_bytes": 21760000
+              },
+              "memory": {
+                "rss_MiB": 131.8359375,
+                "vmhwm_MiB": 131.8359375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.021741027012467384,
+              "p95_ms": 0.039842986734583946,
+              "min_ms": 0.020392006263136864,
+              "max_ms": 0.056348973885178566,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 131.93359375,
+              "vmhwm_MiB": 131.93359375
+            }
+          },
+          {
+            "index": 1,
+            "time_range": [
+              0.03333330154418945,
+              0.0666666030883789
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 3.7536669988185167,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 2,
+                  "requested_bytes": 10240000,
+                  "returned_bytes": 10240000
+                },
+                "total_calls": 2,
+                "total_returned_bytes": 10240000
+              },
+              "memory": {
+                "rss_MiB": 131.9375,
+                "vmhwm_MiB": 131.9375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.022104999516159296,
+              "p95_ms": 0.16198109951801554,
+              "min_ms": 0.020800973288714886,
+              "max_ms": 0.4575889906845987,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 131.9375,
+              "vmhwm_MiB": 131.9375
+            }
+          },
+          {
+            "index": 2,
+            "time_range": [
+              0.0666666030883789,
+              0.10000002384185791
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 4.0430459775961936,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 2,
+                  "requested_bytes": 10240000,
+                  "returned_bytes": 10240000
+                },
+                "total_calls": 2,
+                "total_returned_bytes": 10240000
+              },
+              "memory": {
+                "rss_MiB": 111.62109375,
+                "vmhwm_MiB": 131.42578125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.024286971893161535,
+              "p95_ms": 0.16282261931337372,
+              "min_ms": 0.02251198748126626,
+              "max_ms": 0.45885401777923107,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 111.625,
+              "vmhwm_MiB": 131.42578125
+            }
+          },
+          {
+            "index": 3,
+            "time_range": [
+              0.10000002384185791,
+              0.13333332538604736
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 3.5820570192299783,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 2,
+                  "requested_bytes": 10240000,
+                  "returned_bytes": 10240000
+                },
+                "total_calls": 2,
+                "total_returned_bytes": 10240000
+              },
+              "memory": {
+                "rss_MiB": 111.62890625,
+                "vmhwm_MiB": 131.42578125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.024488952476531267,
+              "p95_ms": 0.15060111181810457,
+              "min_ms": 0.022646039724349976,
+              "max_ms": 0.4258950357325375,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 111.6328125,
+              "vmhwm_MiB": 131.42578125
+            }
+          },
+          {
+            "index": 17,
+            "time_range": [
+              0.5666667222976685,
+              0.6000000238418579
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 6.624937988817692,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 4,
+                  "requested_bytes": 20480000,
+                  "returned_bytes": 20480000
+                },
+                "total_calls": 4,
+                "total_returned_bytes": 20480000
+              },
+              "memory": {
+                "rss_MiB": 121.27734375,
+                "vmhwm_MiB": 131.42578125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.023831031285226345,
+              "p95_ms": 0.15941062592901262,
+              "min_ms": 0.02135202521458268,
+              "max_ms": 0.34993101144209504,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 121.28515625,
+              "vmhwm_MiB": 131.42578125
+            }
+          },
+          {
+            "index": 34,
+            "time_range": [
+              1.1333333253860474,
+              1.1666666269302368
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 5.845881998538971,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 4,
+                  "requested_bytes": 20480000,
+                  "returned_bytes": 20480000
+                },
+                "total_calls": 4,
+                "total_returned_bytes": 20480000
+              },
+              "memory": {
+                "rss_MiB": 121.28515625,
+                "vmhwm_MiB": 131.42578125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.0246399431489408,
+              "p95_ms": 0.15846747555769936,
+              "min_ms": 0.02359895734116435,
+              "max_ms": 0.45415799831971526,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 121.28515625,
+              "vmhwm_MiB": 131.42578125
+            }
+          }
+        ],
+        "selected_identity": {
+          "owner": "prediction-gaussians",
+          "element_found": true,
+          "inspection": {
+            "ms": 0.18028501654043794,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 1,
+                "requested_bytes": 64,
+                "returned_bytes": 64
+              },
+              "total_calls": 1,
+              "total_returned_bytes": 64
+            },
+            "memory": {
+              "rss_MiB": 121.28515625,
+              "vmhwm_MiB": 131.42578125
+            }
+          },
+          "trajectory": {
+            "ms": 3.0540989828296006,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 36,
+                "requested_bytes": 2304,
+                "returned_bytes": 2304
+              },
+              "total_calls": 36,
+              "total_returned_bytes": 2304
+            },
+            "memory": {
+              "rss_MiB": 121.49609375,
+              "vmhwm_MiB": 131.42578125
+            }
+          },
+          "paths": 1,
+          "path_samples": 36
+        },
+        "all_camera_calibrations": [
+          {
+            "time": 0.0,
+            "views": 51,
+            "ms": 20.40658495388925
+          },
+          {
+            "time": 0.6000000238418579,
+            "views": 51,
+            "ms": 20.034844987094402
+          },
+          {
+            "time": 1.1666666269302368,
+            "views": 51,
+            "ms": 19.91683494998142
+          }
+        ],
+        "memory": {
+          "rss_MiB": 121.5625,
+          "vmhwm_MiB": 131.42578125
+        }
+      },
+      "final": {
+        "source_commit": "bf7a41021fed94ac1371fc42a8e4db3f6374671b",
+        "runtime_sha256": {
+          "viewer/ubuntu/gs_studio/model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+          "viewer/ubuntu/gs_studio/camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967"
+        },
+        "load": {
+          "ms": 1628.0204549548216,
+          "python_source_reads": {
+            "pread": {
+              "calls": 85,
+              "requested_bytes": 370376768,
+              "returned_bytes": 370376768
+            },
+            "preadv": {
+              "calls": 79,
+              "requested_bytes": 370288472,
+              "returned_bytes": 370288472
+            },
+            "total_calls": 164,
+            "total_returned_bytes": 740665240
+          },
+          "memory": {
+            "rss_MiB": 131.59765625,
+            "vmhwm_MiB": 131.59765625
+          }
+        },
+        "intervals": [
+          {
+            "index": 0,
+            "time_range": [
+              0.0,
+              0.03333330154418945
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 7.040440978016704,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 5,
+                  "requested_bytes": 21760000,
+                  "returned_bytes": 21760000
+                },
+                "total_calls": 5,
+                "total_returned_bytes": 21760000
+              },
+              "memory": {
+                "rss_MiB": 131.6640625,
+                "vmhwm_MiB": 131.6640625
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.02422899706289172,
+              "p95_ms": 0.043938588351011235,
+              "min_ms": 0.0214960309676826,
+              "max_ms": 0.07036497117951512,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 23040048,
+            "memory": {
+              "rss_MiB": 131.76953125,
+              "vmhwm_MiB": 131.76953125
+            }
+          },
+          {
+            "index": 1,
+            "time_range": [
+              0.03333330154418945,
+              0.0666666030883789
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 4.310670017730445,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 2,
+                  "requested_bytes": 10240000,
+                  "returned_bytes": 10240000
+                },
+                "total_calls": 2,
+                "total_returned_bytes": 10240000
+              },
+              "memory": {
+                "rss_MiB": 131.7734375,
+                "vmhwm_MiB": 131.7734375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.0240019871853292,
+              "p95_ms": 0.1783401763532306,
+              "min_ms": 0.02015102654695511,
+              "max_ms": 0.4852229612879455,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 23040048,
+            "memory": {
+              "rss_MiB": 131.7734375,
+              "vmhwm_MiB": 131.7734375
+            }
+          },
+          {
+            "index": 2,
+            "time_range": [
+              0.0666666030883789,
+              0.10000002384185791
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 5.650306004099548,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 2,
+                  "requested_bytes": 10240000,
+                  "returned_bytes": 10240000
+                },
+                "total_calls": 2,
+                "total_returned_bytes": 10240000
+              },
+              "memory": {
+                "rss_MiB": 107.4921875,
+                "vmhwm_MiB": 128.796875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.020480947569012642,
+              "p95_ms": 0.16890988918021277,
+              "min_ms": 0.019013998098671436,
+              "max_ms": 0.46863098395988345,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 23040048,
+            "memory": {
+              "rss_MiB": 107.49609375,
+              "vmhwm_MiB": 128.796875
+            }
+          },
+          {
+            "index": 3,
+            "time_range": [
+              0.10000002384185791,
+              0.13333332538604736
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 5.867252009920776,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 2,
+                  "requested_bytes": 10240000,
+                  "returned_bytes": 10240000
+                },
+                "total_calls": 2,
+                "total_returned_bytes": 10240000
+              },
+              "memory": {
+                "rss_MiB": 117.13671875,
+                "vmhwm_MiB": 128.796875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.02529699122533202,
+              "p95_ms": 0.18469938659109128,
+              "min_ms": 0.021178042516112328,
+              "max_ms": 0.48975099343806505,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 23040048,
+            "memory": {
+              "rss_MiB": 117.14453125,
+              "vmhwm_MiB": 128.796875
+            }
+          },
+          {
+            "index": 17,
+            "time_range": [
+              0.5666667222976685,
+              0.6000000238418579
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 6.261394009925425,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 4,
+                  "requested_bytes": 20480000,
+                  "returned_bytes": 20480000
+                },
+                "total_calls": 4,
+                "total_returned_bytes": 20480000
+              },
+              "memory": {
+                "rss_MiB": 117.1484375,
+                "vmhwm_MiB": 128.796875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.024521024897694588,
+              "p95_ms": 0.20179108250886163,
+              "min_ms": 0.02323702210560441,
+              "max_ms": 0.4527249839156866,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 23040048,
+            "memory": {
+              "rss_MiB": 117.1484375,
+              "vmhwm_MiB": 128.796875
+            }
+          },
+          {
+            "index": 34,
+            "time_range": [
+              1.1333333253860474,
+              1.1666666269302368
+            ],
+            "count": 160000,
+            "valid_count": 160000,
+            "cold_prepare": {
+              "ms": 7.1053580031730235,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 4,
+                  "requested_bytes": 20480000,
+                  "returned_bytes": 20480000
+                },
+                "total_calls": 4,
+                "total_returned_bytes": 20480000
+              },
+              "memory": {
+                "rss_MiB": 117.15625,
+                "vmhwm_MiB": 128.796875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.023670028895139694,
+              "p95_ms": 0.1788234803825612,
+              "min_ms": 0.019415980204939842,
+              "max_ms": 0.48632995458319783,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 23040048,
+            "memory": {
+              "rss_MiB": 117.15625,
+              "vmhwm_MiB": 128.796875
+            }
+          }
+        ],
+        "selected_identity": {
+          "owner": "prediction-gaussians",
+          "element_found": true,
+          "inspection": {
+            "ms": 0.24674797896295786,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 1,
+                "requested_bytes": 64,
+                "returned_bytes": 64
+              },
+              "total_calls": 1,
+              "total_returned_bytes": 64
+            },
+            "memory": {
+              "rss_MiB": 117.15625,
+              "vmhwm_MiB": 128.796875
+            }
+          },
+          "trajectory": {
+            "ms": 3.1296290108002722,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 36,
+                "requested_bytes": 2304,
+                "returned_bytes": 2304
+              },
+              "total_calls": 36,
+              "total_returned_bytes": 2304
+            },
+            "memory": {
+              "rss_MiB": 117.36328125,
+              "vmhwm_MiB": 128.796875
+            }
+          },
+          "paths": 1,
+          "path_samples": 36
+        },
+        "all_camera_calibrations": [
+          {
+            "time": 0.0,
+            "views": 51,
+            "ms": 1.4562960132025182
+          },
+          {
+            "time": 0.6000000238418579,
+            "views": 51,
+            "ms": 1.0585939744487405
+          },
+          {
+            "time": 1.1666666269302368,
+            "views": 51,
+            "ms": 0.9355919901281595
+          }
+        ],
+        "memory": {
+          "rss_MiB": 117.47265625,
+          "vmhwm_MiB": 128.796875
+        }
+      }
+    },
+    {
+      "dataset": "production-640k",
+      "identities": 640000,
+      "samples": 36,
+      "camera_views": 51,
+      "bytes": 2720999559,
+      "manifest_sha256": "4bfba7eaf0758da77528f319fdc0cf32add8eb877e3cdf5062202607fd5fdb6d",
+      "reports_sha256": {
+        "before": "be67fdc9f83f0d175873bc497385a3e48476fcec31ea9ce99916a3636958f1d6",
+        "endpoint_repair": "cdf9627bb4aa9c6436c98de2b006f3c65836fb5db4e05e2da2243f250bfaa72b",
+        "final": "906bcdeac2babd5ec9ec0e70e2e472e1a46f25468441ae5610c6be8469d78880"
+      },
+      "source_unchanged": true,
+      "before": {
+        "source_commit": "76f95454478b693dc929b142a4aeafe3625dd60d",
+        "runtime_sha256": null,
+        "load": {
+          "ms": 14724.657523969654,
+          "python_source_reads": {
+            "pread": {
+              "calls": 193,
+              "requested_bytes": 1480130624,
+              "returned_bytes": 1480130624
+            },
+            "preadv": {
+              "calls": 187,
+              "requested_bytes": 1480048472,
+              "returned_bytes": 1480048472
+            },
+            "total_calls": 380,
+            "total_returned_bytes": 2960179096
+          },
+          "memory": {
+            "rss_MiB": 98.046875,
+            "vmhwm_MiB": 178.08984375
+          }
+        },
+        "intervals": [
+          {
+            "index": 0,
+            "time_range": [
+              0.0,
+              0.03333333333333333
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 31.281939998734742,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 11,
+                  "requested_bytes": 87040000,
+                  "returned_bytes": 87040000
+                },
+                "total_calls": 11,
+                "total_returned_bytes": 87040000
+              },
+              "memory": {
+                "rss_MiB": 137.1875,
+                "vmhwm_MiB": 178.08984375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.13169704470783472,
+              "p95_ms": 0.17591959331184617,
+              "min_ms": 0.12740999227389693,
+              "max_ms": 0.22673403145745397,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 175360048,
+            "memory": {
+              "rss_MiB": 137.2890625,
+              "vmhwm_MiB": 178.08984375
+            }
+          },
+          {
+            "index": 1,
+            "time_range": [
+              0.03333333333333333,
+              0.06666666666666667
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 29.18069896986708,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 5,
+                  "requested_bytes": 40960000,
+                  "returned_bytes": 40960000
+                },
+                "total_calls": 5,
+                "total_returned_bytes": 40960000
+              },
+              "memory": {
+                "rss_MiB": 176.359375,
+                "vmhwm_MiB": 178.08984375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.13600499369204044,
+              "p95_ms": 0.7520544051658343,
+              "min_ms": 0.130590982735157,
+              "max_ms": 1.9940419588238,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 175360048,
+            "memory": {
+              "rss_MiB": 137.296875,
+              "vmhwm_MiB": 178.08984375
+            }
+          },
+          {
+            "index": 2,
+            "time_range": [
+              0.06666666666666667,
+              0.1
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 20.66891099093482,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 5,
+                  "requested_bytes": 40960000,
+                  "returned_bytes": 40960000
+                },
+                "total_calls": 5,
+                "total_returned_bytes": 40960000
+              },
+              "memory": {
+                "rss_MiB": 176.37109375,
+                "vmhwm_MiB": 178.08984375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.1297519775107503,
+              "p95_ms": 0.7450419012457112,
+              "min_ms": 0.12745801359415054,
+              "max_ms": 2.0598050323314965,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 175360048,
+            "memory": {
+              "rss_MiB": 137.3046875,
+              "vmhwm_MiB": 178.08984375
+            }
+          },
+          {
+            "index": 3,
+            "time_range": [
+              0.1,
+              0.13333333333333333
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 19.35804297681898,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 5,
+                  "requested_bytes": 40960000,
+                  "returned_bytes": 40960000
+                },
+                "total_calls": 5,
+                "total_returned_bytes": 40960000
+              },
+              "memory": {
+                "rss_MiB": 176.37109375,
+                "vmhwm_MiB": 178.08984375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.131482956930995,
+              "p95_ms": 0.7464629830792526,
+              "min_ms": 0.1287419581785798,
+              "max_ms": 2.0551200141198933,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 175360048,
+            "memory": {
+              "rss_MiB": 137.3125,
+              "vmhwm_MiB": 178.08984375
+            }
+          },
+          {
+            "index": 17,
+            "time_range": [
+              0.5666666666666667,
+              0.6
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 59.3018340296112,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 10,
+                  "requested_bytes": 81920000,
+                  "returned_bytes": 81920000
+                },
+                "total_calls": 10,
+                "total_returned_bytes": 81920000
+              },
+              "memory": {
+                "rss_MiB": 215.44921875,
+                "vmhwm_MiB": 215.44921875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.13164104893803596,
+              "p95_ms": 0.8578115783166117,
+              "min_ms": 0.1281040022149682,
+              "max_ms": 2.4242099607363343,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 175360048,
+            "memory": {
+              "rss_MiB": 137.31640625,
+              "vmhwm_MiB": 214.2890625
+            }
+          },
+          {
+            "index": 34,
+            "time_range": [
+              1.1333333333333333,
+              1.1666666666666667
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 29.501920973416418,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 10,
+                  "requested_bytes": 81920000,
+                  "returned_bytes": 81920000
+                },
+                "total_calls": 10,
+                "total_returned_bytes": 81920000
+              },
+              "memory": {
+                "rss_MiB": 215.453125,
+                "vmhwm_MiB": 215.453125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.12984202476218343,
+              "p95_ms": 0.9298155724536601,
+              "min_ms": 0.12781895929947495,
+              "max_ms": 2.6727959630079567,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 175360048,
+            "memory": {
+              "rss_MiB": 137.3203125,
+              "vmhwm_MiB": 214.91015625
+            }
+          }
+        ],
+        "selected_identity": {
+          "owner": "prediction-gaussians",
+          "element_found": true,
+          "inspection": {
+            "ms": 0.19458099268376827,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 1,
+                "requested_bytes": 64,
+                "returned_bytes": 64
+              },
+              "total_calls": 1,
+              "total_returned_bytes": 64
+            },
+            "memory": {
+              "rss_MiB": 137.3203125,
+              "vmhwm_MiB": 214.91015625
+            }
+          },
+          "trajectory": {
+            "ms": 4.457672010175884,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 36,
+                "requested_bytes": 2304,
+                "returned_bytes": 2304
+              },
+              "total_calls": 36,
+              "total_returned_bytes": 2304
+            },
+            "memory": {
+              "rss_MiB": 137.59375,
+              "vmhwm_MiB": 214.91015625
+            }
+          },
+          "paths": 1,
+          "path_samples": 36
+        },
+        "all_camera_calibrations": null,
+        "memory": {
+          "rss_MiB": 137.59375,
+          "vmhwm_MiB": 214.91015625
+        }
+      },
+      "endpoint_repair": {
+        "source_commit": "76f95454478b693dc929b142a4aeafe3625dd60d",
+        "runtime_sha256": {
+          "viewer/ubuntu/gs_studio/model.py": "e8c22a8fcadf20c84dfa9147695bae21f6063983178128afaa121067fa018341",
+          "viewer/ubuntu/gs_studio/camera.py": "aa6a7686c0c99d2e676a1d603e1ba971fe8a5027145c3360652c584699fbfdae"
+        },
+        "load": {
+          "ms": 6488.471599994227,
+          "python_source_reads": {
+            "pread": {
+              "calls": 193,
+              "requested_bytes": 1480130624,
+              "returned_bytes": 1480130624
+            },
+            "preadv": {
+              "calls": 187,
+              "requested_bytes": 1480048472,
+              "returned_bytes": 1480048472
+            },
+            "total_calls": 380,
+            "total_returned_bytes": 2960179096
+          },
+          "memory": {
+            "rss_MiB": 98.33203125,
+            "vmhwm_MiB": 178.6796875
+          }
+        },
+        "intervals": [
+          {
+            "index": 0,
+            "time_range": [
+              0.0,
+              0.03333333333333333
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 34.827717987354845,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 11,
+                  "requested_bytes": 87040000,
+                  "returned_bytes": 87040000
+                },
+                "total_calls": 11,
+                "total_returned_bytes": 87040000
+              },
+              "memory": {
+                "rss_MiB": 137.46484375,
+                "vmhwm_MiB": 178.6796875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.024255947209894657,
+              "p95_ms": 0.05523969884961841,
+              "min_ms": 0.021299987565726042,
+              "max_ms": 0.07276004180312157,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 137.56640625,
+              "vmhwm_MiB": 178.6796875
+            }
+          },
+          {
+            "index": 1,
+            "time_range": [
+              0.03333333333333333,
+              0.06666666666666667
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 20.218216988723725,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 5,
+                  "requested_bytes": 40960000,
+                  "returned_bytes": 40960000
+                },
+                "total_calls": 5,
+                "total_returned_bytes": 40960000
+              },
+              "memory": {
+                "rss_MiB": 176.63671875,
+                "vmhwm_MiB": 178.6796875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.02290797419846058,
+              "p95_ms": 0.595601456006987,
+              "min_ms": 0.020545965526252985,
+              "max_ms": 1.8335619824938476,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 137.578125,
+              "vmhwm_MiB": 178.6796875
+            }
+          },
+          {
+            "index": 2,
+            "time_range": [
+              0.06666666666666667,
+              0.1
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 19.148336024954915,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 5,
+                  "requested_bytes": 40960000,
+                  "returned_bytes": 40960000
+                },
+                "total_calls": 5,
+                "total_returned_bytes": 40960000
+              },
+              "memory": {
+                "rss_MiB": 176.64453125,
+                "vmhwm_MiB": 178.6796875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.020571984350681305,
+              "p95_ms": 0.65693261567503,
+              "min_ms": 0.019365979824215174,
+              "max_ms": 2.042556006927043,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 137.578125,
+              "vmhwm_MiB": 178.6796875
+            }
+          },
+          {
+            "index": 3,
+            "time_range": [
+              0.1,
+              0.13333333333333333
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 19.689848995767534,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 5,
+                  "requested_bytes": 40960000,
+                  "returned_bytes": 40960000
+                },
+                "total_calls": 5,
+                "total_returned_bytes": 40960000
+              },
+              "memory": {
+                "rss_MiB": 176.65234375,
+                "vmhwm_MiB": 178.6796875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.021054991520941257,
+              "p95_ms": 0.6128215929493288,
+              "min_ms": 0.019464991055428982,
+              "max_ms": 1.9009489915333688,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 137.59375,
+              "vmhwm_MiB": 178.6796875
+            }
+          },
+          {
+            "index": 17,
+            "time_range": [
+              0.5666666666666667,
+              0.6
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 31.817629002034664,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 10,
+                  "requested_bytes": 81920000,
+                  "returned_bytes": 81920000
+                },
+                "total_calls": 10,
+                "total_returned_bytes": 81920000
+              },
+              "memory": {
+                "rss_MiB": 215.73046875,
+                "vmhwm_MiB": 215.73046875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.02383498940616846,
+              "p95_ms": 0.7309066888410575,
+              "min_ms": 0.018926046323031187,
+              "max_ms": 2.291009994223714,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 137.59765625,
+              "vmhwm_MiB": 213.76171875
+            }
+          },
+          {
+            "index": 34,
+            "time_range": [
+              1.1333333333333333,
+              1.1666666666666667
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 32.01251500286162,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 10,
+                  "requested_bytes": 81920000,
+                  "returned_bytes": 81920000
+                },
+                "total_calls": 10,
+                "total_returned_bytes": 81920000
+              },
+              "memory": {
+                "rss_MiB": 215.73046875,
+                "vmhwm_MiB": 215.73046875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.02075301017612219,
+              "p95_ms": 0.7171457051299489,
+              "min_ms": 0.019265979062765837,
+              "max_ms": 2.2468410315923393,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 137.6015625,
+              "vmhwm_MiB": 213.76171875
+            }
+          }
+        ],
+        "selected_identity": {
+          "owner": "prediction-gaussians",
+          "element_found": true,
+          "inspection": {
+            "ms": 0.23535499349236488,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 1,
+                "requested_bytes": 64,
+                "returned_bytes": 64
+              },
+              "total_calls": 1,
+              "total_returned_bytes": 64
+            },
+            "memory": {
+              "rss_MiB": 137.60546875,
+              "vmhwm_MiB": 213.76171875
+            }
+          },
+          "trajectory": {
+            "ms": 4.655783006455749,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 36,
+                "requested_bytes": 2304,
+                "returned_bytes": 2304
+              },
+              "total_calls": 36,
+              "total_returned_bytes": 2304
+            },
+            "memory": {
+              "rss_MiB": 137.875,
+              "vmhwm_MiB": 213.76171875
+            }
+          },
+          "paths": 1,
+          "path_samples": 36
+        },
+        "all_camera_calibrations": [
+          {
+            "time": 0.0,
+            "views": 51,
+            "ms": 20.45486494898796
+          },
+          {
+            "time": 0.6,
+            "views": 51,
+            "ms": 19.934348005335778
+          },
+          {
+            "time": 1.1666666666666667,
+            "views": 51,
+            "ms": 19.980548007879406
+          }
+        ],
+        "memory": {
+          "rss_MiB": 137.9453125,
+          "vmhwm_MiB": 213.76171875
+        }
+      },
+      "final": {
+        "source_commit": "bf7a41021fed94ac1371fc42a8e4db3f6374671b",
+        "runtime_sha256": {
+          "viewer/ubuntu/gs_studio/model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+          "viewer/ubuntu/gs_studio/camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967"
+        },
+        "load": {
+          "ms": 6769.0250930027105,
+          "python_source_reads": {
+            "pread": {
+              "calls": 193,
+              "requested_bytes": 1480130624,
+              "returned_bytes": 1480130624
+            },
+            "preadv": {
+              "calls": 187,
+              "requested_bytes": 1480048472,
+              "returned_bytes": 1480048472
+            },
+            "total_calls": 380,
+            "total_returned_bytes": 2960179096
+          },
+          "memory": {
+            "rss_MiB": 98.3359375,
+            "vmhwm_MiB": 175.2109375
+          }
+        },
+        "intervals": [
+          {
+            "index": 0,
+            "time_range": [
+              0.0,
+              0.03333333333333333
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 34.07502599293366,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 11,
+                  "requested_bytes": 87040000,
+                  "returned_bytes": 87040000
+                },
+                "total_calls": 11,
+                "total_returned_bytes": 87040000
+              },
+              "memory": {
+                "rss_MiB": 137.4765625,
+                "vmhwm_MiB": 175.2109375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.022572989109903574,
+              "p95_ms": 0.047347921645268756,
+              "min_ms": 0.021102954633533955,
+              "max_ms": 0.0739920069463551,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 92160048,
+            "memory": {
+              "rss_MiB": 137.58203125,
+              "vmhwm_MiB": 175.2109375
+            }
+          },
+          {
+            "index": 1,
+            "time_range": [
+              0.03333333333333333,
+              0.06666666666666667
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 20.79813601449132,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 5,
+                  "requested_bytes": 40960000,
+                  "returned_bytes": 40960000
+                },
+                "total_calls": 5,
+                "total_returned_bytes": 40960000
+              },
+              "memory": {
+                "rss_MiB": 176.65234375,
+                "vmhwm_MiB": 176.65234375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.023416010662913322,
+              "p95_ms": 0.5975704989396017,
+              "min_ms": 0.02083799336105585,
+              "max_ms": 1.8365180003456771,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 92160048,
+            "memory": {
+              "rss_MiB": 137.5859375,
+              "vmhwm_MiB": 175.2109375
+            }
+          },
+          {
+            "index": 2,
+            "time_range": [
+              0.06666666666666667,
+              0.1
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 20.72773198597133,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 5,
+                  "requested_bytes": 40960000,
+                  "returned_bytes": 40960000
+                },
+                "total_calls": 5,
+                "total_returned_bytes": 40960000
+              },
+              "memory": {
+                "rss_MiB": 176.65625,
+                "vmhwm_MiB": 176.65625
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.024182023480534554,
+              "p95_ms": 0.6617434788495281,
+              "min_ms": 0.02308696275576949,
+              "max_ms": 2.0489160087890923,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 92160048,
+            "memory": {
+              "rss_MiB": 137.58984375,
+              "vmhwm_MiB": 175.2109375
+            }
+          },
+          {
+            "index": 3,
+            "time_range": [
+              0.1,
+              0.13333333333333333
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 20.943023031577468,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 5,
+                  "requested_bytes": 40960000,
+                  "returned_bytes": 40960000
+                },
+                "total_calls": 5,
+                "total_returned_bytes": 40960000
+              },
+              "memory": {
+                "rss_MiB": 176.66796875,
+                "vmhwm_MiB": 176.66796875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.021306041162461042,
+              "p95_ms": 0.5942222953308355,
+              "min_ms": 0.019464991055428982,
+              "max_ms": 1.8170530092902482,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 92160048,
+            "memory": {
+              "rss_MiB": 137.60546875,
+              "vmhwm_MiB": 175.2109375
+            }
+          },
+          {
+            "index": 17,
+            "time_range": [
+              0.5666666666666667,
+              0.6
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 32.328656991012394,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 10,
+                  "requested_bytes": 81920000,
+                  "returned_bytes": 81920000
+                },
+                "total_calls": 10,
+                "total_returned_bytes": 81920000
+              },
+              "memory": {
+                "rss_MiB": 215.73828125,
+                "vmhwm_MiB": 215.73828125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.020573032088577747,
+              "p95_ms": 0.7241694722324586,
+              "min_ms": 0.019433966372162104,
+              "max_ms": 2.2636550129391253,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 92160048,
+            "memory": {
+              "rss_MiB": 137.609375,
+              "vmhwm_MiB": 213.46875
+            }
+          },
+          {
+            "index": 34,
+            "time_range": [
+              1.1333333333333333,
+              1.1666666666666667
+            ],
+            "count": 640000,
+            "valid_count": 640000,
+            "cold_prepare": {
+              "ms": 30.706232995726168,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 10,
+                  "requested_bytes": 81920000,
+                  "returned_bytes": 81920000
+                },
+                "total_calls": 10,
+                "total_returned_bytes": 81920000
+              },
+              "memory": {
+                "rss_MiB": 215.7421875,
+                "vmhwm_MiB": 215.7421875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.020070001482963562,
+              "p95_ms": 0.7045564823783911,
+              "min_ms": 0.019525003153830767,
+              "max_ms": 2.2000960307195783,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 92160048,
+            "memory": {
+              "rss_MiB": 137.61328125,
+              "vmhwm_MiB": 213.46875
+            }
+          }
+        ],
+        "selected_identity": {
+          "owner": "prediction-gaussians",
+          "element_found": true,
+          "inspection": {
+            "ms": 0.3843629965558648,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 1,
+                "requested_bytes": 64,
+                "returned_bytes": 64
+              },
+              "total_calls": 1,
+              "total_returned_bytes": 64
+            },
+            "memory": {
+              "rss_MiB": 137.6171875,
+              "vmhwm_MiB": 213.46875
+            }
+          },
+          "trajectory": {
+            "ms": 4.942486993968487,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 36,
+                "requested_bytes": 2304,
+                "returned_bytes": 2304
+              },
+              "total_calls": 36,
+              "total_returned_bytes": 2304
+            },
+            "memory": {
+              "rss_MiB": 137.890625,
+              "vmhwm_MiB": 213.46875
+            }
+          },
+          "paths": 1,
+          "path_samples": 36
+        },
+        "all_camera_calibrations": [
+          {
+            "time": 0.0,
+            "views": 51,
+            "ms": 1.9719720003195107
+          },
+          {
+            "time": 0.6,
+            "views": 51,
+            "ms": 1.0698710102587938
+          },
+          {
+            "time": 1.1666666666666667,
+            "views": 51,
+            "ms": 0.9215470054186881
+          }
+        ],
+        "memory": {
+          "rss_MiB": 138.00390625,
+          "vmhwm_MiB": 213.46875
+        }
+      }
+    },
+    {
+      "dataset": "production-1280k",
+      "identities": 1280000,
+      "samples": 36,
+      "camera_views": 51,
+      "bytes": 9864620207,
+      "manifest_sha256": "a538d18dd27d6465fadc8a15e99e5aff7eb06eed7ba158d3f817768a4b9be9ea",
+      "reports_sha256": {
+        "before": "db170c890d743319a159a5840dd7416ced7f99a50cbf0c413d59b06e09dc8dc2",
+        "endpoint_repair": "b6871c79f896886661fbd8e20389b51b574b482c02c21770925409758f32832a",
+        "final": "629f8e5f7d4dc219fed52d14cea8185ea71838d0dd55024aa6c7f80ba4fdff0a"
+      },
+      "source_unchanged": true,
+      "before": {
+        "source_commit": "76f95454478b693dc929b142a4aeafe3625dd60d",
+        "runtime_sha256": null,
+        "load": {
+          "ms": 33467.43154601427,
+          "python_source_reads": {
+            "pread": {
+              "calls": 373,
+              "requested_bytes": 2959802432,
+              "returned_bytes": 2959802432
+            },
+            "preadv": {
+              "calls": 367,
+              "requested_bytes": 2959728184,
+              "returned_bytes": 2959728184
+            },
+            "total_calls": 740,
+            "total_returned_bytes": 5919530616
+          },
+          "memory": {
+            "rss_MiB": 79.03515625,
+            "vmhwm_MiB": 316.95703125
+          }
+        },
+        "intervals": [
+          {
+            "index": 0,
+            "time_range": [
+              0.0,
+              0.03333333333333333
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 90.76983196428046,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 235.359375,
+                "vmhwm_MiB": 316.95703125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.263347988948226,
+              "p95_ms": 0.3187924798112362,
+              "min_ms": 0.2586330519989133,
+              "max_ms": 0.3689649747684598,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 186880048,
+            "memory": {
+              "rss_MiB": 235.46875,
+              "vmhwm_MiB": 316.95703125
+            }
+          },
+          {
+            "index": 1,
+            "time_range": [
+              0.03333333333333333,
+              0.06666666666666667
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 121.5732209966518,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 391.7265625,
+                "vmhwm_MiB": 391.7265625
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.2539579872973263,
+              "p95_ms": 1.539088605204593,
+              "min_ms": 0.2505179727450013,
+              "max_ms": 4.347699985373765,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 186880048,
+            "memory": {
+              "rss_MiB": 235.47265625,
+              "vmhwm_MiB": 390.625
+            }
+          },
+          {
+            "index": 2,
+            "time_range": [
+              0.06666666666666667,
+              0.1
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 91.3303869892843,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 391.73828125,
+                "vmhwm_MiB": 391.73828125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.2567689516581595,
+              "p95_ms": 1.561529922764744,
+              "min_ms": 0.25296700187027454,
+              "max_ms": 4.470066982321441,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 186880048,
+            "memory": {
+              "rss_MiB": 235.48046875,
+              "vmhwm_MiB": 390.625
+            }
+          },
+          {
+            "index": 3,
+            "time_range": [
+              0.1,
+              0.13333333333333333
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 121.54545600060374,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 391.7421875,
+                "vmhwm_MiB": 391.7421875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.2546270261518657,
+              "p95_ms": 1.5042686951346653,
+              "min_ms": 0.250267970841378,
+              "max_ms": 4.262351954821497,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 186880048,
+            "memory": {
+              "rss_MiB": 235.48828125,
+              "vmhwm_MiB": 390.640625
+            }
+          },
+          {
+            "index": 17,
+            "time_range": [
+              0.5666666666666667,
+              0.6
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 96.8394759693183,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 391.75,
+                "vmhwm_MiB": 391.75
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.25672302581369877,
+              "p95_ms": 1.540300279157232,
+              "min_ms": 0.2542019938118756,
+              "max_ms": 4.365347034763545,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 186880048,
+            "memory": {
+              "rss_MiB": 235.49609375,
+              "vmhwm_MiB": 390.640625
+            }
+          },
+          {
+            "index": 34,
+            "time_range": [
+              1.1333333333333333,
+              1.1666666666666667
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 125.99879899062216,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 391.75390625,
+                "vmhwm_MiB": 391.75390625
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.2532720100134611,
+              "p95_ms": 1.4915868989191907,
+              "min_ms": 0.24957099230960011,
+              "max_ms": 4.243828007020056,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "cache_bytes": 186880048,
+            "memory": {
+              "rss_MiB": 235.49609375,
+              "vmhwm_MiB": 390.65234375
+            }
+          }
+        ],
+        "selected_identity": {
+          "owner": "prediction-gaussians",
+          "element_found": true,
+          "inspection": {
+            "ms": 0.2114750095643103,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 1,
+                "requested_bytes": 64,
+                "returned_bytes": 64
+              },
+              "total_calls": 1,
+              "total_returned_bytes": 64
+            },
+            "memory": {
+              "rss_MiB": 235.5,
+              "vmhwm_MiB": 390.65234375
+            }
+          },
+          "trajectory": {
+            "ms": 6.4080480369739234,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 36,
+                "requested_bytes": 2304,
+                "returned_bytes": 2304
+              },
+              "total_calls": 36,
+              "total_returned_bytes": 2304
+            },
+            "memory": {
+              "rss_MiB": 235.76953125,
+              "vmhwm_MiB": 390.65234375
+            }
+          },
+          "paths": 1,
+          "path_samples": 36
+        },
+        "all_camera_calibrations": null,
+        "memory": {
+          "rss_MiB": 235.76953125,
+          "vmhwm_MiB": 390.65234375
+        }
+      },
+      "endpoint_repair": {
+        "source_commit": "76f95454478b693dc929b142a4aeafe3625dd60d",
+        "runtime_sha256": {
+          "viewer/ubuntu/gs_studio/model.py": "e8c22a8fcadf20c84dfa9147695bae21f6063983178128afaa121067fa018341",
+          "viewer/ubuntu/gs_studio/camera.py": "aa6a7686c0c99d2e676a1d603e1ba971fe8a5027145c3360652c584699fbfdae"
+        },
+        "load": {
+          "ms": 13259.006200998556,
+          "python_source_reads": {
+            "pread": {
+              "calls": 373,
+              "requested_bytes": 2959802432,
+              "returned_bytes": 2959802432
+            },
+            "preadv": {
+              "calls": 367,
+              "requested_bytes": 2959728184,
+              "returned_bytes": 2959728184
+            },
+            "total_calls": 740,
+            "total_returned_bytes": 5919530616
+          },
+          "memory": {
+            "rss_MiB": 79.390625,
+            "vmhwm_MiB": 317.5078125
+          }
+        },
+        "intervals": [
+          {
+            "index": 0,
+            "time_range": [
+              0.0,
+              0.03333333333333333
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 56.201375962700695,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 235.7109375,
+                "vmhwm_MiB": 317.5078125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.023596978280693293,
+              "p95_ms": 0.051308510592207285,
+              "min_ms": 0.020996027160435915,
+              "max_ms": 0.07010699482634664,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 235.81640625,
+              "vmhwm_MiB": 317.5078125
+            }
+          },
+          {
+            "index": 1,
+            "time_range": [
+              0.03333333333333333,
+              0.06666666666666667
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 36.77654801867902,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 10,
+                  "requested_bytes": 81920000,
+                  "returned_bytes": 81920000
+                },
+                "total_calls": 10,
+                "total_returned_bytes": 81920000
+              },
+              "memory": {
+                "rss_MiB": 313.953125,
+                "vmhwm_MiB": 317.5078125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.020741019397974014,
+              "p95_ms": 1.143530826084312,
+              "min_ms": 0.019301020074635744,
+              "max_ms": 3.6602940526790917,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 235.82421875,
+              "vmhwm_MiB": 317.5078125
+            }
+          },
+          {
+            "index": 2,
+            "time_range": [
+              0.06666666666666667,
+              0.1
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 37.34828403685242,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 10,
+                  "requested_bytes": 81920000,
+                  "returned_bytes": 81920000
+                },
+                "total_calls": 10,
+                "total_returned_bytes": 81920000
+              },
+              "memory": {
+                "rss_MiB": 313.953125,
+                "vmhwm_MiB": 317.5078125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.021746964193880558,
+              "p95_ms": 0.9722005866933582,
+              "min_ms": 0.019212951883673668,
+              "max_ms": 3.0905769672244787,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 235.828125,
+              "vmhwm_MiB": 317.5078125
+            }
+          },
+          {
+            "index": 3,
+            "time_range": [
+              0.1,
+              0.13333333333333333
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 37.3878920217976,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 10,
+                  "requested_bytes": 81920000,
+                  "returned_bytes": 81920000
+                },
+                "total_calls": 10,
+                "total_returned_bytes": 81920000
+              },
+              "memory": {
+                "rss_MiB": 313.96484375,
+                "vmhwm_MiB": 317.5078125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.02082099672406912,
+              "p95_ms": 1.1221260938327722,
+              "min_ms": 0.019063998479396105,
+              "max_ms": 3.596154972910881,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 235.83984375,
+              "vmhwm_MiB": 317.5078125
+            }
+          },
+          {
+            "index": 17,
+            "time_range": [
+              0.5666666666666667,
+              0.6
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 61.67615298181772,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 392.1015625,
+                "vmhwm_MiB": 392.1015625
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.022912980057299137,
+              "p95_ms": 1.1698638089001139,
+              "min_ms": 0.01944904215633869,
+              "max_ms": 3.7563469959422946,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 235.84765625,
+              "vmhwm_MiB": 391.19140625
+            }
+          },
+          {
+            "index": 34,
+            "time_range": [
+              1.1333333333333333,
+              1.1666666666666667
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 60.1821179734543,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 392.10546875,
+                "vmhwm_MiB": 392.10546875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.02047000452876091,
+              "p95_ms": 1.1469349090475551,
+              "min_ms": 0.018982973415404558,
+              "max_ms": 3.674987005069852,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 235.85546875,
+              "vmhwm_MiB": 391.19140625
+            }
+          }
+        ],
+        "selected_identity": {
+          "owner": "prediction-gaussians",
+          "element_found": true,
+          "inspection": {
+            "ms": 0.20676595158874989,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 1,
+                "requested_bytes": 64,
+                "returned_bytes": 64
+              },
+              "total_calls": 1,
+              "total_returned_bytes": 64
+            },
+            "memory": {
+              "rss_MiB": 235.85546875,
+              "vmhwm_MiB": 391.19140625
+            }
+          },
+          "trajectory": {
+            "ms": 6.3035020139068365,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 36,
+                "requested_bytes": 2304,
+                "returned_bytes": 2304
+              },
+              "total_calls": 36,
+              "total_returned_bytes": 2304
+            },
+            "memory": {
+              "rss_MiB": 236.12890625,
+              "vmhwm_MiB": 391.19140625
+            }
+          },
+          "paths": 1,
+          "path_samples": 36
+        },
+        "all_camera_calibrations": [
+          {
+            "time": 0.0,
+            "views": 51,
+            "ms": 20.231686008628458
+          },
+          {
+            "time": 0.6,
+            "views": 51,
+            "ms": 19.979071978013963
+          },
+          {
+            "time": 1.1666666666666667,
+            "views": 51,
+            "ms": 19.933136994950473
+          }
+        ],
+        "memory": {
+          "rss_MiB": 236.19921875,
+          "vmhwm_MiB": 391.19140625
+        }
+      },
+      "final": {
+        "source_commit": "bf7a41021fed94ac1371fc42a8e4db3f6374671b",
+        "runtime_sha256": {
+          "viewer/ubuntu/gs_studio/model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+          "viewer/ubuntu/gs_studio/camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967"
+        },
+        "load": {
+          "ms": 14709.725386986975,
+          "python_source_reads": {
+            "pread": {
+              "calls": 373,
+              "requested_bytes": 2959802432,
+              "returned_bytes": 2959802432
+            },
+            "preadv": {
+              "calls": 367,
+              "requested_bytes": 2959728184,
+              "returned_bytes": 2959728184
+            },
+            "total_calls": 740,
+            "total_returned_bytes": 5919530616
+          },
+          "memory": {
+            "rss_MiB": 79.26953125,
+            "vmhwm_MiB": 314.4375
+          }
+        },
+        "intervals": [
+          {
+            "index": 0,
+            "time_range": [
+              0.0,
+              0.03333333333333333
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 69.24035400152206,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 235.59375,
+                "vmhwm_MiB": 314.4375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.020782987121492624,
+              "p95_ms": 0.044093583710491616,
+              "min_ms": 0.019438972231000662,
+              "max_ms": 0.0685949926264584,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 184320048,
+            "memory": {
+              "rss_MiB": 235.69921875,
+              "vmhwm_MiB": 314.4375
+            }
+          },
+          {
+            "index": 1,
+            "time_range": [
+              0.03333333333333333,
+              0.06666666666666667
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 42.40879701683298,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 10,
+                  "requested_bytes": 81920000,
+                  "returned_bytes": 81920000
+                },
+                "total_calls": 10,
+                "total_returned_bytes": 81920000
+              },
+              "memory": {
+                "rss_MiB": 313.8359375,
+                "vmhwm_MiB": 314.4375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.021061045117676258,
+              "p95_ms": 1.1523833207320384,
+              "min_ms": 0.01939496723935008,
+              "max_ms": 3.7008810322731733,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 184320048,
+            "memory": {
+              "rss_MiB": 235.70703125,
+              "vmhwm_MiB": 314.4375
+            }
+          },
+          {
+            "index": 2,
+            "time_range": [
+              0.06666666666666667,
+              0.1
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 43.1994569953531,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 10,
+                  "requested_bytes": 81920000,
+                  "returned_bytes": 81920000
+                },
+                "total_calls": 10,
+                "total_returned_bytes": 81920000
+              },
+              "memory": {
+                "rss_MiB": 313.84375,
+                "vmhwm_MiB": 314.4375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.02046197187155485,
+              "p95_ms": 1.0904034192208165,
+              "min_ms": 0.019202008843421936,
+              "max_ms": 3.4953359863720834,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 184320048,
+            "memory": {
+              "rss_MiB": 235.71484375,
+              "vmhwm_MiB": 314.4375
+            }
+          },
+          {
+            "index": 3,
+            "time_range": [
+              0.1,
+              0.13333333333333333
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 42.4499959917739,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 10,
+                  "requested_bytes": 81920000,
+                  "returned_bytes": 81920000
+                },
+                "total_calls": 10,
+                "total_returned_bytes": 81920000
+              },
+              "memory": {
+                "rss_MiB": 313.84765625,
+                "vmhwm_MiB": 314.4375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.021137006115168333,
+              "p95_ms": 1.1345234233885966,
+              "min_ms": 0.018991995602846146,
+              "max_ms": 3.638666996266693,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 184320048,
+            "memory": {
+              "rss_MiB": 235.72265625,
+              "vmhwm_MiB": 314.4375
+            }
+          },
+          {
+            "index": 17,
+            "time_range": [
+              0.5666666666666667,
+              0.6
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 63.88279696693644,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 391.984375,
+                "vmhwm_MiB": 391.984375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.02030900213867426,
+              "p95_ms": 1.296421099686991,
+              "min_ms": 0.019316968973726034,
+              "max_ms": 4.129256005398929,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 184320048,
+            "memory": {
+              "rss_MiB": 235.73046875,
+              "vmhwm_MiB": 388.125
+            }
+          },
+          {
+            "index": 34,
+            "time_range": [
+              1.1333333333333333,
+              1.1666666666666667
+            ],
+            "count": 1280000,
+            "valid_count": 1280000,
+            "cold_prepare": {
+              "ms": 62.807758047711104,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 391.9921875,
+                "vmhwm_MiB": 391.9921875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.01996202627196908,
+              "p95_ms": 1.1587309069000147,
+              "min_ms": 0.019127968698740005,
+              "max_ms": 3.706004994455725,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 184320048,
+            "memory": {
+              "rss_MiB": 235.734375,
+              "vmhwm_MiB": 388.125
+            }
+          }
+        ],
+        "selected_identity": {
+          "owner": "prediction-gaussians",
+          "element_found": true,
+          "inspection": {
+            "ms": 0.28035498689860106,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 1,
+                "requested_bytes": 64,
+                "returned_bytes": 64
+              },
+              "total_calls": 1,
+              "total_returned_bytes": 64
+            },
+            "memory": {
+              "rss_MiB": 235.734375,
+              "vmhwm_MiB": 388.125
+            }
+          },
+          "trajectory": {
+            "ms": 6.777591013815254,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 36,
+                "requested_bytes": 2304,
+                "returned_bytes": 2304
+              },
+              "total_calls": 36,
+              "total_returned_bytes": 2304
+            },
+            "memory": {
+              "rss_MiB": 236.00390625,
+              "vmhwm_MiB": 388.125
+            }
+          },
+          "paths": 1,
+          "path_samples": 36
+        },
+        "all_camera_calibrations": [
+          {
+            "time": 0.0,
+            "views": 51,
+            "ms": 1.4233750407584012
+          },
+          {
+            "time": 0.6,
+            "views": 51,
+            "ms": 1.034835004247725
+          },
+          {
+            "time": 1.1666666666666667,
+            "views": 51,
+            "ms": 0.8666579960845411
+          }
+        ],
+        "memory": {
+          "rss_MiB": 236.12109375,
+          "vmhwm_MiB": 388.125
+        }
+      }
+    },
+    {
+      "dataset": "production-2560k",
+      "identities": 2560000,
+      "samples": 36,
+      "camera_views": 51,
+      "bytes": 19728279829,
+      "manifest_sha256": "b042554517a6f088711e967cacbd64dba9515d1886f72431d45e46d50fdc560a",
+      "reports_sha256": {
+        "before": "7058b6e586bf8a30d6b3b8b10f1c4c93013ee7d7a5ca4f1dcc12071fc1ecc607",
+        "endpoint_repair": "682eaf491adb5877576810fc8f4f7dd8f8c7013e3688809510b7b9a7a142df3f",
+        "final": "b34f3145c0312b28e1cc9a20db9529c5a62b624759fcc6e1eb284e94eb6220f0"
+      },
+      "source_unchanged": true,
+      "before": {
+        "source_commit": "76f95454478b693dc929b142a4aeafe3625dd60d",
+        "runtime_sha256": null,
+        "load": {
+          "ms": 73551.1182550108,
+          "python_source_reads": {
+            "pread": {
+              "calls": 734,
+              "requested_bytes": 5919162432,
+              "returned_bytes": 5919162432
+            },
+            "preadv": {
+              "calls": 728,
+              "requested_bytes": 5919088184,
+              "returned_bytes": 5919088184
+            },
+            "total_calls": 1462,
+            "total_returned_bytes": 11838250616
+          },
+          "memory": {
+            "rss_MiB": 58.9296875,
+            "vmhwm_MiB": 507.59765625
+          }
+        },
+        "intervals": [
+          {
+            "index": 0,
+            "time_range": [
+              0.0,
+              0.03333333333333333
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 129.63331496575847,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 40,
+                  "requested_bytes": 327680000,
+                  "returned_bytes": 327680000
+                },
+                "total_calls": 40,
+                "total_returned_bytes": 327680000
+              },
+              "memory": {
+                "rss_MiB": 397.9609375,
+                "vmhwm_MiB": 507.59765625
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 125.03899296279997,
+              "p95_ms": 305.42684031534003,
+              "min_ms": 122.30831501074135,
+              "max_ms": 356.5803350065835,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 600,
+                  "requested_bytes": 4915200000,
+                  "returned_bytes": 4915200000
+                },
+                "total_calls": 600,
+                "total_returned_bytes": 4915200000
+              },
+              "all_endpoint_storage_reused": false
+            },
+            "cache_bytes": 163840000,
+            "memory": {
+              "rss_MiB": 749.65625,
+              "vmhwm_MiB": 1059.11328125
+            }
+          },
+          {
+            "index": 1,
+            "time_range": [
+              0.03333333333333333,
+              0.06666666666666667
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 78.58263503294438,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 905.9140625,
+                "vmhwm_MiB": 1059.11328125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 125.33674202859402,
+              "p95_ms": 128.83017660933547,
+              "min_ms": 121.08306895243004,
+              "max_ms": 129.67103201663122,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 600,
+                  "requested_bytes": 4915200000,
+                  "returned_bytes": 4915200000
+                },
+                "total_calls": 600,
+                "total_returned_bytes": 4915200000
+              },
+              "all_endpoint_storage_reused": false
+            },
+            "cache_bytes": 163840000,
+            "memory": {
+              "rss_MiB": 749.671875,
+              "vmhwm_MiB": 1059.11328125
+            }
+          },
+          {
+            "index": 2,
+            "time_range": [
+              0.06666666666666667,
+              0.1
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 76.96330099133775,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 905.9296875,
+                "vmhwm_MiB": 1059.11328125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 124.96802897658199,
+              "p95_ms": 130.34379162127152,
+              "min_ms": 119.02907094918191,
+              "max_ms": 133.58686497667804,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 600,
+                  "requested_bytes": 4915200000,
+                  "returned_bytes": 4915200000
+                },
+                "total_calls": 600,
+                "total_returned_bytes": 4915200000
+              },
+              "all_endpoint_storage_reused": false
+            },
+            "cache_bytes": 163840000,
+            "memory": {
+              "rss_MiB": 749.68359375,
+              "vmhwm_MiB": 1059.171875
+            }
+          },
+          {
+            "index": 3,
+            "time_range": [
+              0.1,
+              0.13333333333333333
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 77.01510604238138,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 905.9375,
+                "vmhwm_MiB": 1059.171875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 124.35937096597627,
+              "p95_ms": 127.29283372755162,
+              "min_ms": 120.42937899241224,
+              "max_ms": 127.41123099112883,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 600,
+                  "requested_bytes": 4915200000,
+                  "returned_bytes": 4915200000
+                },
+                "total_calls": 600,
+                "total_returned_bytes": 4915200000
+              },
+              "all_endpoint_storage_reused": false
+            },
+            "cache_bytes": 163840000,
+            "memory": {
+              "rss_MiB": 749.6875,
+              "vmhwm_MiB": 1059.171875
+            }
+          },
+          {
+            "index": 17,
+            "time_range": [
+              0.5666666666666667,
+              0.6
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 117.60145699372515,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 40,
+                  "requested_bytes": 327680000,
+                  "returned_bytes": 327680000
+                },
+                "total_calls": 40,
+                "total_returned_bytes": 327680000
+              },
+              "memory": {
+                "rss_MiB": 1062.19921875,
+                "vmhwm_MiB": 1062.19921875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 126.36019801720977,
+              "p95_ms": 131.05259601725265,
+              "min_ms": 120.50181400263682,
+              "max_ms": 134.41195199266076,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 600,
+                  "requested_bytes": 4915200000,
+                  "returned_bytes": 4915200000
+                },
+                "total_calls": 600,
+                "total_returned_bytes": 4915200000
+              },
+              "all_endpoint_storage_reused": false
+            },
+            "cache_bytes": 163840000,
+            "memory": {
+              "rss_MiB": 749.6953125,
+              "vmhwm_MiB": 1059.18359375
+            }
+          },
+          {
+            "index": 34,
+            "time_range": [
+              1.1333333333333333,
+              1.1666666666666667
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 120.77782396227121,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 40,
+                  "requested_bytes": 327680000,
+                  "returned_bytes": 327680000
+                },
+                "total_calls": 40,
+                "total_returned_bytes": 327680000
+              },
+              "memory": {
+                "rss_MiB": 1062.203125,
+                "vmhwm_MiB": 1062.203125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 125.4400759935379,
+              "p95_ms": 129.2897484905552,
+              "min_ms": 124.14735299535096,
+              "max_ms": 130.55256596999243,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 600,
+                  "requested_bytes": 4915200000,
+                  "returned_bytes": 4915200000
+                },
+                "total_calls": 600,
+                "total_returned_bytes": 4915200000
+              },
+              "all_endpoint_storage_reused": false
+            },
+            "cache_bytes": 163840000,
+            "memory": {
+              "rss_MiB": 749.6953125,
+              "vmhwm_MiB": 1059.18359375
+            }
+          }
+        ],
+        "selected_identity": {
+          "owner": "prediction-gaussians",
+          "element_found": true,
+          "inspection": {
+            "ms": 0.2115539973601699,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 1,
+                "requested_bytes": 64,
+                "returned_bytes": 64
+              },
+              "total_calls": 1,
+              "total_returned_bytes": 64
+            },
+            "memory": {
+              "rss_MiB": 749.69921875,
+              "vmhwm_MiB": 1059.18359375
+            }
+          },
+          "trajectory": {
+            "ms": 10.272784973494709,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 36,
+                "requested_bytes": 2304,
+                "returned_bytes": 2304
+              },
+              "total_calls": 36,
+              "total_returned_bytes": 2304
+            },
+            "memory": {
+              "rss_MiB": 749.96875,
+              "vmhwm_MiB": 1059.18359375
+            }
+          },
+          "paths": 1,
+          "path_samples": 36
+        },
+        "all_camera_calibrations": null,
+        "memory": {
+          "rss_MiB": 749.96875,
+          "vmhwm_MiB": 1059.18359375
+        }
+      },
+      "endpoint_repair": {
+        "source_commit": "76f95454478b693dc929b142a4aeafe3625dd60d",
+        "runtime_sha256": {
+          "viewer/ubuntu/gs_studio/model.py": "e8c22a8fcadf20c84dfa9147695bae21f6063983178128afaa121067fa018341",
+          "viewer/ubuntu/gs_studio/camera.py": "aa6a7686c0c99d2e676a1d603e1ba971fe8a5027145c3360652c584699fbfdae"
+        },
+        "load": {
+          "ms": 28770.894349960145,
+          "python_source_reads": {
+            "pread": {
+              "calls": 734,
+              "requested_bytes": 5919162432,
+              "returned_bytes": 5919162432
+            },
+            "preadv": {
+              "calls": 728,
+              "requested_bytes": 5919088184,
+              "returned_bytes": 5919088184
+            },
+            "total_calls": 1462,
+            "total_returned_bytes": 11838250616
+          },
+          "memory": {
+            "rss_MiB": 59.19921875,
+            "vmhwm_MiB": 510.0234375
+          }
+        },
+        "intervals": [
+          {
+            "index": 0,
+            "time_range": [
+              0.0,
+              0.03333333333333333
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 138.06204497814178,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 40,
+                  "requested_bytes": 327680000,
+                  "returned_bytes": 327680000
+                },
+                "total_calls": 40,
+                "total_returned_bytes": 327680000
+              },
+              "memory": {
+                "rss_MiB": 391.171875,
+                "vmhwm_MiB": 510.0234375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.02354604657739401,
+              "p95_ms": 0.050108524737879606,
+              "min_ms": 0.02100499114021659,
+              "max_ms": 0.07069198181852698,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 398.34765625,
+              "vmhwm_MiB": 510.0234375
+            }
+          },
+          {
+            "index": 1,
+            "time_range": [
+              0.03333333333333333,
+              0.06666666666666667
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 103.22628996800631,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 571.9453125,
+                "vmhwm_MiB": 571.9453125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.021528045181185007,
+              "p95_ms": 2.1674099902156665,
+              "min_ms": 0.019710976630449295,
+              "max_ms": 7.059870986267924,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 415.69921875,
+              "vmhwm_MiB": 570.7109375
+            }
+          },
+          {
+            "index": 2,
+            "time_range": [
+              0.06666666666666667,
+              0.1
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 84.5113510149531,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 571.953125,
+                "vmhwm_MiB": 571.953125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.020511040929704905,
+              "p95_ms": 2.15362480375915,
+              "min_ms": 0.019438972231000662,
+              "max_ms": 7.032811001408845,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 415.703125,
+              "vmhwm_MiB": 570.7109375
+            }
+          },
+          {
+            "index": 3,
+            "time_range": [
+              0.1,
+              0.13333333333333333
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 85.56744898669422,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 576.59375,
+                "vmhwm_MiB": 576.59375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.020731997210532427,
+              "p95_ms": 2.0003382058348436,
+              "min_ms": 0.019132974557578564,
+              "max_ms": 6.51625101454556,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 420.34375,
+              "vmhwm_MiB": 575.3125
+            }
+          },
+          {
+            "index": 17,
+            "time_range": [
+              0.5666666666666667,
+              0.6
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 302.45959199965,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 40,
+                  "requested_bytes": 327680000,
+                  "returned_bytes": 327680000
+                },
+                "total_calls": 40,
+                "total_returned_bytes": 327680000
+              },
+              "memory": {
+                "rss_MiB": 732.85546875,
+                "vmhwm_MiB": 732.85546875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.020487001165747643,
+              "p95_ms": 2.3028188035823325,
+              "min_ms": 0.019096012692898512,
+              "max_ms": 7.511936011724174,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 420.3515625,
+              "vmhwm_MiB": 730.96484375
+            }
+          },
+          {
+            "index": 34,
+            "time_range": [
+              1.1333333333333333,
+              1.1666666666666667
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 124.17359498795122,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 40,
+                  "requested_bytes": 327680000,
+                  "returned_bytes": 327680000
+                },
+                "total_calls": 40,
+                "total_returned_bytes": 327680000
+              },
+              "memory": {
+                "rss_MiB": 732.859375,
+                "vmhwm_MiB": 732.859375
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.020590960048139095,
+              "p95_ms": 2.3410866095218728,
+              "min_ms": 0.01953495666384697,
+              "max_ms": 7.628041028510779,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "memory": {
+              "rss_MiB": 420.35546875,
+              "vmhwm_MiB": 731.2109375
+            }
+          }
+        ],
+        "selected_identity": {
+          "owner": "prediction-gaussians",
+          "element_found": true,
+          "inspection": {
+            "ms": 0.2248099772259593,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 1,
+                "requested_bytes": 64,
+                "returned_bytes": 64
+              },
+              "total_calls": 1,
+              "total_returned_bytes": 64
+            },
+            "memory": {
+              "rss_MiB": 420.35546875,
+              "vmhwm_MiB": 731.2109375
+            }
+          },
+          "trajectory": {
+            "ms": 10.688621026929468,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 36,
+                "requested_bytes": 2304,
+                "returned_bytes": 2304
+              },
+              "total_calls": 36,
+              "total_returned_bytes": 2304
+            },
+            "memory": {
+              "rss_MiB": 420.62890625,
+              "vmhwm_MiB": 731.2109375
+            }
+          },
+          "paths": 1,
+          "path_samples": 36
+        },
+        "all_camera_calibrations": [
+          {
+            "time": 0.0,
+            "views": 51,
+            "ms": 20.28662001248449
+          },
+          {
+            "time": 0.6,
+            "views": 51,
+            "ms": 19.94656096212566
+          },
+          {
+            "time": 1.1666666666666667,
+            "views": 51,
+            "ms": 19.970370980445296
+          }
+        ],
+        "memory": {
+          "rss_MiB": 420.69921875,
+          "vmhwm_MiB": 731.2109375
+        }
+      },
+      "final": {
+        "source_commit": "bf7a41021fed94ac1371fc42a8e4db3f6374671b",
+        "runtime_sha256": {
+          "viewer/ubuntu/gs_studio/model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+          "viewer/ubuntu/gs_studio/camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967"
+        },
+        "load": {
+          "ms": 29358.164383040275,
+          "python_source_reads": {
+            "pread": {
+              "calls": 734,
+              "requested_bytes": 5919162432,
+              "returned_bytes": 5919162432
+            },
+            "preadv": {
+              "calls": 728,
+              "requested_bytes": 5919088184,
+              "returned_bytes": 5919088184
+            },
+            "total_calls": 1462,
+            "total_returned_bytes": 11838250616
+          },
+          "memory": {
+            "rss_MiB": 59.2734375,
+            "vmhwm_MiB": 511.37890625
+          }
+        },
+        "intervals": [
+          {
+            "index": 0,
+            "time_range": [
+              0.0,
+              0.03333333333333333
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 140.11331496294588,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 40,
+                  "requested_bytes": 327680000,
+                  "returned_bytes": 327680000
+                },
+                "total_calls": 40,
+                "total_returned_bytes": 327680000
+              },
+              "memory": {
+                "rss_MiB": 391.25,
+                "vmhwm_MiB": 511.37890625
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.02423604018986225,
+              "p95_ms": 0.043840799480676616,
+              "min_ms": 0.021343992557376623,
+              "max_ms": 0.06754702189937234,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 368640048,
+            "memory": {
+              "rss_MiB": 398.43359375,
+              "vmhwm_MiB": 511.37890625
+            }
+          },
+          {
+            "index": 1,
+            "time_range": [
+              0.03333333333333333,
+              0.06666666666666667
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 83.77945399843156,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 572.03125,
+                "vmhwm_MiB": 572.03125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.02102699363604188,
+              "p95_ms": 2.1350015013012964,
+              "min_ms": 0.01974799670279026,
+              "max_ms": 6.945747998543084,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 368640048,
+            "memory": {
+              "rss_MiB": 415.78125,
+              "vmhwm_MiB": 573.3125
+            }
+          },
+          {
+            "index": 2,
+            "time_range": [
+              0.06666666666666667,
+              0.1
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 77.36130803823471,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 572.03515625,
+                "vmhwm_MiB": 573.3125
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.020733976271003485,
+              "p95_ms": 2.120446931803592,
+              "min_ms": 0.019108003471046686,
+              "max_ms": 6.910850002896041,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 368640048,
+            "memory": {
+              "rss_MiB": 415.78515625,
+              "vmhwm_MiB": 573.3125
+            }
+          },
+          {
+            "index": 3,
+            "time_range": [
+              0.1,
+              0.13333333333333333
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 77.71723001496866,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 20,
+                  "requested_bytes": 163840000,
+                  "returned_bytes": 163840000
+                },
+                "total_calls": 20,
+                "total_returned_bytes": 163840000
+              },
+              "memory": {
+                "rss_MiB": 576.6796875,
+                "vmhwm_MiB": 576.6796875
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.01979299122467637,
+              "p95_ms": 1.9408750289585375,
+              "min_ms": 0.018508988432586193,
+              "max_ms": 6.324302987195551,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 368640048,
+            "memory": {
+              "rss_MiB": 420.4296875,
+              "vmhwm_MiB": 577.9140625
+            }
+          },
+          {
+            "index": 17,
+            "time_range": [
+              0.5666666666666667,
+              0.6
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 121.54360697604716,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 40,
+                  "requested_bytes": 327680000,
+                  "returned_bytes": 327680000
+                },
+                "total_calls": 40,
+                "total_returned_bytes": 327680000
+              },
+              "memory": {
+                "rss_MiB": 732.94140625,
+                "vmhwm_MiB": 732.94140625
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.020853010937571526,
+              "p95_ms": 2.3571174999233255,
+              "min_ms": 0.019505037926137447,
+              "max_ms": 7.677897985558957,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 368640048,
+            "memory": {
+              "rss_MiB": 420.4375,
+              "vmhwm_MiB": 734.31640625
+            }
+          },
+          {
+            "index": 34,
+            "time_range": [
+              1.1333333333333333,
+              1.1666666666666667
+            ],
+            "count": 2560000,
+            "valid_count": 2560000,
+            "cold_prepare": {
+              "ms": 124.59220999153331,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 40,
+                  "requested_bytes": 327680000,
+                  "returned_bytes": 327680000
+                },
+                "total_calls": 40,
+                "total_returned_bytes": 327680000
+              },
+              "memory": {
+                "rss_MiB": 732.9453125,
+                "vmhwm_MiB": 734.31640625
+              }
+            },
+            "warm_prepare": {
+              "iterations": 15,
+              "median_ms": 0.020109990146011114,
+              "p95_ms": 2.37044465611688,
+              "min_ms": 0.01944700488820672,
+              "max_ms": 7.714292965829372,
+              "python_source_reads": {
+                "pread": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "preadv": {
+                  "calls": 0,
+                  "requested_bytes": 0,
+                  "returned_bytes": 0
+                },
+                "total_calls": 0,
+                "total_returned_bytes": 0
+              },
+              "all_endpoint_storage_reused": true
+            },
+            "validity_count_verified": true,
+            "cache_bytes": 0,
+            "active_endpoint_bytes": 368640048,
+            "memory": {
+              "rss_MiB": 420.4375,
+              "vmhwm_MiB": 734.31640625
+            }
+          }
+        ],
+        "selected_identity": {
+          "owner": "prediction-gaussians",
+          "element_found": true,
+          "inspection": {
+            "ms": 0.24059700081124902,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 1,
+                "requested_bytes": 64,
+                "returned_bytes": 64
+              },
+              "total_calls": 1,
+              "total_returned_bytes": 64
+            },
+            "memory": {
+              "rss_MiB": 420.4375,
+              "vmhwm_MiB": 734.31640625
+            }
+          },
+          "trajectory": {
+            "ms": 10.668968025129288,
+            "python_source_reads": {
+              "pread": {
+                "calls": 0,
+                "requested_bytes": 0,
+                "returned_bytes": 0
+              },
+              "preadv": {
+                "calls": 36,
+                "requested_bytes": 2304,
+                "returned_bytes": 2304
+              },
+              "total_calls": 36,
+              "total_returned_bytes": 2304
+            },
+            "memory": {
+              "rss_MiB": 420.70703125,
+              "vmhwm_MiB": 734.31640625
+            }
+          },
+          "paths": 1,
+          "path_samples": 36
+        },
+        "all_camera_calibrations": [
+          {
+            "time": 0.0,
+            "views": 51,
+            "ms": 1.2269080034457147
+          },
+          {
+            "time": 0.6,
+            "views": 51,
+            "ms": 0.924421998206526
+          },
+          {
+            "time": 1.1666666666666667,
+            "views": 51,
+            "ms": 0.878005987033248
+          }
+        ],
+        "memory": {
+          "rss_MiB": 420.82421875,
+          "vmhwm_MiB": 734.31640625
+        }
+      }
+    }
+  ]
+}

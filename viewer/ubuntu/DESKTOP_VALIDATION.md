@@ -1,6 +1,10 @@
 # Desktop validation: scope and retained reports
 
-Runtime source is frozen at `ec35705`; `6583689` is the final input-driver
+The later [production-data validation](PRODUCTION_VALIDATION.md) records the
+real 160k–2.56M-point tests and subsequent endpoint/calibration optimizations.
+The source revisions and complete parity runs below are historical evidence.
+
+The earlier parity validation froze runtime source at `ec35705`; `6583689` is its final input-driver
 revision. The checkout was clean when final-run preparation began. The report,
 not a manually edited table, determines the exact source and working-tree state
 of each run. Do not infer acceptance from an earlier run or from completed

@@ -238,7 +238,13 @@ and manual acceptance checklist for each target driver before release.
 
 ## Current verification scope
 
-Runtime source is frozen at `ec35705`; the final input-driver revision is
+The later [production-data validation](PRODUCTION_VALIDATION.md) tests real
+160k, 640k, 1.28M and 2.56M-point, 36-sample GSVs. Endpoint retention and batch
+camera evaluation are committed at `bf7a410`; the updated Ubuntu suite ran
+**255 tests: 253 passed and two opt-in benchmark tests skipped**. Production
+source reads, actual GTK/GPU timings and native input have separate evidence.
+
+The earlier complete parity run froze runtime source at `ec35705`; its input-driver revision is
 `6583689`. The Ubuntu suite ran **245 tests: 243 passed and two benchmark tests
 skipped**; the Python SDK suite passed **78 tests**. Seven timeline/range tests
 and a real AT-SPI Value probe verify the native time interface. Fourteen snapshot

@@ -18,11 +18,15 @@ paths below are relative to `viewer/ubuntu`.
 
 **Implemented** means the current source contains a reachable entry and
 behavior. **Automated** means the named assertion ran; it does not by itself
-establish native device delivery. The recorded suite ran **245 tests: 243 passed,
+establish native device delivery. The earlier complete-parity suite ran **245 tests: 243 passed,
 two benchmark tests skipped**, and the Python SDK suite passed **78 tests**.
-Source `ec35705` freezes runtime changes; `6583689` is the final input-driver
+Its runtime baseline is `ec35705`; `6583689` is the final input-driver
 revision. The 80-action mapping is a review-completeness guard, not runtime
 proof of every mapped action.
+
+Subsequent [production-data validation](PRODUCTION_VALIDATION.md) uses four real
+160k–2.56M-point scenes. The endpoint/calibration changes at `bf7a410` pass an
+updated **255-test suite: 253 passed, two opt-in benchmarks skipped**.
 
 **Desktop ID** means the exact ID and group in a retained runner report. Read
 [DESKTOP_VALIDATION.md](DESKTOP_VALIDATION.md#final-report-status) for final status

@@ -7,8 +7,12 @@ and [camera/render contract](../../docs/gsv/RENDER_CONTRACT.md).
 
 ## Current verification scope
 
+Later [production-data validation](PRODUCTION_VALIDATION.md) covers four real
+160k–2.56M-point scenes and the endpoint/calibration optimizations at `bf7a410`.
+The updated Ubuntu suite ran **255 tests: 253 passed, two opt-in benchmarks skipped**.
+
 Runtime source `ec35705` and desktop input-driver revision `6583689` are the
-final-run baseline. Automated results are **245 tests: 243 passed, two benchmark
+earlier complete-parity baseline. Its automated results are **245 tests: 243 passed, two benchmark
 tests skipped**, plus **78 Python SDK tests passed**. macOS uses its independent
 Swift/Metal loader and renderer; shared specifications, fixtures, translation
 catalogs and canonical product metadata do not imply one runtime SDK.
