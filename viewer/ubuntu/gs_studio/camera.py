@@ -219,6 +219,17 @@ class CameraTrack:
     id: str = field(default_factory=lambda: 'camera-' + str(uuid.uuid4()))
     spaces: dict = field(default_factory=dict, repr=False)
     clocks: dict = field(default_factory=dict, repr=False)
+    _times_source: object = field(default=None, init=False, repr=False)
+    _times_cache: np.ndarray | None = field(default=None, init=False, repr=False)
+
+    @property
+    def times(self):
+        """Read-only native key times, reused until an edit replaces the list."""
+        if self._times_source is not self.keyframes:
+            times = np.fromiter((key.time for key in self.keyframes), np.float64, count=len(self.keyframes))
+            times.flags.writeable = False
+            self._times_source, self._times_cache = self.keyframes, times
+        return self._times_cache
 
     def __eq__(self, other):
         # A camera's stable identity is independent of its editable name/pose.
@@ -230,6 +241,7 @@ class CameraTrack:
         """Copy editable structure while sharing immutable keyframe arrays."""
         out = copy.copy(self)
         out.keyframes = []
+        out._times_source = out._times_cache = None
         for key in self.keyframes:
             if key.K.flags.writeable or key.c2w.flags.writeable:
                 k, pose = np.array(key.K, copy=True), np.array(key.c2w, copy=True)
@@ -267,7 +279,7 @@ class CameraTrack:
             raise GSVError('Camera has no keyframes')
         if not np.isfinite(time):
             raise GSVError('Time must be finite')
-        times = np.array([f.time for f in self.keyframes], np.float64)
+        times = self.times
         b = min(int(np.searchsorted(times, time)), len(times) - 1)
         a = max(0, b - 1)
         weight = _time_weight(time, times[a], times[b]) if a != b else 0
@@ -378,8 +390,12 @@ def export_camera_animation(path, tracks, source, *, overwrite=False):
                                     'interpolation': 'translation/K linear; rotation shortest-arc SLERP'})
 
 
-def import_camera_animation(path, source, existing_ids=()):
+def import_camera_animation(path, source, existing_ids=(), *, cancelled=None):
     """Validate every camera before returning any authored data to the caller."""
+    def check_cancelled():
+        if cancelled is not None and cancelled():
+            raise InterruptedError('Camera import was superseded')
+    check_cancelled()
     with open_regular_scene(path) as incoming:
         objects = incoming.objects
         if not objects or any(o['encoding'] != 'gsv.camera.pinhole' or o['type'] != 'camera' for o in objects):
@@ -391,6 +407,7 @@ def import_camera_animation(path, source, existing_ids=()):
         used = set(existing_ids) | {o['id'] for o in source.objects}
         tracks = []
         for obj in objects:
+            check_cancelled()
             validate_object(incoming, obj)
             data, projection = obj['data'], obj['data']['projection']
             if (obj.get('metadata', {}).get('role') != 'user' or len(data['view_ids']) != 1
@@ -425,15 +442,34 @@ def import_camera_animation(path, source, existing_ids=()):
             k = incoming.array(projection['intrinsics'])
             poses = incoming.array(data['pose']['camera_to_world'])
             volume = data.get('view_volume')
+            near_values = incoming.array(volume['near']) if volume else None
+            far_values = incoming.array(volume['far']) if volume else None
+            unbounded = incoming.array(volume['far_unbounded']) if volume else None
+            frames = []
             for i, time in enumerate(times):
-                ki = np.array(k[i, 0], copy=True)
+                if i % 128 == 0:
+                    check_cancelled()
+                native_time = float(time)
+                if not np.isfinite(native_time):
+                    raise GSVError('Camera key time must be finite')
+                ki = np.array(k[i, 0], np.float64, copy=True)
+                pose = np.array(poses[i, 0], np.float64, copy=True)
                 if projection['pixel_center'] == 'integer':
                     ki[:2, 2] += .5
                 near, far = .001, None
                 if volume:
-                    near = float(incoming.array(volume['near'])[i, 0])
-                    if not incoming.array(volume['far_unbounded'])[i, 0]:
-                        far = float(incoming.array(volume['far'])[i, 0])
-                track.record(time, ki, poses[i, 0], near=near, far=far)
+                    near = float(near_values[i, 0])
+                    if not unbounded[i, 0]:
+                        far = float(far_values[i, 0])
+                # Fixed source/target raster makes record()'s row scaling an
+                # identity. Keep its numerical checks and affine normalization,
+                # then publish one ordered list instead of sorting every prefix.
+                _validate_calibration(ki,pose,width,height,near,far)
+                pose[3] = [0,0,0,1]
+                ki.flags.writeable = pose.flags.writeable = False
+                frames.append(CameraKeyframe(native_time,ki,pose,float(near),far))
+            check_cancelled()
+            incoming._unchanged()
+            track.keyframes = frames
             tracks.append(track)
         return tracks

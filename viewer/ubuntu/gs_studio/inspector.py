@@ -25,6 +25,10 @@ class Inspector(Gtk.Box):
         self._subtitles = ()
         self._group_title = tr("inspector.object", "Object")
         self._raw_text = None
+        self._descriptor_key = None
+        self._descriptor_references = None
+        self._descriptor_value = None
+        self._descriptor_text = None
         self.signature = None
         self.raw = Gtk.TextView(editable=False, cursor_visible=False, monospace=True, wrap_mode=Gtk.WrapMode.WORD_CHAR, top_margin=8, left_margin=8, right_margin=8, bottom_margin=8)
         self.expander = Gtk.Expander(label=tr("inspector.raw", "View object descriptor…"))
@@ -61,6 +65,25 @@ class Inspector(Gtk.Box):
             self.raw.get_buffer().set_text(text)
             self._raw_text = text
 
+    def _descriptor_snapshot(self, document, primary, track):
+        """Serialize unchanged source/authored descriptors once, outside ticks."""
+        key = (id(document),primary,id(track),id(track.keyframes) if track else None,
+               (track.id,track.label,track.space,track.clock) if track else None)
+        if key != self._descriptor_key:
+            if track:
+                descriptor = {'id':track.id,'label':track.label,'space':track.space,
+                              'clock':track.clock,'key_times':track.times.tolist()}
+            elif primary:
+                descriptor = document.object(primary)
+            else:
+                descriptor = {name:document.manifest.get(name,{}) for name in ('spaces','clocks','metadata')}
+            self._descriptor_value = descriptor
+            self._descriptor_text = json.dumps(descriptor,indent=2,ensure_ascii=False)
+            self._descriptor_key = key
+            # Keep identities alive while cached, avoiding object-id reuse.
+            self._descriptor_references = document,track,track.keyframes if track else None
+        return self._descriptor_value,self._descriptor_text
+
     def document(self, document, frame=None):
         """Independent document pane, matching the native workspace contract."""
         count = getattr(frame, 'count', None)
@@ -93,8 +116,8 @@ class Inspector(Gtk.Box):
                   ('document.clock', clock_note+'\n\n'+tr('document.clockNote')),
                   ('document.storage', tr('object.sourceSafe'))]
         self._show_rows([(tr(key),value) for key,value in values])
-        self._show_raw(json.dumps({key: document.manifest.get(key, {})
-            for key in ('spaces', 'clocks', 'metadata')}, indent=2, ensure_ascii=False))
+        _,raw_text = self._descriptor_snapshot(document,None,None)
+        self._show_raw(raw_text)
 
     def update(self, document, primary, selected, frame, calibration, track, time, primary_member=None, elements=None):
         is_element = any(i is not None for _, i in selected)
@@ -111,9 +134,8 @@ class Inspector(Gtk.Box):
             elif isinstance(value, np.ndarray):
                 value = np.array2string(value, precision=6, suppress_small=True)
             values.append((key,value))
-        descriptor = {}
+        descriptor,raw_text = self._descriptor_snapshot(document,primary,track)
         if primary and track is None:
-            descriptor = document.object(primary)
             self._title(descriptor.get("label", primary))
             for key, field in [("property.identity", "id"), ("property.type", "type"), ("property.encoding", "encoding"), ("property.space", "space"), ("property.clock", "clock")]:
                 prop(tr(key, field.title()), descriptor.get(field))
@@ -139,8 +161,7 @@ class Inspector(Gtk.Box):
             prop(tr("property.identity", "Identity"), track.id)
             prop(tr("property.space", "Space"), track.space)
             prop(tr("property.clock", "Clock"), track.clock)
-            prop(tr("camera.keys", "Camera keyframes"), ", ".join(f"{k.time:.9g}" for k in track.keyframes))
-            descriptor = {"id": track.id, "label": track.label, "space": track.space, "clock": track.clock, "key_times": [k.time for k in track.keyframes]}
+            prop(tr("camera.keys", "Camera keyframes"), len(track.keyframes))
         else:
             self._title(tr("document.summary", "Document"))
             prop(tr("document.file", "File"), document.path.name)
@@ -149,7 +170,6 @@ class Inspector(Gtk.Box):
             prop(tr("property.space", "Space"), document.space)
             prop(tr("property.clock", "Clock"), document.clock)
             prop(tr("property.units", "Units"), tr("unit."+document.clock_unit, document.clock_unit))
-            descriptor = {key: document.manifest.get(key, {}) for key in ("spaces", "clocks", "metadata")}
         if calibration is not None:
             prop(tr('camera.evaluatedTime'), calibration.details.get('evaluated_time', time))
             prop(tr("camera.imageSize", "Image size"), f"{calibration.width} × {calibration.height}")
@@ -211,7 +231,7 @@ class Inspector(Gtk.Box):
                     prop(tr("property.quaternion"), frame.records[i, 8:12])
                     prop(tr("property.confidence"), frame.records[i, 15] if frame.records[i, 15] >= 0 else tr("common.notProvided"))
         self._show_rows(values)
-        self._show_raw(json.dumps(descriptor, indent=2, ensure_ascii=False))
+        self._show_raw(raw_text)
 
     def comparison(self, result=None, message=None):
         self.signature = None

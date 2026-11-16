@@ -1,5 +1,6 @@
 """Cross-platform scene and authoring acceptance tests, without GTK or GPU."""
 from pathlib import Path
+import hashlib
 import os
 import subprocess
 import sys
@@ -11,7 +12,7 @@ import numpy as np
 
 from gsv import GSVError, Scene, Writer, add_camera, add_persistent_gaussians
 from gs_studio.model import SceneDocument, PreparedFrame, density_rows
-from gs_studio.camera import (CameraHistory, CameraTrack, export_camera_animation,
+from gs_studio.camera import (CameraHistory, CameraKeyframe, CameraTrack, export_camera_animation,
                               import_camera_animation, SnapshotScene)
 from gs_studio import model
 
@@ -54,6 +55,29 @@ def write(path, *, gap=False, clocks=False):
                    [[320, 240]], pixel_center='half')
         if clocks:
             add_persistent_gaussians(out, 'foreign', ids, [0.], iter([record()]), clock='foreign-time', space='elsewhere')
+
+
+def write_camera_animation(path, source, count, *, invalid_middle=False):
+    """Write dense camera arrays directly; fixture construction stays linear."""
+    k=np.tile(np.array([[200.,3.,160.],[0.,210.,120.],[0.,0.,1.]]),(count,1,1,1))
+    poses=np.tile(np.eye(4),(count,1,1,1));poses[:,0,0,3]=np.arange(count)*.001
+    if invalid_middle:
+        poses[count//2,0,3,3]=2.
+    with Writer(path,validate=not invalid_middle,metadata={'source_document':{
+            'name':source.path.name,'manifest_sha256':source.manifest_sha256}}) as out:
+        out.manifest['spaces']=source.manifest['spaces'].copy()
+        out.manifest['clocks']=source.manifest['clocks'].copy()
+        data={'times':out.add_array('times',np.arange(count,dtype=np.float64)),
+              'view_ids':['main'],
+              'projection':{'intrinsics':out.add_array('K',k),
+                            'image_sizes':out.add_array('size',np.array([[320,240]],np.int32)),
+                            'pixel_center':'integer','distortion':{'model':'none'}},
+              'pose':{'camera_to_world':out.add_array('poses',poses)},
+              'view_volume':{'near':out.add_array('near',np.full((count,1),.01)),
+                             'far':out.add_array('far',np.where((np.arange(count)%2==1)[:,None],0.,100.)),
+                             'far_unbounded':out.add_array('unbounded',(np.arange(count)%2==1)[:,None])}}
+        out.add_object('dense-user-camera','camera','gsv.camera.pinhole',data,
+                       space=source.space,clock=source.clock,metadata={'role':'user'})
 
 
 class ModelTests(unittest.TestCase):
@@ -235,6 +259,10 @@ with SceneDocument(path) as document:
             self.assertTrue(0 < frame.weight < 1)
             self.assertFalse(frame.element('field', -2**60 - 7).valid)
             self.assertEqual(len(frame.materialize()), 1)
+            self.assertEqual(frame.materialize().source_count,2)
+            self.assertEqual(doc.evaluate(2).source_count,2)
+            self.assertEqual(doc.evaluate(0).source_layout,doc.evaluate(2).source_layout)
+            self.assertEqual(doc.prepare_frame(.5).source_layout,doc.prepare_frame(3.5).source_layout)
             self.assertEqual(doc.prepare_frame(3).valid_count, 2)
             self.assertEqual(doc.prepare_frame(2).valid_count, 1)
 
@@ -562,6 +590,7 @@ with SceneDocument(path) as document:
             out.add_object('graph','scaffold','gsv.scaffold.graph',data,space='world',clock='scene')
         with SceneDocument(path) as doc:
             self.assertEqual(len(doc.evaluate(0)),0)
+            self.assertEqual(doc.evaluate(0).source_count,1)
             self.assertIsNone(doc.element('graph',3,0))
             self.assertEqual(doc.trajectories('graph'),[])
 
@@ -600,6 +629,51 @@ class AuthoringTests(unittest.TestCase):
             import_camera_animation(target, self.doc, existing_ids=[self.track.id])
         with self.assertRaisesRegex(GSVError, 'separate file'):
             export_camera_animation(self.path, [self.track], self.doc, overwrite=True)
+
+    def test_large_camera_import_preserves_every_key_calibration_and_source_bytes(self):
+        target=Path(self.temp.name)/'dense-camera.gsv'
+        write_camera_animation(target,self.doc,10_000)
+        source_hash=hashlib.sha256(self.path.read_bytes()).hexdigest()
+        camera_hash=hashlib.sha256(target.read_bytes()).hexdigest()
+        track=import_camera_animation(target,self.doc)[0]
+        self.assertEqual(len(track.keyframes),10_000)
+        np.testing.assert_array_equal(track.times,np.arange(10_000,dtype=np.float64))
+        for index in (0,4999,5000,9999):
+            key=track.keyframes[index]
+            self.assertFalse(key.K.flags.writeable)
+            self.assertFalse(key.c2w.flags.writeable)
+            np.testing.assert_allclose(key.K[:2,2],[160.5,120.5])
+            self.assertAlmostEqual(key.c2w[0,3],index*.001)
+            self.assertEqual((key.near,key.far),(.01,None if index%2 else 100.))
+        self.assertAlmostEqual(track.at(4321.5).c2w[0,3],4.3215)
+        self.assertEqual(hashlib.sha256(self.path.read_bytes()).hexdigest(),source_hash)
+        self.assertEqual(hashlib.sha256(target.read_bytes()).hexdigest(),camera_hash)
+
+    def test_import_rejects_invalid_middle_key_and_keeps_authoring_guards(self):
+        target=Path(self.temp.name)/'invalid-middle-camera.gsv'
+        write_camera_animation(target,self.doc,1000,invalid_middle=True)
+        with self.assertRaisesRegex(GSVError,'pose'):
+            import_camera_animation(target,self.doc)
+        # Even if a future SDK validator accepts a broader source encoding,
+        # the editable-camera adapter still enforces its affine contract.
+        with mock.patch('gs_studio.camera.validate_object',return_value=None):
+            with self.assertRaisesRegex(GSVError,'affine pose'):
+                import_camera_animation(target,self.doc)
+
+    def test_large_camera_import_cancellation_discards_partial_tracks_and_closes_source(self):
+        from gs_studio import camera
+        target=Path(self.temp.name)/'cancel-dense-camera.gsv'
+        write_camera_animation(target,self.doc,1000)
+        opened=[];calls=[0];real_open=camera.open_regular_scene
+        def open_scene(path):
+            scene=real_open(path);opened.append(scene);return scene
+        def cancelled():
+            calls[0]+=1
+            return calls[0]>=4  # Stop at the second 128-key chunk.
+        with mock.patch.object(camera,'open_regular_scene',side_effect=open_scene):
+            with self.assertRaises(InterruptedError):
+                import_camera_animation(target,self.doc,cancelled=cancelled)
+        self.assertTrue(opened[0]._file.closed)
 
     def test_import_checks_digest(self):
         target = Path(self.temp.name) / 'cameras.gsv'
@@ -741,6 +815,38 @@ class AuthoringTests(unittest.TestCase):
         with self.assertRaises(GSVError):
             CameraHistory(limit=0)
 
+    def test_large_authored_camera_seek_reuses_readonly_times_and_edits_refresh_index(self):
+        class ObservedKeys(list):
+            traversals=0
+            def __iter__(self):
+                self.traversals+=1
+                return super().__iter__()
+        k=np.array([[200.,0,160.],[0,200.,120.],[0,0,1.]])
+        poses=[np.eye(4),np.eye(4)];poses[1][0,3]=10
+        for value in [k,*poses]:value.flags.writeable=False
+        track=CameraTrack('Large animation',self.doc.space,self.doc.clock,320,240)
+        keys=ObservedKeys(CameraKeyframe(float(i),k,poses[i%2]) for i in range(100_000))
+        track.keyframes=keys
+        times=track.times
+        with self.assertRaises(ValueError):times[0]=123
+        traversals=keys.traversals
+        for time,expected in [(99998.25,2.5),(12345.75,2.5),(-10.,0.),(1e9,10.)]:
+            self.assertAlmostEqual(track.at(time).c2w[0,3],expected)
+            self.assertIs(track.times,times)
+        self.assertEqual(keys.traversals,traversals,'Seeking traversed the entire authored track')
+        track.record(100001,k,poses[0])
+        self.assertIsNot(track.times,times)
+        self.assertEqual(track.times[-1],100001)
+        track.remove(len(track.keyframes)-1)
+        self.assertEqual(track.times[-1],99999)
+        track.retime(0,-10)
+        self.assertEqual(track.times[0],-10)
+        self.assertAlmostEqual(track.at(-4.5).c2w[0,3],5.)
+        clone=track.clone()
+        np.testing.assert_array_equal(clone.times,track.times)
+        clone.record(-5,k,poses[0])
+        self.assertNotIn(-5,track.times)
+
 
 @unittest.skipUnless(os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY'),
                      'Inspector needs GTK; use xvfb-run')
@@ -824,6 +930,36 @@ class InspectorParityTests(unittest.TestCase):
         self.assertEqual(unchanged_notifications,[])
         self.assertEqual(raw_changes,[])
         self.assertTrue(self.inspector.expander.get_expanded())
+
+    def test_large_authored_track_keeps_count_and_cached_complete_raw_descriptor_during_seek(self):
+        import json
+        from gs_studio.i18n import tr
+        k=np.array([[200.,0,160.],[0,200.,120.],[0,0,1.]])
+        pose=np.eye(4)
+        k.flags.writeable=pose.flags.writeable=False
+        track=CameraTrack('Large animation',self.doc.space,self.doc.clock,320,240)
+        track.keyframes=[CameraKeyframe(float(i),k,pose) for i in range(100_000)]
+        calibration=track.at(0)
+        with mock.patch('gs_studio.inspector.json.dumps',wraps=json.dumps) as serialize:
+            self.inspector.update(self.doc,track.id,{(track.id,None)},None,calibration,track,0)
+            rows=tuple(self.inspector.rows)
+            for time in np.linspace(0,99999,25):
+                self.inspector.update(self.doc,track.id,{(track.id,None)},None,track.at(float(time)),track,float(time))
+                self.assertEqual(tuple(self.inspector.rows),rows)
+            self.assertEqual(serialize.call_count,1,'Playback rebuilt the complete raw camera descriptor')
+            track.retime(0,-10)
+            self.inspector.update(self.doc,track.id,{(track.id,None)},None,track.at(0),track,0)
+            self.assertEqual(serialize.call_count,2)
+        values={row.get_title():row.get_subtitle() for row in self.inspector.rows}
+        self.assertEqual(values[tr('camera.keys')],'100000')
+        buffer=self.inspector.raw.get_buffer()
+        descriptor=json.loads(buffer.get_text(buffer.get_start_iter(),buffer.get_end_iter(),False))
+        self.assertEqual(len(descriptor['key_times']),100_000)
+        self.assertEqual(descriptor['key_times'][0],-10)
+        track.label='Renamed large animation'
+        self.inspector.update(self.doc,track.id,{(track.id,None)},None,track.at(0),track,0)
+        descriptor=json.loads(buffer.get_text(buffer.get_start_iter(),buffer.get_end_iter(),False))
+        self.assertEqual(descriptor['label'],track.label)
 
 
 if __name__ == '__main__':

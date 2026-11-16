@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import html
 import json
 import math
 from pathlib import Path
@@ -98,6 +99,7 @@ class StudioWindow(Adw.ApplicationWindow):
         self.history = CameraHistory()
         self.editing_id = None
         self.camera_entries = []
+        self._viewed_entry = None
         self.render_entries = []
         self._supplemental_clocks = {}
         self._supplemental_spaces = {}
@@ -106,6 +108,7 @@ class StudioWindow(Adw.ApplicationWindow):
         self._calibrations = {}
         self._inspection_calibrations = {}
         self._inspected_elements = {}
+        self._editor_signature = None
         self._inspected_views = {}
         self._updating = False
         self._paths_revision = 0
@@ -377,7 +380,7 @@ class StudioWindow(Adw.ApplicationWindow):
         self.detail_view = Inspector()
         selection_box = box(Gtk.Orientation.VERTICAL, 8)
         selection_box.append(self.detail_view)
-        selection_actions = box(spacing=4, margin_start=10, margin_end=10)
+        selection_actions = box(Gtk.Orientation.VERTICAL, spacing=4, margin_start=10, margin_end=10)
         selection_actions.append(button(tr("view.focus", "Frame selection"), self._frame_selection))
         selection_actions.append(button(tr("selection.copy", "Copy attributes"), self._copy_attributes))
         selection_box.append(selection_actions)
@@ -419,6 +422,9 @@ class StudioWindow(Adw.ApplicationWindow):
         camera_box.append(button(tr("camera.save", "Save Camera Animation…"), lambda: self.choose_file("save")))
         camera_box.append(button(tr("camera.import", "Import Camera Animation…"), lambda: self.choose_file("import")))
         selection_box.append(camera_box)
+        # Authored controls are the primary task in this context. Keep them
+        # ahead of expanded calibration/provenance details in the same page.
+        selection_box.reorder_child_after(camera_box, None)
         self.tabs.append_page(scroller(selection_box), label(tr("inspector.selection", "Selection")))
         view = box(Gtk.Orientation.VERTICAL, 10, margin_start=10, margin_end=10, margin_top=10)
         self.viewport_controls = view
@@ -459,6 +465,8 @@ class StudioWindow(Adw.ApplicationWindow):
             spin.set_value(value)
             spin.set_digits(0 if step == 1 else 6 if prop == "near_clip" else 2)
             spin.connect("value-changed", self._view_option, prop)
+            if prop == 'near_clip':
+                self.near_clip_control = spin
             view.append(spin)
         self.tabs.append_page(scroller(view), label(tr("inspector.viewport", "Viewport")))
         self.document_view = Inspector()
@@ -469,11 +477,16 @@ class StudioWindow(Adw.ApplicationWindow):
 
     def _field(self, parent, text, callback):
         parent.append(label(text, xalign=0))
-        entry = Gtk.Entry()
+        entry = Gtk.Entry(hexpand=True, width_chars=1)
         accessible(entry, text)
         entry.connect("activate", lambda *_: self._guard(callback))
         entry.set_tooltip_text(text+" · Enter")
-        parent.append(entry)
+        row = box(spacing=4)
+        row.append(entry)
+        apply = button(tr("common.apply", "Apply"), lambda: self._guard(callback))
+        accessible(apply, text+" · "+tr("common.apply", "Apply"))
+        row.append(apply)
+        parent.append(row)
         return entry
 
     def _actions(self):
@@ -626,7 +639,8 @@ class StudioWindow(Adw.ApplicationWindow):
                                 self.selected = {(self.primary, None)}
                             self._camera_edited()
                     existing_ids = [t.id for t in self.history.tracks]
-                    self.file_jobs.submit(lambda: import_camera_animation(path, source, existing_ids=existing_ids), imported)
+                    self.file_jobs.submit(lambda: import_camera_animation(path, source, existing_ids=existing_ids,
+                        cancelled=lambda: self.closed or source is not self.document or chooser_generation != self._chooser_generation), imported)
             except GLib.Error as exc:
                 if not exc.matches(Gtk.DialogError.quark(), Gtk.DialogError.DISMISSED):
                     self.error(exc)
@@ -713,6 +727,7 @@ class StudioWindow(Adw.ApplicationWindow):
         self._supplemental_clocks = {}
         self._supplemental_spaces = {}
         self.editing_id = None
+        self._viewed_entry = None
         self.dirty = False
         self.selected.clear()
         self.primary = None
@@ -1110,11 +1125,13 @@ class StudioWindow(Adw.ApplicationWindow):
             for track in self.history.tracks:
                 entries.append((track.id, 0, True))
                 names.append(track.label+" · user")
-        old = self.camera_entries[self.camera_drop.get_selected()-1] if 0 < self.camera_drop.get_selected() <= len(self.camera_entries) else None
+        old = self._viewed_entry
         self._updating = True
         self.camera_entries = entries
         self.camera_drop.set_model(Gtk.StringList.new(names))
         self.camera_drop.set_selected(entries.index(old)+1 if old in entries else 0)
+        if old not in entries:
+            self._viewed_entry = None
         self._updating = False
 
     def _track(self):
@@ -1126,14 +1143,38 @@ class StudioWindow(Adw.ApplicationWindow):
         index = widget.get_selected()
         if index > 0:
             identifier, view, authored = self.camera_entries[index-1]
-            self._inspected_views[identifier] = view
-            self.editing_id = identifier if authored else None
-            self.primary = identifier
-            self.selected = {(identifier, None if authored else view)}
-            self.timeline.selected_key = None
-            self._selection_changed()
+            track = next((t for t in self.history.tracks if t.id == identifier), None) if authored else None
+            compatible = (track.space,track.clock) == (self.document.space,self.document.clock) if track else (identifier,view) in self._calibrations
+            if not compatible:
+                self._updating = True
+                self.camera_drop.set_selected(self.camera_entries.index(self._viewed_entry)+1 if self._viewed_entry in self.camera_entries else 0)
+                self._updating = False
+                self.status.set_text(tr('camera.viewportDomainMismatch'))
+                return
+            calibration = track.at(self.time) if track else self._calibrations[(identifier,view)]
+            self._viewed_entry = self.camera_entries[index-1]
+            self.viewport.set_camera(calibration)
+            self.viewport.center_on_depth()
+            self._adopt_camera_profile(identifier,view)
         else:
+            self._viewed_entry = None
             self.viewport.set_camera(None)
+
+    def _adopt_camera_profile(self, owner, view):
+        profiles = {item['links']['profile'] for item in self.document.render_views
+                    if item['links']['camera'] == owner and item['data']['camera_view'] == view}
+        if len(profiles) == 1:
+            profile = self.document.object(next(iter(profiles)))
+            near = profile.get('data',{}).get('visibility',{}).get('center_depth',{}).get('near')
+            if near is None or not math.isfinite(float(near)) or float(near) < 0:
+                return
+            near = float(near)
+            self.viewport.near_clip = max(near, float(np.finfo(np.float32).tiny))
+            self._updating = True
+            self.near_clip_control.set_range(min(.0001,near),max(100,near))
+            self.near_clip_control.set_value(near)
+            self._updating = False
+            self.viewport.queue_render()
 
     def _update_camera_pose(self):
         if not self.document:
@@ -1204,6 +1245,7 @@ class StudioWindow(Adw.ApplicationWindow):
             self._selection_changed()
 
     def _free_camera(self):
+        self._viewed_entry = None
         self._updating = True
         self.camera_drop.set_selected(0)
         self._updating = False
@@ -1222,7 +1264,7 @@ class StudioWindow(Adw.ApplicationWindow):
             self._supplemental_spaces.setdefault(track.space, copy.deepcopy(space))
             track.clocks = copy.deepcopy(self._supplemental_clocks)
             track.spaces = copy.deepcopy(self._supplemental_spaces)
-            track.record(self.time, k, pose)
+            track.record(self.time, k, pose, near=self.viewport.near_clip)
             self.history.remember()
             self.history.tracks.append(track)
             self.visible.add(track.id)
@@ -1241,7 +1283,7 @@ class StudioWindow(Adw.ApplicationWindow):
                 raise ValueError(tr("camera.recordDomainMismatch", "Camera and viewport domains differ."))
             k, pose, width, height = self.viewport.get_camera()
             edited = track.clone()
-            edited.record(self.time, k, pose, width, height)
+            edited.record(self.time, k, pose, width, height, near=self.viewport.near_clip)
             self.history.remember()
             self.history.tracks[self.history.tracks.index(track)] = edited
             self._camera_edited()
@@ -1279,12 +1321,15 @@ class StudioWindow(Adw.ApplicationWindow):
 
     def _refresh_camera_editor(self, force=False):
         track = self._track()
-        self.timeline.keys = [k.time for k in track.keyframes] if track else []
+        signature = (id(track),id(track.keyframes)) if track else (None,None)
+        changed_keys = signature != self._editor_signature
+        if changed_keys:
+            self._editor_signature = signature
+            self.timeline.keys = [k.time for k in track.keyframes] if track else []
         self.timeline.key_name = track.label if track else ""
         self.camera_editor.set_visible(track is not None and not self.compare_toggle.get_active())
-        key_names = [f"{key.time:.17g}" for key in track.keyframes] if track else []
-        current = self.key_drop.get_model()
-        if current is None or [current.get_string(i) for i in range(current.get_n_items())] != key_names:
+        if changed_keys:
+            key_names = [f"{key.time:.17g}" for key in track.keyframes] if track else []
             self._updating = True
             self.key_drop.set_model(Gtk.StringList.new(key_names))
             self._updating = False
@@ -1306,7 +1351,7 @@ class StudioWindow(Adw.ApplicationWindow):
                   (self.position, ", ".join(f"{x:.9g}" for x in calibration.c2w[:3,3])),
                   (self.rotation, ", ".join(f"{x:.9g}" for x in matrix_quat(calibration.c2w[:3,:3])))]
         for entry, value in values:
-            if force or not self._entry_editing(entry):
+            if (force or not self._entry_editing(entry)) and entry.get_text() != value:
                 entry.set_text(value)
 
     def _key_chosen(self, widget, _param):
@@ -1369,7 +1414,7 @@ class StudioWindow(Adw.ApplicationWindow):
                 if p.shape != (3,) or q.shape != (4,) or not np.isfinite(p).all() or not np.isfinite(q).all() or np.linalg.norm(q) < 1e-12:
                     raise ValueError(tr("camera.invalidTransform", "Enter finite XYZ and nonzero WXYZ components."))
                 pose[:3,3], pose[:3,:3] = p, quat_matrix(q)
-            changed.record(self.time, k, pose)
+            changed.record(self.time, k, pose, near=self.viewport.near_clip, far=calibration.far)
         self.history.remember()
         self.history.tracks[self.history.tracks.index(track)] = changed
         self._camera_edited()
@@ -1664,8 +1709,9 @@ class StudioWindow(Adw.ApplicationWindow):
             def number(value):
                 return "—" if value is None else f"{value:.2f}"
             gpu = stats.get("gpu_ms")
+            visible = stats.get("visible_count")
             performance = tr("ubuntu.completedTiming").format(
-                gpu="—" if gpu is None else f"{gpu:.1f} ms", active=f"{stats.get('active_count', 0):,}",
+                gpu="—" if gpu is None else f"{gpu:.1f} ms", active="—" if visible is None else f"{visible:,}",
                 total=f"{stats.get('source_count', 0):,}", scale=round(self.viewport.resolution_scale*100))
             if performance != self.performance_label.get_text():
                 self.performance_label.set_text(performance)
@@ -1673,7 +1719,9 @@ class StudioWindow(Adw.ApplicationWindow):
                 render=number(stats.get("gpu_render_ms")), sort=number(stats.get("gpu_sort_ms")),
                 fps=number(stats.get("gpu_completed_fps")), memory=number(stats.get("resident_bytes",0)/1024**2),
                 cpu=number(stats["cpu_submission_ms"]))+"\n"+self.viewport.graphics_info.get("renderer", "")+
-                "\n"+stats.get("sort_reason", "")+"\n"+stats.get("gpu_timing_reason", ""))
+                "\n"+stats.get("sort_reason", "")+"\n"+stats.get("gpu_timing_reason", "")+
+                "\n"+tr("ubuntu.visibilityTiming").format(age=number(stats.get("visibility_age_ms")),
+                    source_time="—" if stats.get("visibility_source_time") is None else stats["visibility_source_time"])+"\n"+stats.get("visibility_reason", ""))
 
     def _toggle_preview(self, widget, attribute):
         setattr(self.viewport, attribute, widget.get_active())
@@ -1691,7 +1739,12 @@ class StudioWindow(Adw.ApplicationWindow):
         self.viewport.queue_render()
 
     def _view_option(self, spin, attribute):
+        if self._updating:
+            return
         value = spin.get_value()
+        if attribute == 'near_clip' and not .0001 <= value <= 100:
+            self.status.set_text(tr('display.invalidClip'))
+            return
         if attribute in ("path_density", "path_opacity"):
             value /= 100
         setattr(self.viewport, attribute, value)
@@ -1717,7 +1770,7 @@ class StudioWindow(Adw.ApplicationWindow):
 
     def _copy_attributes(self):
         values = [self.selection_label.get_text()]
-        values.extend(row.get_title()+": "+(row.get_subtitle() or "") for row in self.detail_view.rows)
+        values.extend(html.unescape(row.get_title())+": "+html.unescape(row.get_subtitle() or "") for row in self.detail_view.rows)
         self.get_clipboard().set("\n".join(values))
 
     def _home(self):

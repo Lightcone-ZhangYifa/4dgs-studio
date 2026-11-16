@@ -386,10 +386,16 @@ class ApplicationTests(unittest.TestCase):
         identifier = w.editing_id
         source_index = next(i+1 for i, entry in enumerate(w.camera_entries) if entry[0] == "camera")
         w.camera_drop.set_selected(source_index)
+        self.assertEqual(w.editing_id,identifier)
+        self.assertEqual(w.selected,{(identifier,None)})
+        w.record_key()
+        np.testing.assert_array_equal(w._track().keyframes[0].c2w,w._calibrations['camera',0].c2w)
+        w.outliner.selection_model.select_item(w.outliner.position_for_member(('camera',None)), True)
         self.assertIsNone(w.editing_id)
         w.delete_camera()
         self.assertEqual([track.id for track in w.history.tracks], [identifier])
         user_index = next(i+1 for i, entry in enumerate(w.camera_entries) if entry[0] == identifier)
+        w.outliner.selection_model.select_item(w.outliner.position_for_member((identifier,None)), True)
         w.camera_drop.set_selected(user_index)
         self.assertEqual(w.editing_id, identifier)
         w._pick("field", 2**60+3)
@@ -773,6 +779,61 @@ class ApplicationTests(unittest.TestCase):
         w._look_through()
         self.pump_until(lambda: w.camera_drop.get_selected() == 2 and not w.frames.running)
         self.assertEqual(w.viewport.get_camera()[1][0,3],3)
+        self.assertEqual(self.errors,[])
+
+    def test_apply_camera_field_is_equivalent_to_enter_and_can_be_undone(self):
+        from gi.repository import Gtk
+        self.open_scene()
+        w = self.window
+        w.create_camera()
+        original = w._track().label
+        w.track_name.set_text('Applied camera')
+        row = w.track_name.get_parent()
+        apply = row.get_last_child()
+        self.assertIsInstance(apply,Gtk.Button)
+        apply.emit('clicked')
+        self.assertEqual(w._track().label,'Applied camera')
+        w.lookup_action('camera-undo').activate(None)
+        self.assertEqual(w._track().label,original)
+        self.assertEqual(self.errors,[])
+
+    def test_camera_view_preserves_selection_and_rejects_a_foreign_domain(self):
+        import importlib.util
+        file = Path(__file__).resolve().parents[2] / 'native/tests/camera_render_fixtures.py'
+        spec = importlib.util.spec_from_file_location('studio_view_domains',file)
+        fixture = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fixture)
+        path = Path(self.temp.name)/'domains.gsv'
+        fixture.write_clock_domains(path)
+        self.open_scene(path)
+        w = self.window
+        w._pick(str(w.frame.object_ids[0]),int(w.frame.ids[0]))
+        self.pump_until(lambda: not w.frames.running)
+        selected = set(w.selected)
+        compatible = next(i+1 for i,(owner,view,authored) in enumerate(w.camera_entries)
+                          if (owner,view) in w._calibrations)
+        foreign = next(i+1 for i,(owner,view,authored) in enumerate(w.camera_entries)
+                       if (owner,view) not in w._calibrations)
+        w.camera_drop.set_selected(compatible)
+        before = w.viewport.get_camera()[1].copy()
+        self.assertEqual(w.selected,selected)
+        w.camera_drop.set_selected(foreign)
+        self.assertEqual(w.camera_drop.get_selected(),compatible)
+        self.assertEqual(w.selected,selected)
+        np.testing.assert_array_equal(w.viewport.get_camera()[1],before)
+        self.assertEqual(self.errors,[])
+
+    def test_authored_keys_capture_the_current_interactive_near_clip(self):
+        self.open_scene()
+        w = self.window
+        w.near_clip_control.set_value(.025)
+        w.create_camera()
+        self.assertEqual(w._track().keyframes[0].near,.025)
+        w._scrub(.5)
+        self.pump_until(lambda: w.time == .5 and not w.frames.running)
+        w.near_clip_control.set_value(.05)
+        w.record_key()
+        self.assertEqual(w._track().keyframes[-1].near,.05)
         self.assertEqual(self.errors,[])
 
 

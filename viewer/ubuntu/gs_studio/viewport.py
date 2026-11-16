@@ -215,6 +215,8 @@ class Viewport(Gtk.GLArea):
             self.on_error(text)
 
     def set_frame(self, frame):
+        if frame is None and self._renderer is not None:
+            self._renderer.reset_visibility()
         if frame is not self.frame:
             self._bounds_frame=None;self._bounds_cache=None
         self.frame = frame
@@ -812,9 +814,9 @@ class Viewport(Gtk.GLArea):
             self._gpu_poll_source=0;return GLib.SOURCE_REMOVE
         self.make_current()
         renderer=self._renderer
-        changed=renderer.gpu_metrics.poll()
+        changed=renderer.poll_metrics()
         metrics=renderer.performance_metrics()
-        if not renderer.gpu_metrics.supported:
+        if not (renderer.gpu_metrics.supported or renderer.gpu_visibility.supported):
             if self._last_stats is not None:
                 self._last_stats.update(metrics)
                 if self.on_stats:self.on_stats(dict(self._last_stats))
@@ -823,7 +825,7 @@ class Viewport(Gtk.GLArea):
         if self._last_stats is not None and (changed or idle):
             self._last_stats.update(metrics)
             if self.on_stats:self.on_stats(dict(self._last_stats))
-        if renderer.gpu_metrics.pending or (renderer.gpu_metrics.last_result_at is not None and not idle):return GLib.SOURCE_CONTINUE
+        if renderer.metrics_pending or (renderer.gpu_metrics.last_result_at is not None and not idle):return GLib.SOURCE_CONTINUE
         self._gpu_poll_source=0;return GLib.SOURCE_REMOVE
 
     def _render(self, _area, _context):
@@ -903,7 +905,7 @@ class Viewport(Gtk.GLArea):
         self._last_stats={'cpu_submission_ms': (clock.perf_counter() - start) * 1000, 'splats': renderer.count, 'render_width': render_width, 'render_height': render_height, 'sort_backend': renderer.sort_backend, 'sort_reused': renderer.last_sort_reused, 'sort_submission_ms': renderer.last_sort_submission_ms, 'sort_reason': renderer.sort_reason, 'graphics_info': self.graphics_info, 'endpoint_upload_bytes': renderer.last_endpoint_upload_bytes, 'endpoint_swapped': renderer.last_endpoint_swapped}
         self._last_stats.update(renderer.performance_metrics())
         if self.on_stats:self.on_stats(dict(self._last_stats))
-        if not self._gpu_poll_source and renderer.gpu_metrics.supported:
+        if not self._gpu_poll_source and (renderer.gpu_metrics.supported or renderer.gpu_visibility.supported):
             self._gpu_poll_source=GLib.timeout_add(16,self._poll_gpu_stats)
 
         return True

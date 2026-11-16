@@ -493,3 +493,5 @@
 "ubuntu.completedTiming" = "GPU {gpu} · {active} / {total} IDs · {scale}%";
 
 "ubuntu.completedTimingDetail" = "GPU render: {render} ms · sort: {sort} ms\nCompleted GPU renders/s: {fps}\nEstimated GPU storage: {memory} MiB\nCPU submission: {cpu} ms\nGPU completion timing is not desktop presentation FPS or total process memory.";
+
+"ubuntu.visibilityTiming" = "Visible IDs are the latest completed GPU frustum sample, not an occlusion count. Source time: {source_time}. Age at publication: {age} ms.";

@@ -17,6 +17,7 @@ from OpenGL.raw.GL.VERSION.GL_2_0 import glVertexAttribPointer as _vertex_pointe
 from OpenGL.raw.GL.VERSION.GL_3_0 import glVertexAttribIPointer as _integer_pointer
 
 from .gpu_sort import GpuSorter, depth_order_cpu
+from .gpu_visibility import GpuVisibility
 
 VERTEX = r"""#version 330 core
 layout(location=0) in uint sourceIndex;
@@ -41,6 +42,7 @@ out vec2 local;
 out vec3 color;
 out float opacity;
 flat out float selected;
+flat out int frustumVisible;
 vec4 slerpQuaternion(vec4 a,vec4 b,float t) {
     a=normalize(a);b=normalize(b);
     float cosine=dot(a,b);
@@ -102,7 +104,8 @@ void main() {
     gl_Position=vec4(2*p.x/viewport.x-1,1-2*p.y/viewport.y,2*depth-1,1);
     vec2 bound=3*sqrt(max(vec2(xx,yy),vec2(0)));
     float activatedOpacity=clamp(meanOpacity.w*opacityScale,0.,.999);
-    if(!valid || c.z<=nearDepth || activatedOpacity<1./255. || any(isnan(p)) || any(isinf(p)) || center.x+bound.x<0 || center.y+bound.y<0 || center.x-bound.x>viewport.x || center.y-bound.y>viewport.y)
+    frustumVisible=int(!(!valid || c.z<=nearDepth || activatedOpacity<1./255. || any(isnan(p)) || any(isinf(p)) || any(isnan(bound)) || any(isinf(bound)) || center.x+bound.x<0 || center.y+bound.y<0 || center.x-bound.x>viewport.x || center.y-bound.y>viewport.y));
+    if(frustumVisible==0)
         gl_Position=vec4(4,4,4,1);
     color=colorSelected.rgb*exp2(exposure)*exposureMultiplier; opacity=activatedOpacity; selected=colorSelected.w;
 }
@@ -377,6 +380,10 @@ class Renderer:
         if sort_mode not in ('auto', 'cpu', 'gpu'):
             raise ValueError('Sort mode must be auto, cpu or gpu')
         self.gpu_metrics=GpuMetrics()
+        self.gpu_visibility=GpuVisibility()
+        self._visibility_arguments=None
+        self._visibility_layout=None
+        self.source_count=0
         self._frame_sequence=0
         self._render_query=None
         self._frame_open=False
@@ -470,6 +477,7 @@ class Renderer:
             gl.glBindVertexArray(0)
             self.gpu_sorter.initialize()
             self.gpu_metrics.initialize()
+            self.gpu_visibility.initialize(VERTEX)
             self.sort_reason = self.gpu_sorter.reason
         except Exception:
             self.close()
@@ -497,7 +505,22 @@ class Renderer:
         self.last_endpoint_uploads = self.last_endpoint_upload_bytes = 0
         self.last_endpoint_swapped = False
         n = len(frame.ids) if frame is not None else 0
+        declared=getattr(frame,'source_count',None)
+        self.source_count=n if declared is None else max(n,int(declared))
+        layout=getattr(frame,'source_layout',None)
+        if layout is None:
+            segments=getattr(frame,'segments',None)
+            if getattr(frame,'is_prepared',False) and segments is not None:
+                layout=(frame.endpoint_key[:2],tuple((owner,start,stop) for owner,start,stop,_ in segments))
+            else:
+                # Foreign callers without source metadata use conservative
+                # array identity; SDK Frames carry a stable manifest layout.
+                layout=(id(frame.ids),id(frame.object_ids)) if frame is not None else None
+        if layout != self._visibility_layout:
+            self.gpu_visibility.reset()
+            self._visibility_layout=layout
         if not n:
+            self.gpu_visibility.mark_empty()
             self.count = 0
             self._frame = self._geometry_key = self._selected = None
             self._first_source = self._second_source = None
@@ -505,6 +528,8 @@ class Renderer:
             self.last_sort_reused = False
             self.marker_count=0
             return
+        if self.gpu_visibility.empty:
+            self.gpu_visibility.reset()
         if n * 4 > self.max_texels:
             raise RuntimeError(f"Scene exceeds this GPU's texture-buffer limit ({self.max_texels // 4:,} splats)")
         self.prepared_mode = bool(getattr(frame, 'is_prepared', False))
@@ -703,6 +728,8 @@ class Renderer:
         self._frame_sequence+=1
         self._render_query=self.gpu_metrics.begin('render',self._frame_sequence)
         self._frame_open=True
+        self._visibility_arguments=(k.copy(),c2w.copy(),width,height,
+            dict(pixel_shift=pixel_shift,gaussian_scale=gaussian_scale,opacity_scale=opacity_scale,near_depth=near_depth))
         self.exposure_gain = float(2. ** exposure) * exposure_multiplier
         self.near_depth = near_depth
         gl.glViewport(0, 0, width, height)
@@ -745,6 +772,24 @@ class Renderer:
     def splats(self, depth_only=False):
         if not self.count:
             return
+        if not depth_only and self._visibility_arguments is not None:
+            k,pose,width,height,controls=self._visibility_arguments
+            def count_visible(program):
+                previous_program=int(gl.glGetIntegerv(gl.GL_CURRENT_PROGRAM))
+                previous_vao=int(gl.glGetIntegerv(gl.GL_VERTEX_ARRAY_BINDING))
+                discarded=bool(gl.glIsEnabled(gl.GL_RASTERIZER_DISCARD))
+                try:
+                    self._splat_uniforms(program,k,pose,width,height,**controls)
+                    self._bind_splat_textures()
+                    gl.glBindVertexArray(self.vao)
+                    gl.glEnable(gl.GL_RASTERIZER_DISCARD)
+                    gl.glDrawArraysInstanced(gl.GL_POINTS,0,1,self.count)
+                finally:
+                    if not discarded:gl.glDisable(gl.GL_RASTERIZER_DISCARD)
+                    gl.glUseProgram(previous_program)
+                    gl.glBindVertexArray(previous_vao)
+            self.gpu_visibility.submit(count_visible,self._frame_sequence,
+                {'source_time':getattr(self._frame,'time',None),'pose':pose.tolist()})
         gl.glUseProgram(self.program)
         gl.glBindVertexArray(self.vao)
         self._bind_splat_textures()
@@ -975,6 +1020,7 @@ class Renderer:
 
     def performance_metrics(self):
         metrics=self.gpu_metrics.summary()
+        metrics.update(self.gpu_visibility.summary())
         buffers=self.capacity+self.second_capacity+self.weight_capacity+self.mask_capacity+self.order_capacity+self.line_capacity+self.pick_capacity+self.marker_capacity
         scratch=self.gpu_sorter.capacity*16+(self.gpu_sorter.group_capacity*2+1)*16*4 if self.gpu_sorter.buffers else 0
         pixels=self.size[0]*self.size[1]
@@ -982,10 +1028,22 @@ class Renderer:
         if self.oit_fbo:textures+=pixels*18
         if self.pick_surface_fbo:textures+=self.pick_surface_size[0]*self.pick_surface_size[1]*4
         metrics.update({'submitted_frame_count':self.submitted_frame_count,'resident_bytes':buffers+scratch+textures,
-                        'resident_bytes_estimated':True,'source_count':self.count,
-                        'active_count':getattr(self._frame,'valid_count',self.count) if self._frame is not None else 0,
-                        'visible_count':None})
+                        'resident_bytes_estimated':True,'source_count':self.source_count,
+                        'active_count':getattr(self._frame,'valid_count',self.count) if self._frame is not None else 0})
         return metrics
+
+    @property
+    def metrics_pending(self):
+        return bool(self.gpu_metrics.pending or (self.gpu_visibility.supported and self.gpu_visibility.pending))
+
+    def poll_metrics(self):
+        timing=self.gpu_metrics.poll()
+        visibility=self.gpu_visibility.poll()
+        return timing or visibility
+
+    def reset_visibility(self):
+        self.gpu_visibility.reset()
+        self._visibility_layout=None
 
     def abort_frame(self):
         self.gpu_metrics.abort();self._render_query=None;self._frame_open=False
@@ -1008,6 +1066,7 @@ class Renderer:
 
     def close(self):
         self.gpu_metrics.close()
+        self.gpu_visibility.close()
         self._close_pick_surface()
         self.gpu_sorter.close()
         self._close_target()

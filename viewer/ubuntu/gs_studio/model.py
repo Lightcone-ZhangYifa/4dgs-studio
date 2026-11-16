@@ -75,6 +75,8 @@ class Frame:
     edges: np.ndarray = field(default_factory=lambda: np.empty((0, 2, 3), np.float32))
     bounds: tuple | None = None
     object_bounds: object = field(default_factory=lambda: MappingProxyType({}))
+    source_count: int | None = None
+    source_layout: tuple | None = None
 
     @classmethod
     def empty(cls):
@@ -149,7 +151,8 @@ def _mix_records(first, second, weight, *, cancelled=None):
     return records
 
 
-def _cpu_frame(packed, ids, owners, *, edges=None, bounds=None, object_bounds=None, cancelled=None):
+def _cpu_frame(packed, ids, owners, *, edges=None, bounds=None, object_bounds=None,
+               source_count=None, source_layout=None, cancelled=None):
     """Shared CPU materialization; never runs implicitly from prepared properties."""
     cov = np.empty((len(packed), 3, 3), np.float32)
     try:
@@ -165,7 +168,8 @@ def _cpu_frame(packed, ids, owners, *, edges=None, bounds=None, object_bounds=No
         raise GSVError('Gaussian covariance exceeds the preview Float32 range; source parameters remain unchanged') from error
     frame = Frame(packed[:, :3], cov, packed[:, 12:15], packed[:, 3], ids, owners, packed,
                   np.empty((0, 2, 3), np.float32) if edges is None else edges,
-                  bounds, MappingProxyType({}) if object_bounds is None else object_bounds)
+                  bounds, MappingProxyType({}) if object_bounds is None else object_bounds,
+                  source_count,source_layout)
     for array in vars(frame).values():
         if isinstance(array, np.ndarray):
             array.flags.writeable = False
@@ -182,13 +186,15 @@ class PreparedFrame:
     """
     is_prepared = True
 
-    def __init__(self, endpoints, weights, key, time, *, cancelled=None):
+    def __init__(self, endpoints, weights, key, time, *, source_layout=None, cancelled=None):
         self.first, self.second = endpoints.first, endpoints.second
         self.ids, self.object_ids = endpoints.ids, endpoints.object_ids
         self.bounds = endpoints.low, endpoints.high
         self.object_bounds = endpoints.object_bounds
         self.endpoint_key, self.time = key, float(time)
         self.count = len(self.ids)
+        self.source_count = self.count
+        self.source_layout = source_layout if source_layout is not None else (key[:2],endpoints.ranges)
         self.segments = tuple((owner, start, stop, weight)
                               for (owner, start, stop), weight in zip(endpoints.ranges, weights))
         self.weight = float(weights[0]) if len(weights) == 1 else None
@@ -235,7 +241,9 @@ class PreparedFrame:
             records[start:stop] = _mix_records(self.first[start:stop], self.second[start:stop], weight,
                                               cancelled=cancelled)
         valid = records[:, 7] > .5
-        return _cpu_frame(records[valid], self.ids[valid].copy(), self.object_ids[valid].copy(), cancelled=cancelled)
+        return _cpu_frame(records[valid], self.ids[valid].copy(), self.object_ids[valid].copy(),
+                          bounds=self.bounds,object_bounds=self.object_bounds,
+                          source_count=self.source_count,source_layout=self.source_layout,cancelled=cancelled)
 
 
 class SceneDocument:
@@ -667,7 +675,8 @@ class SceneDocument:
                 self._remember(key, endpoints)
             self.scene._unchanged()
             endpoint_key = (str(self.path), self.manifest_sha256, tuple(samples))
-            return PreparedFrame(endpoints, weights, endpoint_key, time, cancelled=cancelled)
+            return PreparedFrame(endpoints, weights, endpoint_key, time,
+                                 source_layout=self._source_layout(identifiers),cancelled=cancelled)
 
     def evaluate(self, time, object_ids=None, *, cancelled=None):
         with self._lock:
@@ -712,10 +721,19 @@ class SceneDocument:
                 return Frame.empty()
             packed = records[0] if len(records) == 1 else np.concatenate(records)
             bounds, object_bounds = self._source_bounds(identifiers, cancelled)
+            layout = self._source_layout(identifiers)
+            source_count = sum(count for _,_,count in layout[2])
             frame = _cpu_frame(packed, np.concatenate(ids), np.concatenate(owners),
                                edges=np.concatenate(edges) if edges else None, bounds=bounds,
-                               object_bounds=object_bounds, cancelled=cancelled)
+                               object_bounds=object_bounds,source_count=source_count,
+                               source_layout=layout,cancelled=cancelled)
             return self._remember(frame_key, frame)
+
+    def _source_layout(self, identifiers):
+        return (str(self.path),self.manifest_sha256,
+                tuple((identifier,self.object(identifier)['data']['ids'],
+                       self.manifest['arrays'][self.object(identifier)['data']['ids']]['shape'][0])
+                      for identifier in identifiers))
 
     def _source_bounds(self, identifiers, cancelled=None):
         """Time-independent framing metadata, cached per compatible cohort."""

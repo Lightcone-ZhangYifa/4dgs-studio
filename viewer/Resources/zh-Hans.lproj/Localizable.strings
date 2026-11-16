@@ -493,3 +493,5 @@
 "ubuntu.completedTiming" = "GPU {gpu} · {active} / {total} 个 ID · {scale}%";
 
 "ubuntu.completedTimingDetail" = "GPU 渲染：{render} ms · 排序：{sort} ms\n每秒 GPU 完成渲染：{fps}\n估算 GPU 存储：{memory} MiB\nCPU 提交：{cpu} ms\nGPU 完成计时不代表桌面呈现帧率或进程总内存。";
+
+"ubuntu.visibilityTiming" = "可见 ID 为最近完成的 GPU 视锥采样，并非遮挡计数。源时间：{source_time}；发布时采样时长：{age} ms。";
