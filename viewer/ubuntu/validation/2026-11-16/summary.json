@@ -1,0 +1,53 @@
+{
+  "runtime_commit": "ec35705",
+  "desktop_driver_commit": "65836898384dee6f0982540e336a1c405feb1a51",
+  "ubuntu_suite": {
+    "run": 245,
+    "passed": 243,
+    "skipped": 2,
+    "skips": "opt-in million-Gaussian benchmark tests"
+  },
+  "python_sdk": {
+    "passed": 78
+  },
+  "full_desktop": {
+    "wayland": {
+      "base_steps": 8,
+      "extended_checks": 24,
+      "passed": true
+    },
+    "xwayland": {
+      "base_steps": 8,
+      "extended_checks": 24,
+      "passed": true
+    }
+  },
+  "packaged_application_tests": {
+    "xwayland": 31,
+    "wayland": 31,
+    "chooser_completion": "mocked in these tests only"
+  },
+  "packaged_chinese_restart": true,
+  "artifact_root": "viewer/dist/desktop-validation/6583689",
+  "runtime_tree_sha256": "44d31b52735d0ec89d3770aec7bf2cfe262f74255167e217e80ce4f220bd0330",
+  "unverified": [
+    "physical touchpad/multitouch hardware",
+    "Mac application exchange and Retina hardware",
+    "full screen-reader traversal",
+    "Intel/AMD driver matrix",
+    "Wayland hardware acceleration on this host"
+  ],
+  "complete_run_diagnostics": {
+    "wayland": {
+      "gtk_critical": 2
+    },
+    "xwayland": {
+      "gtk_critical": 2,
+      "gdk_critical": 2
+    },
+    "python_tracebacks": 0,
+    "cause": "not established by backtrace"
+  },
+  "macos_source_baseline": "217d94f894b89cc8db2fbbe04505fb1506be9720",
+  "macos_source_version": "2.3.0"
+}

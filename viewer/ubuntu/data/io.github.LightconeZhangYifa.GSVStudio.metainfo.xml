@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.LightconeZhangYifa.GSVStudio</id>
+  <name>4DGS Studio</name>
+  <name xml:lang="zh_CN">4DGS Studio</name>
+  <summary>Inspect dynamic Gaussian scenes and calibrated cameras</summary>
+  <summary xml:lang="zh_CN">检查动态高斯场景与校准相机</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>A native GTK viewer for dynamic Gaussian scenes. Inspect persistent identities and trajectories, navigate calibrated cameras, author camera animations, and compare calibrated renders with reference observations.</p>
+    <p>GSV reconstruction sources remain read-only. Camera animations are saved separately with source provenance.</p>
+  </description>
+  <launchable type="desktop-id">io.github.LightconeZhangYifa.GSVStudio.desktop</launchable>
+  <url type="homepage">https://github.com/Lightcone-ZhangYifa/4dgs-studio</url>
+  <url type="bugtracker">https://github.com/Lightcone-ZhangYifa/4dgs-studio/issues</url>
+  <developer id="io.github.lightconezhangyifa"><name>Yifa Zhang · 张亦法</name></developer>
+  <provides><binary>4dgs-studio</binary><mediatype>application/x-gsv</mediatype></provides>
+  <content_rating type="oars-1.1"/>
+  <releases><release version="2.3.0" type="stable" date="2026-11-06"/></releases>
+  <supports><control>pointing</control><control>keyboard</control><control>touch</control></supports>
+  <requires><display_length compare="ge">1024</display_length></requires>
+</component>

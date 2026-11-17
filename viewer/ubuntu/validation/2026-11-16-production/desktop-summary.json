@@ -1,0 +1,1219 @@
+{
+  "format": "gsv.production-desktop-validation-summary/1",
+  "date": "2026-11-16",
+  "privacy": "Dataset aliases and aggregate measurements only. Production paths, images, camera matrices, object names and signed element identities are omitted. Original local reports remain ignored; hashes support local audit.",
+  "methodology": {
+    "desktop": "Real GNOME/Mutter, normal Studio process and native chooser; AT-SPI public controls plus native EIS pointer/keyboard. No Xvfb, chooser mocks, private application imports or source replacement.",
+    "operations": [
+      "native open read-only source",
+      "three native time seeks with viewport PNG export",
+      "bounded five-second play then stable pause",
+      "owner and exact element selection verified in inspector",
+      "create and record camera at native endpoints; real middle-drag orbit verified by changed exported poses; native camera export and workspace PNG"
+    ],
+    "source_integrity": "Before/after device, inode, size, mtime and ctime comparison; supported-object semantic validation and accessed-buffer checksums in normal loader. No whole-file hash or opaque SH tensor checksum claim.",
+    "playback": "The same public timeline Value handle is sampled repeatedly. Duration includes native start/stop command overhead and is required to be at most requested five seconds plus two seconds. Stable pause is verified by two equal timeline reads separated by 0.3 seconds. Timeline samples are not completed render or presentation samples.",
+    "seek_latency": "Input-to-public-timeline and input-to-completed-viewport-PNG are upper bounds including native automation overhead. PNG additionally includes save dialog, GL readback, encoding and I/O. These are not isolated rendering latency.",
+    "gpu_readings": "Public asynchronous GPU-completion timing label samples; not paired per-input latency, isolated device throughput, desktop presentation FPS or a 60fps claim. Visibility percentages are excluded pending independent query validation.",
+    "memory": "Sampled Linux process RSS and /proc high-water mark include Python, NumPy, mmap and driver memory; not total device VRAM.",
+    "workload": "Existing training workloads were not stopped or controlled. Instantaneous before/after NVIDIA GPU utilization snapshots are included; utilization varied.",
+    "wayland": "Software OpenGL was explicitly requested with LIBGL_ALWAYS_SOFTWARE=1 and confirmed by actual public renderer information. This does not test a native Wayland NVIDIA context.",
+    "presentation_fps_measured": false
+  },
+  "runs": [
+    {
+      "dataset_alias": "production-160k",
+      "source_points": 160000,
+      "display_backend": "x11",
+      "passed": true,
+      "completed_checks": 7,
+      "planned_checks": 7,
+      "product_commit": "bf7a41021fed94ac1371fc42a8e4db3f6374671b",
+      "product_code_sha256": {
+        "application.py": "3ab217ac12dfb6fc5c290d8931c0d3923670a6e23e394929a16b1294aa3b1a07",
+        "model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+        "camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967",
+        "viewport.py": "2eb8cfa2c0ce8fcb0cab40c9f046f3777dddb8809ceb6cf9d907c4a01f829364",
+        "gl_renderer.py": "95424f40ac294d6d4b866f465c9742762069b81089c2b008bd524cafb14c8a16",
+        "gpu_sort.py": "1e336b92fd7a4dc728398a32747be5a46cdff522f43b5c7f3bcf91d51036cf10"
+      },
+      "product_code_unchanged": true,
+      "tool_sha256": "162cbef699a56c291e9ff49da95ad8a9e1c77050cda173f56cd3146f9dbef1ba",
+      "raw_local_report_sha256": "ae48a71caffc2bf02766bdaf8d3718910f3f1fb57848049564390485b7a25fad",
+      "actual_graphics": {
+        "vendor": "NVIDIA Corporation",
+        "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+        "version": "4.6.0 NVIDIA 620.70.06",
+        "display_backend": "x11",
+        "sorting": "gpu-radix",
+        "sorting_details": "GPU stable Float32 depth radix sort"
+      },
+      "software_explicitly_requested": false,
+      "runtime_versions": {
+        "python": "3.12.3",
+        "numpy": "1.26.4",
+        "PyOpenGL": "3.1.7"
+      },
+      "source_integrity": {
+        "stat_fields_unchanged": true,
+        "whole_file_digest_computed": false
+      },
+      "cleanup": {
+        "owned_application_close_completed_without_error": true,
+        "input_session_and_output_cleanup_without_error": true,
+        "logical_monitors_before": 1,
+        "logical_monitors_after": 1
+      },
+      "peak_sampled_RSS_bytes": 570306560,
+      "process_VmHWM_bytes": 570306560,
+      "gpu_load_before": [
+        {
+          "gpu_index": 0,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 67,
+          "used_memory_mib": 5098,
+          "total_memory_mib": 49140
+        },
+        {
+          "gpu_index": 1,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 15,
+          "used_memory_mib": 2868,
+          "total_memory_mib": 49140
+        }
+      ],
+      "gpu_load_after": [
+        {
+          "gpu_index": 0,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 99,
+          "used_memory_mib": 6985,
+          "total_memory_mib": 49140
+        },
+        {
+          "gpu_index": 1,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 37,
+          "used_memory_mib": 2868,
+          "total_memory_mib": 49140
+        }
+      ],
+      "checks": [
+        {
+          "operation": "native-open-production-source",
+          "passed": true,
+          "seconds": 6.511674261011649
+        },
+        {
+          "operation": "native-seek-1",
+          "passed": true,
+          "seconds": 6.16083842999069,
+          "input_to_public_timeline_ms_upper_bound": 2676.2368959607556,
+          "input_to_completed_png_ms_upper_bound": 6159.620528982487
+        },
+        {
+          "operation": "native-seek-2",
+          "passed": true,
+          "seconds": 6.065768834960181,
+          "input_to_public_timeline_ms_upper_bound": 2584.285816992633,
+          "input_to_completed_png_ms_upper_bound": 6063.35220800247
+        },
+        {
+          "operation": "native-seek-3",
+          "passed": true,
+          "seconds": 6.212193214974832,
+          "input_to_public_timeline_ms_upper_bound": 2627.244115981739,
+          "input_to_completed_png_ms_upper_bound": 6211.118312960025
+        },
+        {
+          "operation": "production-play-pause",
+          "passed": true,
+          "seconds": 8.700036050984636,
+          "playback": {
+            "requested_duration_seconds": 5.0,
+            "actual_duration_seconds": 5.673629564989824,
+            "timeline_readings": 44,
+            "distinct_timeline_values": 44,
+            "pause_confirmed_stable": true,
+            "timeline_handle_reused": true
+          }
+        },
+        {
+          "operation": "production-owner-and-exact-id",
+          "passed": true,
+          "seconds": 9.642970968969166
+        },
+        {
+          "operation": "production-camera-record-export-and-workspace",
+          "passed": true,
+          "seconds": 14.6943549499847,
+          "real_native_orbit_exported_pose_changed": true,
+          "exported_camera_key_count": 2
+        }
+      ],
+      "png_exports": [
+        {
+          "role": "native-seek-1",
+          "dimensions": [
+            1322,
+            664
+          ],
+          "bytes": 127278,
+          "sha256": "263103c7bad58a1ce9e071944f4f7aaa9fec53e5861b7de95b1fd1f8d0e36392"
+        },
+        {
+          "role": "native-seek-2",
+          "dimensions": [
+            1322,
+            664
+          ],
+          "bytes": 127879,
+          "sha256": "9907175025885c502246694577a71c74a2132dc81209c479456d51b28aaa41ed"
+        },
+        {
+          "role": "native-seek-3",
+          "dimensions": [
+            1322,
+            664
+          ],
+          "bytes": 128219,
+          "sha256": "779329956de5bcc99a910bc62466320efa934491bf9a503943a7979e836820ca"
+        },
+        {
+          "role": "production-owner-and-exact-id",
+          "dimensions": [
+            1322,
+            664
+          ],
+          "bytes": 130917,
+          "sha256": "778c02ddeb44ab9d7fc5e76462b950278d940a9c621169cca15b68501f0af5fd"
+        },
+        {
+          "role": "workspace",
+          "dimensions": [
+            1854,
+            1048
+          ],
+          "bytes": 264943,
+          "sha256": "f76903334f5af931cf242b989def496fe8e95433873ab6d53b9c2fea478cf43c"
+        }
+      ],
+      "public_gpu_timing_readings": [
+        {
+          "operation": "native-open-production-source",
+          "gpu_render_ms": 0.5,
+          "gpu_sort_ms": 1.35,
+          "cpu_submission_ms": 50.91,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "native-seek-1",
+          "gpu_render_ms": 2.68,
+          "gpu_sort_ms": 0.0,
+          "cpu_submission_ms": 10.77,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "native-seek-2",
+          "gpu_render_ms": 0.82,
+          "gpu_sort_ms": 0.84,
+          "cpu_submission_ms": 20.48,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "native-seek-3",
+          "gpu_render_ms": 0.73,
+          "gpu_sort_ms": 0.68,
+          "cpu_submission_ms": 18.74,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "production-play-pause",
+          "gpu_render_ms": 4.84,
+          "gpu_sort_ms": 1.49,
+          "cpu_submission_ms": 13.12,
+          "completed_gpu_renders_per_second": 0.0
+        }
+      ],
+      "public_gpu_timing_readings_count": 5
+    },
+    {
+      "dataset_alias": "production-640k",
+      "source_points": 640000,
+      "display_backend": "x11",
+      "passed": true,
+      "completed_checks": 7,
+      "planned_checks": 7,
+      "product_commit": "bf7a41021fed94ac1371fc42a8e4db3f6374671b",
+      "product_code_sha256": {
+        "application.py": "3ab217ac12dfb6fc5c290d8931c0d3923670a6e23e394929a16b1294aa3b1a07",
+        "model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+        "camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967",
+        "viewport.py": "2eb8cfa2c0ce8fcb0cab40c9f046f3777dddb8809ceb6cf9d907c4a01f829364",
+        "gl_renderer.py": "95424f40ac294d6d4b866f465c9742762069b81089c2b008bd524cafb14c8a16",
+        "gpu_sort.py": "1e336b92fd7a4dc728398a32747be5a46cdff522f43b5c7f3bcf91d51036cf10"
+      },
+      "product_code_unchanged": true,
+      "tool_sha256": "162cbef699a56c291e9ff49da95ad8a9e1c77050cda173f56cd3146f9dbef1ba",
+      "raw_local_report_sha256": "fd13f32b8a4b5c9a48d21baf7cc7cffb315cc7f9366f7182fb5b15d4d2531316",
+      "actual_graphics": {
+        "vendor": "NVIDIA Corporation",
+        "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+        "version": "4.6.0 NVIDIA 620.70.06",
+        "display_backend": "x11",
+        "sorting": "gpu-radix",
+        "sorting_details": "GPU stable Float32 depth radix sort"
+      },
+      "software_explicitly_requested": false,
+      "runtime_versions": {
+        "python": "3.12.3",
+        "numpy": "1.26.4",
+        "PyOpenGL": "3.1.7"
+      },
+      "source_integrity": {
+        "stat_fields_unchanged": true,
+        "whole_file_digest_computed": false
+      },
+      "cleanup": {
+        "owned_application_close_completed_without_error": true,
+        "input_session_and_output_cleanup_without_error": true,
+        "logical_monitors_before": 1,
+        "logical_monitors_after": 1
+      },
+      "peak_sampled_RSS_bytes": 774864896,
+      "process_VmHWM_bytes": 789270528,
+      "gpu_load_before": [
+        {
+          "gpu_index": 0,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 98,
+          "used_memory_mib": 6985,
+          "total_memory_mib": 49140
+        },
+        {
+          "gpu_index": 1,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 97,
+          "used_memory_mib": 2868,
+          "total_memory_mib": 49140
+        }
+      ],
+      "gpu_load_after": [
+        {
+          "gpu_index": 0,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 65,
+          "used_memory_mib": 4894,
+          "total_memory_mib": 49140
+        },
+        {
+          "gpu_index": 1,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 0,
+          "used_memory_mib": 18,
+          "total_memory_mib": 49140
+        }
+      ],
+      "checks": [
+        {
+          "operation": "native-open-production-source",
+          "passed": true,
+          "seconds": 11.48425426200265
+        },
+        {
+          "operation": "native-seek-1",
+          "passed": true,
+          "seconds": 6.5216122349957,
+          "input_to_public_timeline_ms_upper_bound": 2813.270326994825,
+          "input_to_completed_png_ms_upper_bound": 6520.783119020052
+        },
+        {
+          "operation": "native-seek-2",
+          "passed": true,
+          "seconds": 6.421497500035912,
+          "input_to_public_timeline_ms_upper_bound": 2599.319121974986,
+          "input_to_completed_png_ms_upper_bound": 6420.785781985614
+        },
+        {
+          "operation": "native-seek-3",
+          "passed": true,
+          "seconds": 6.16942317300709,
+          "input_to_public_timeline_ms_upper_bound": 2522.852740017697,
+          "input_to_completed_png_ms_upper_bound": 6168.740270019043
+        },
+        {
+          "operation": "production-play-pause",
+          "passed": true,
+          "seconds": 8.469055486959405,
+          "playback": {
+            "requested_duration_seconds": 5.0,
+            "actual_duration_seconds": 5.658707866969053,
+            "timeline_readings": 42,
+            "distinct_timeline_values": 42,
+            "pause_confirmed_stable": true,
+            "timeline_handle_reused": true
+          }
+        },
+        {
+          "operation": "production-owner-and-exact-id",
+          "passed": true,
+          "seconds": 9.586560212017503
+        },
+        {
+          "operation": "production-camera-record-export-and-workspace",
+          "passed": true,
+          "seconds": 14.193620615988038,
+          "real_native_orbit_exported_pose_changed": true,
+          "exported_camera_key_count": 2
+        }
+      ],
+      "png_exports": [
+        {
+          "role": "native-seek-1",
+          "dimensions": [
+            1322,
+            664
+          ],
+          "bytes": 205656,
+          "sha256": "2345a00972c4417811c21a309fb43a64b2ce4bc48ab0a4411cc821f8ef05c3ac"
+        },
+        {
+          "role": "native-seek-2",
+          "dimensions": [
+            1322,
+            664
+          ],
+          "bytes": 203695,
+          "sha256": "9525fe98fd629808e50b725e4d096aad657a556a2403ebba976e0bea5893d8a5"
+        },
+        {
+          "role": "native-seek-3",
+          "dimensions": [
+            1322,
+            664
+          ],
+          "bytes": 204501,
+          "sha256": "8dc54720f0554bea5ecf19e9561494694d161305d2d92e392d3b1370f802a1e7"
+        },
+        {
+          "role": "production-owner-and-exact-id",
+          "dimensions": [
+            1322,
+            664
+          ],
+          "bytes": 208029,
+          "sha256": "01cb46f907eeebf4308aa1a54082ff0bc688696a7eef277ed3ace7472a3d06e4"
+        },
+        {
+          "role": "workspace",
+          "dimensions": [
+            1854,
+            1048
+          ],
+          "bytes": 317018,
+          "sha256": "a2f6100b78e79c7ac66aa5e7f7b0ab78822c199454b4e17192668efef1984ca2"
+        }
+      ],
+      "public_gpu_timing_readings": [
+        {
+          "operation": "native-open-production-source",
+          "gpu_render_ms": 1.75,
+          "gpu_sort_ms": 2.87,
+          "cpu_submission_ms": 109.68,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "native-seek-1",
+          "gpu_render_ms": 2.12,
+          "gpu_sort_ms": 0.0,
+          "cpu_submission_ms": 11.72,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "native-seek-2",
+          "gpu_render_ms": 7.89,
+          "gpu_sort_ms": 6.51,
+          "cpu_submission_ms": 33.89,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "native-seek-3",
+          "gpu_render_ms": 1.4,
+          "gpu_sort_ms": 6.77,
+          "cpu_submission_ms": 32.26,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "production-play-pause",
+          "gpu_render_ms": 1.17,
+          "gpu_sort_ms": 4.54,
+          "cpu_submission_ms": 25.24,
+          "completed_gpu_renders_per_second": 0.0
+        }
+      ],
+      "public_gpu_timing_readings_count": 5
+    },
+    {
+      "dataset_alias": "production-1280k",
+      "source_points": 1280000,
+      "display_backend": "x11",
+      "passed": true,
+      "completed_checks": 7,
+      "planned_checks": 7,
+      "product_commit": "bf7a41021fed94ac1371fc42a8e4db3f6374671b",
+      "product_code_sha256": {
+        "application.py": "3ab217ac12dfb6fc5c290d8931c0d3923670a6e23e394929a16b1294aa3b1a07",
+        "model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+        "camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967",
+        "viewport.py": "2eb8cfa2c0ce8fcb0cab40c9f046f3777dddb8809ceb6cf9d907c4a01f829364",
+        "gl_renderer.py": "95424f40ac294d6d4b866f465c9742762069b81089c2b008bd524cafb14c8a16",
+        "gpu_sort.py": "1e336b92fd7a4dc728398a32747be5a46cdff522f43b5c7f3bcf91d51036cf10"
+      },
+      "product_code_unchanged": true,
+      "tool_sha256": "162cbef699a56c291e9ff49da95ad8a9e1c77050cda173f56cd3146f9dbef1ba",
+      "raw_local_report_sha256": "d6948d803c8defba245348d1808e36dacd222c149fca123662a6419be7c8fb3f",
+      "actual_graphics": {
+        "vendor": "NVIDIA Corporation",
+        "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+        "version": "4.6.0 NVIDIA 620.70.06",
+        "display_backend": "x11",
+        "sorting": "gpu-radix",
+        "sorting_details": "GPU stable Float32 depth radix sort"
+      },
+      "software_explicitly_requested": false,
+      "runtime_versions": {
+        "python": "3.12.3",
+        "numpy": "1.26.4",
+        "PyOpenGL": "3.1.7"
+      },
+      "source_integrity": {
+        "stat_fields_unchanged": true,
+        "whole_file_digest_computed": false
+      },
+      "cleanup": {
+        "owned_application_close_completed_without_error": true,
+        "input_session_and_output_cleanup_without_error": true,
+        "logical_monitors_before": 1,
+        "logical_monitors_after": 1
+      },
+      "peak_sampled_RSS_bytes": 1125015552,
+      "process_VmHWM_bytes": 1153896448,
+      "gpu_load_before": [
+        {
+          "gpu_index": 0,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 57,
+          "used_memory_mib": 4894,
+          "total_memory_mib": 49140
+        },
+        {
+          "gpu_index": 1,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 0,
+          "used_memory_mib": 18,
+          "total_memory_mib": 49140
+        }
+      ],
+      "gpu_load_after": [
+        {
+          "gpu_index": 0,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 73,
+          "used_memory_mib": 6676,
+          "total_memory_mib": 49140
+        },
+        {
+          "gpu_index": 1,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 96,
+          "used_memory_mib": 16153,
+          "total_memory_mib": 49140
+        }
+      ],
+      "checks": [
+        {
+          "operation": "native-open-production-source",
+          "passed": true,
+          "seconds": 18.692533274006564
+        },
+        {
+          "operation": "native-seek-1",
+          "passed": true,
+          "seconds": 6.290120457008015,
+          "input_to_public_timeline_ms_upper_bound": 2705.259812006261,
+          "input_to_completed_png_ms_upper_bound": 6289.286847051699
+        },
+        {
+          "operation": "native-seek-2",
+          "passed": true,
+          "seconds": 6.005131122015882,
+          "input_to_public_timeline_ms_upper_bound": 2522.733372054063,
+          "input_to_completed_png_ms_upper_bound": 6004.398921038955
+        },
+        {
+          "operation": "native-seek-3",
+          "passed": true,
+          "seconds": 6.044159488985315,
+          "input_to_public_timeline_ms_upper_bound": 2586.160139006097,
+          "input_to_completed_png_ms_upper_bound": 6043.379790033214
+        },
+        {
+          "operation": "production-play-pause",
+          "passed": true,
+          "seconds": 8.61190010298742,
+          "playback": {
+            "requested_duration_seconds": 5.0,
+            "actual_duration_seconds": 5.7299457239569165,
+            "timeline_readings": 34,
+            "distinct_timeline_values": 34,
+            "pause_confirmed_stable": true,
+            "timeline_handle_reused": true
+          }
+        },
+        {
+          "operation": "production-owner-and-exact-id",
+          "passed": true,
+          "seconds": 9.474080212996341
+        },
+        {
+          "operation": "production-camera-record-export-and-workspace",
+          "passed": true,
+          "seconds": 14.498332764022052,
+          "real_native_orbit_exported_pose_changed": true,
+          "exported_camera_key_count": 2
+        }
+      ],
+      "png_exports": [
+        {
+          "role": "native-seek-1",
+          "dimensions": [
+            1322,
+            664
+          ],
+          "bytes": 191906,
+          "sha256": "4cacbd9e43390b7b43b78ebdad7572f98f025a7390916b7c74bacd51b5b0a55d"
+        },
+        {
+          "role": "native-seek-2",
+          "dimensions": [
+            1322,
+            664
+          ],
+          "bytes": 190397,
+          "sha256": "221d4484a76fd45454bc137bf031258c9ae2eb68b3854a76a2e96b571241ee1c"
+        },
+        {
+          "role": "native-seek-3",
+          "dimensions": [
+            1322,
+            664
+          ],
+          "bytes": 191659,
+          "sha256": "29a8fce560acdfb7f0f69118971cf594afe2b39ee4bc9e43726e938d6b22dab3"
+        },
+        {
+          "role": "production-owner-and-exact-id",
+          "dimensions": [
+            1322,
+            664
+          ],
+          "bytes": 191045,
+          "sha256": "b2087cf0280ceed0cd8bd7c743e7b9e762a6fd0e163f99bad3f61de16e5019ec"
+        },
+        {
+          "role": "workspace",
+          "dimensions": [
+            1854,
+            1048
+          ],
+          "bytes": 316432,
+          "sha256": "6758d166dc8efbfeb09beabaa7c834848e07e6b86ee5f27ff403e80030cd3de4"
+        }
+      ],
+      "public_gpu_timing_readings": [
+        {
+          "operation": "native-open-production-source",
+          "gpu_render_ms": 10.06,
+          "gpu_sort_ms": 4.9,
+          "cpu_submission_ms": 163.91,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "native-seek-1",
+          "gpu_render_ms": 11.48,
+          "gpu_sort_ms": 0.0,
+          "cpu_submission_ms": 10.83,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "native-seek-2",
+          "gpu_render_ms": 16.05,
+          "gpu_sort_ms": 10.41,
+          "cpu_submission_ms": 62.07,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "native-seek-3",
+          "gpu_render_ms": 10.7,
+          "gpu_sort_ms": 5.53,
+          "cpu_submission_ms": 50.43,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "production-play-pause",
+          "gpu_render_ms": 5.5,
+          "gpu_sort_ms": 5.51,
+          "cpu_submission_ms": 44.42,
+          "completed_gpu_renders_per_second": 0.0
+        }
+      ],
+      "public_gpu_timing_readings_count": 5
+    },
+    {
+      "dataset_alias": "production-2560k",
+      "source_points": 2560000,
+      "display_backend": "x11",
+      "passed": true,
+      "completed_checks": 7,
+      "planned_checks": 7,
+      "product_commit": "e726a5f1edfed27fdfc414827075b6ad4d9165cc",
+      "product_code_sha256": {
+        "application.py": "3ab217ac12dfb6fc5c290d8931c0d3923670a6e23e394929a16b1294aa3b1a07",
+        "model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+        "camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967",
+        "viewport.py": "2eb8cfa2c0ce8fcb0cab40c9f046f3777dddb8809ceb6cf9d907c4a01f829364",
+        "gl_renderer.py": "95424f40ac294d6d4b866f465c9742762069b81089c2b008bd524cafb14c8a16",
+        "gpu_sort.py": "1e336b92fd7a4dc728398a32747be5a46cdff522f43b5c7f3bcf91d51036cf10"
+      },
+      "product_code_unchanged": true,
+      "tool_sha256": "162cbef699a56c291e9ff49da95ad8a9e1c77050cda173f56cd3146f9dbef1ba",
+      "raw_local_report_sha256": "5445eacfec174596e9497dd9dd5609195d613ce83b526c05be503b8028b70712",
+      "actual_graphics": {
+        "vendor": "NVIDIA Corporation",
+        "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+        "version": "4.6.0 NVIDIA 620.70.06",
+        "display_backend": "x11",
+        "sorting": "gpu-radix",
+        "sorting_details": "GPU stable Float32 depth radix sort"
+      },
+      "software_explicitly_requested": false,
+      "runtime_versions": {
+        "python": "3.12.3",
+        "numpy": "1.26.4",
+        "PyOpenGL": "3.1.7"
+      },
+      "source_integrity": {
+        "stat_fields_unchanged": true,
+        "whole_file_digest_computed": false
+      },
+      "cleanup": {
+        "owned_application_close_completed_without_error": true,
+        "input_session_and_output_cleanup_without_error": true,
+        "logical_monitors_before": 1,
+        "logical_monitors_after": 1
+      },
+      "peak_sampled_RSS_bytes": 1631207424,
+      "process_VmHWM_bytes": 1738412032,
+      "gpu_load_before": [
+        {
+          "gpu_index": 0,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 66,
+          "used_memory_mib": 6676,
+          "total_memory_mib": 49140
+        },
+        {
+          "gpu_index": 1,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 61,
+          "used_memory_mib": 16153,
+          "total_memory_mib": 49140
+        }
+      ],
+      "gpu_load_after": [
+        {
+          "gpu_index": 0,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 98,
+          "used_memory_mib": 5868,
+          "total_memory_mib": 49140
+        },
+        {
+          "gpu_index": 1,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 62,
+          "used_memory_mib": 16087,
+          "total_memory_mib": 49140
+        }
+      ],
+      "checks": [
+        {
+          "operation": "native-open-production-source",
+          "passed": true,
+          "seconds": 33.976117551967036
+        },
+        {
+          "operation": "native-seek-1",
+          "passed": true,
+          "seconds": 6.392485396005213,
+          "input_to_public_timeline_ms_upper_bound": 2761.875270982273,
+          "input_to_completed_png_ms_upper_bound": 6391.581709962338
+        },
+        {
+          "operation": "native-seek-2",
+          "passed": true,
+          "seconds": 6.1490909029962495,
+          "input_to_public_timeline_ms_upper_bound": 2592.0256179524586,
+          "input_to_completed_png_ms_upper_bound": 6148.317560961004
+        },
+        {
+          "operation": "native-seek-3",
+          "passed": true,
+          "seconds": 6.0685103660216555,
+          "input_to_public_timeline_ms_upper_bound": 2540.6575960223563,
+          "input_to_completed_png_ms_upper_bound": 6065.819141047541
+        },
+        {
+          "operation": "production-play-pause",
+          "passed": true,
+          "seconds": 9.723705593962222,
+          "playback": {
+            "requested_duration_seconds": 5.0,
+            "actual_duration_seconds": 6.8720465680235066,
+            "timeline_readings": 27,
+            "distinct_timeline_values": 27,
+            "pause_confirmed_stable": true,
+            "timeline_handle_reused": true
+          }
+        },
+        {
+          "operation": "production-owner-and-exact-id",
+          "passed": true,
+          "seconds": 9.722891788987909
+        },
+        {
+          "operation": "production-camera-record-export-and-workspace",
+          "passed": true,
+          "seconds": 14.613713619008195,
+          "real_native_orbit_exported_pose_changed": true,
+          "exported_camera_key_count": 2
+        }
+      ],
+      "png_exports": [
+        {
+          "role": "native-seek-1",
+          "dimensions": [
+            1322,
+            664
+          ],
+          "bytes": 193093,
+          "sha256": "8e339800aef1b78ba255dd01db66cabe11628c83660487af5f32c78b15446358"
+        },
+        {
+          "role": "native-seek-2",
+          "dimensions": [
+            1322,
+            664
+          ],
+          "bytes": 192687,
+          "sha256": "32cb2570b7abd09602a0d0d978d25d2f840595654dbb4f776fbcf8b3768ed799"
+        },
+        {
+          "role": "native-seek-3",
+          "dimensions": [
+            1322,
+            664
+          ],
+          "bytes": 193084,
+          "sha256": "113e408c261b563e1d4ada1df8bcdd41f1540fe7e6d8e6dd1cf66bb2ec1419e7"
+        },
+        {
+          "role": "production-owner-and-exact-id",
+          "dimensions": [
+            1322,
+            664
+          ],
+          "bytes": 192990,
+          "sha256": "f1faceb6a90b43c71252b70f50de303bfb3c25c7bf5fe951a7553b08258c45ed"
+        },
+        {
+          "role": "workspace",
+          "dimensions": [
+            1854,
+            1048
+          ],
+          "bytes": 311928,
+          "sha256": "140226708b7aa9cdf346c3f38c55cb4edb2b861ef64e5ad88b8d4e44aa67a2b4"
+        }
+      ],
+      "public_gpu_timing_readings": [
+        {
+          "operation": "native-open-production-source",
+          "gpu_render_ms": 100.55,
+          "gpu_sort_ms": 12.84,
+          "cpu_submission_ms": 314.26,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "native-seek-1",
+          "gpu_render_ms": 102.92,
+          "gpu_sort_ms": 0.0,
+          "cpu_submission_ms": 11.39,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "native-seek-2",
+          "gpu_render_ms": 96.24,
+          "gpu_sort_ms": 19.93,
+          "cpu_submission_ms": 98.02,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "native-seek-3",
+          "gpu_render_ms": 103.5,
+          "gpu_sort_ms": 12.43,
+          "cpu_submission_ms": 91.12,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "production-play-pause",
+          "gpu_render_ms": 94.21,
+          "gpu_sort_ms": 10.72,
+          "cpu_submission_ms": 66.5,
+          "completed_gpu_renders_per_second": 5.88
+        }
+      ],
+      "public_gpu_timing_readings_count": 5
+    },
+    {
+      "dataset_alias": "production-2560k",
+      "source_points": 2560000,
+      "display_backend": "wayland",
+      "passed": false,
+      "completed_checks": 1,
+      "planned_checks": 7,
+      "product_commit": "e726a5f1edfed27fdfc414827075b6ad4d9165cc",
+      "product_code_sha256": {
+        "application.py": "3ab217ac12dfb6fc5c290d8931c0d3923670a6e23e394929a16b1294aa3b1a07",
+        "model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+        "camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967",
+        "viewport.py": "2eb8cfa2c0ce8fcb0cab40c9f046f3777dddb8809ceb6cf9d907c4a01f829364",
+        "gl_renderer.py": "95424f40ac294d6d4b866f465c9742762069b81089c2b008bd524cafb14c8a16",
+        "gpu_sort.py": "1e336b92fd7a4dc728398a32747be5a46cdff522f43b5c7f3bcf91d51036cf10"
+      },
+      "product_code_unchanged": true,
+      "tool_sha256": "162cbef699a56c291e9ff49da95ad8a9e1c77050cda173f56cd3146f9dbef1ba",
+      "raw_local_report_sha256": "1790eb0bb07cf883d6fdce49fed04c457c5ad34de8fc3fa232d09835ad2ab2c2",
+      "actual_graphics": {
+        "vendor": "Mesa",
+        "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+        "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+        "display_backend": "wayland",
+        "sorting": "cpu",
+        "sorting_details": "Software OpenGL uses stable CPU depth sort"
+      },
+      "software_explicitly_requested": true,
+      "runtime_versions": {
+        "python": "3.12.3",
+        "numpy": "1.26.4",
+        "PyOpenGL": "3.1.7"
+      },
+      "source_integrity": {
+        "stat_fields_unchanged": true,
+        "whole_file_digest_computed": false
+      },
+      "cleanup": {
+        "owned_application_close_completed_without_error": true,
+        "input_session_and_output_cleanup_without_error": true,
+        "logical_monitors_before": 1,
+        "logical_monitors_after": 1
+      },
+      "peak_sampled_RSS_bytes": 1318285312,
+      "process_VmHWM_bytes": 1318285312,
+      "gpu_load_before": [
+        {
+          "gpu_index": 0,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 99,
+          "used_memory_mib": 5868,
+          "total_memory_mib": 49140
+        },
+        {
+          "gpu_index": 1,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 40,
+          "used_memory_mib": 16151,
+          "total_memory_mib": 49140
+        }
+      ],
+      "gpu_load_after": [
+        {
+          "gpu_index": 0,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 20,
+          "used_memory_mib": 3018,
+          "total_memory_mib": 49140
+        },
+        {
+          "gpu_index": 1,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 99,
+          "used_memory_mib": 16149,
+          "total_memory_mib": 49140
+        }
+      ],
+      "checks": [
+        {
+          "operation": "native-open-production-source",
+          "passed": true,
+          "seconds": 41.738262967031915
+        }
+      ],
+      "png_exports": [],
+      "public_gpu_timing_readings": [
+        {
+          "operation": "native-open-production-source",
+          "gpu_render_ms": 5308.74,
+          "gpu_sort_ms": 0.0,
+          "cpu_submission_ms": 8054.73,
+          "completed_gpu_renders_per_second": 0.0
+        }
+      ],
+      "public_gpu_timing_readings_count": 1,
+      "failure": {
+        "stage": "first native seek, locating the owned frame before invoking the viewport screenshot action",
+        "operation": "AT-SPI GetRoleName RPC in desktop.window()",
+        "error_category": "AT-SPI reply timeout",
+        "completed_open": true,
+        "screenshot_action_invoked": false,
+        "interpretation": "The 2.56M software acceptance did not complete. The timeout does not establish an application crash, an image-export failure or a driver defect."
+      }
+    },
+    {
+      "dataset_alias": "production-160k",
+      "source_points": 160000,
+      "display_backend": "wayland",
+      "passed": true,
+      "completed_checks": 7,
+      "planned_checks": 7,
+      "product_commit": "e726a5f1edfed27fdfc414827075b6ad4d9165cc",
+      "product_code_sha256": {
+        "application.py": "3ab217ac12dfb6fc5c290d8931c0d3923670a6e23e394929a16b1294aa3b1a07",
+        "model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+        "camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967",
+        "viewport.py": "2eb8cfa2c0ce8fcb0cab40c9f046f3777dddb8809ceb6cf9d907c4a01f829364",
+        "gl_renderer.py": "95424f40ac294d6d4b866f465c9742762069b81089c2b008bd524cafb14c8a16",
+        "gpu_sort.py": "1e336b92fd7a4dc728398a32747be5a46cdff522f43b5c7f3bcf91d51036cf10"
+      },
+      "product_code_unchanged": true,
+      "tool_sha256": "162cbef699a56c291e9ff49da95ad8a9e1c77050cda173f56cd3146f9dbef1ba",
+      "raw_local_report_sha256": "c9f591f7e10d4309bdaf33b2a147bf9e9a2ae5cf1b7df862a2ff6954b30adaf7",
+      "actual_graphics": {
+        "vendor": "Mesa",
+        "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+        "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+        "display_backend": "wayland",
+        "sorting": "cpu",
+        "sorting_details": "Software OpenGL uses stable CPU depth sort"
+      },
+      "software_explicitly_requested": true,
+      "runtime_versions": {
+        "python": "3.12.3",
+        "numpy": "1.26.4",
+        "PyOpenGL": "3.1.7"
+      },
+      "source_integrity": {
+        "stat_fields_unchanged": true,
+        "whole_file_digest_computed": false
+      },
+      "cleanup": {
+        "owned_application_close_completed_without_error": true,
+        "input_session_and_output_cleanup_without_error": true,
+        "logical_monitors_before": 1,
+        "logical_monitors_after": 1
+      },
+      "peak_sampled_RSS_bytes": 744316928,
+      "process_VmHWM_bytes": 744316928,
+      "gpu_load_before": [
+        {
+          "gpu_index": 0,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 70,
+          "used_memory_mib": 13572,
+          "total_memory_mib": 49140
+        },
+        {
+          "gpu_index": 1,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 94,
+          "used_memory_mib": 21619,
+          "total_memory_mib": 49140
+        }
+      ],
+      "gpu_load_after": [
+        {
+          "gpu_index": 0,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 65,
+          "used_memory_mib": 13584,
+          "total_memory_mib": 49140
+        },
+        {
+          "gpu_index": 1,
+          "renderer": "NVIDIA GeForce RTX 4090",
+          "utilization_percent": 94,
+          "used_memory_mib": 21339,
+          "total_memory_mib": 49140
+        }
+      ],
+      "checks": [
+        {
+          "operation": "native-open-production-source",
+          "passed": true,
+          "seconds": 6.990728025033604
+        },
+        {
+          "operation": "native-seek-1",
+          "passed": true,
+          "seconds": 6.320952610985842,
+          "input_to_public_timeline_ms_upper_bound": 2737.870151991956,
+          "input_to_completed_png_ms_upper_bound": 6320.052637020126
+        },
+        {
+          "operation": "native-seek-2",
+          "passed": true,
+          "seconds": 6.243667980947066,
+          "input_to_public_timeline_ms_upper_bound": 2530.083245015703,
+          "input_to_completed_png_ms_upper_bound": 6242.7819009753875
+        },
+        {
+          "operation": "native-seek-3",
+          "passed": true,
+          "seconds": 6.259072428976651,
+          "input_to_public_timeline_ms_upper_bound": 2517.4220399931073,
+          "input_to_completed_png_ms_upper_bound": 6258.121387974825
+        },
+        {
+          "operation": "production-play-pause",
+          "passed": true,
+          "seconds": 8.954731329984497,
+          "playback": {
+            "requested_duration_seconds": 5.0,
+            "actual_duration_seconds": 5.992412809981033,
+            "timeline_readings": 9,
+            "distinct_timeline_values": 9,
+            "pause_confirmed_stable": true,
+            "timeline_handle_reused": true
+          }
+        },
+        {
+          "operation": "production-owner-and-exact-id",
+          "passed": true,
+          "seconds": 10.3736451480072
+        },
+        {
+          "operation": "production-camera-record-export-and-workspace",
+          "passed": true,
+          "seconds": 17.08393794496078,
+          "real_native_orbit_exported_pose_changed": true,
+          "exported_camera_key_count": 2
+        }
+      ],
+      "png_exports": [
+        {
+          "role": "native-seek-1",
+          "dimensions": [
+            1320,
+            658
+          ],
+          "bytes": 125250,
+          "sha256": "e6f993b120e8b863076d991497030f88f9838eb5ba5af201f3fc4d7a377e9324"
+        },
+        {
+          "role": "native-seek-2",
+          "dimensions": [
+            1320,
+            658
+          ],
+          "bytes": 126127,
+          "sha256": "e1b59ecee25fa3a82c4c0511d7403d012bfa84b8486913a7da6679c301ff8e9a"
+        },
+        {
+          "role": "native-seek-3",
+          "dimensions": [
+            1320,
+            658
+          ],
+          "bytes": 126272,
+          "sha256": "f8784442bc8e3d65863a06f770d6ebc3bb3403a7cdfd5bd12537b0b36b8ccb7b"
+        },
+        {
+          "role": "production-owner-and-exact-id",
+          "dimensions": [
+            1320,
+            658
+          ],
+          "bytes": 133758,
+          "sha256": "efe36972a2d4b375c0297425c4de012178a69ac218fc578284c86cc4e0bb1336"
+        },
+        {
+          "role": "workspace",
+          "dimensions": [
+            1854,
+            1048
+          ],
+          "bytes": 262472,
+          "sha256": "c9bce049765d6c955e44545a64a7030ca0c1949c6329d4ac9482ec3657d843e4"
+        }
+      ],
+      "public_gpu_timing_readings": [
+        {
+          "operation": "native-open-production-source",
+          "gpu_render_ms": 269964314.68,
+          "gpu_sort_ms": 0.0,
+          "cpu_submission_ms": 830.75,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "native-seek-1",
+          "gpu_render_ms": 287.37,
+          "gpu_sort_ms": 0.0,
+          "cpu_submission_ms": 461.04,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "native-seek-2",
+          "gpu_render_ms": 470.87,
+          "gpu_sort_ms": 0.0,
+          "cpu_submission_ms": 499.39,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "native-seek-3",
+          "gpu_render_ms": 504.12,
+          "gpu_sort_ms": 0.0,
+          "cpu_submission_ms": 530.28,
+          "completed_gpu_renders_per_second": 0.0
+        },
+        {
+          "operation": "production-play-pause",
+          "gpu_render_ms": 288.82,
+          "gpu_sort_ms": 0.0,
+          "cpu_submission_ms": 488.52,
+          "completed_gpu_renders_per_second": 1.92
+        }
+      ],
+      "public_gpu_timing_readings_count": 5
+    }
+  ],
+  "passed_runs": 5,
+  "failed_runs": 1,
+  "completed_passed_checks": 36,
+  "all_sources_unchanged_as_measured": true,
+  "all_product_code_unchanged_during_each_run": true,
+  "all_owned_cleanup_without_error": true,
+  "planned_checks": 42,
+  "fully_successful_run_checks": 35,
+  "completed_checks_in_failed_runs": 1,
+  "not_completed_checks": 6
+}

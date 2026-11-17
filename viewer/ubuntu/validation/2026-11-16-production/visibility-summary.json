@@ -1,0 +1,673 @@
+{
+  "format": "gsv.production-visibility-correction-validation-summary/1",
+  "date": "2026-11-16",
+  "privacy": "Dataset aliases and aggregate measurements only. Production paths, images, camera arrays and source/exported identities are omitted. Original local reports remain ignored; their SHA256 hashes support local audit.",
+  "fixed_product_commit": "771be79b46c00729c3986193fe87a0e636c888d6",
+  "fixed_source_sha256": {
+    "viewer/ubuntu/gs_studio/gpu_visibility.py": "bae39d7e8bbdcee72de792210454302d026c967513f0622c4f76abfc4fbf5ffe",
+    "viewer/ubuntu/gs_studio/gl_renderer.py": "86d69b376f9fdaaa13b2689d57fe08eb476f532d350dac7d83b9a35673d208cd",
+    "viewer/ubuntu/gs_studio/gpu_sort.py": "1e336b92fd7a4dc728398a32747be5a46cdff522f43b5c7f3bcf91d51036cf10",
+    "viewer/ubuntu/gs_studio/viewport.py": "2eb8cfa2c0ce8fcb0cab40c9f046f3777dddb8809ceb6cf9d907c4a01f829364",
+    "viewer/ubuntu/tools/benchmark_production_viewport.py": "b7d92b51223fe070b8fa72fc22358afd56d62b690a9b4b2b1fa96bd8676c3e2a",
+    "viewer/ubuntu/tests/test_gpu_visibility.py": "9fc1437c5ff70736e9ea4142b902b5b10ebd7daf1b2fee0448aa0536a07eb7be"
+  },
+  "counter_definition": "Counts source Gaussians accepted by the exact display vertex shader: valid endpoint/interior identity, center depth above near clip, activated peak opacity at least 1/255, finite projection, and 3-sigma screen covariance axis-aligned bounds intersecting the render rectangle. This is frustum inclusion for preview geometry, not mutual-occlusion or final nonzero-pixel counting.",
+  "diagnosis": {
+    "graphics": {
+      "vendor": "NVIDIA Corporation",
+      "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+      "version": "4.6.0 NVIDIA 620.70.06",
+      "pyopengl_platform": "EGLPlatform"
+    },
+    "old_nvidia_existing_cases": {
+      "tests_run": 6,
+      "passed": 1,
+      "failed": 5,
+      "errors": 0,
+      "expected_default_fixture_visible": 3,
+      "observed_default_fixture_visible": 10,
+      "raw_local_report_sha256": "4bbfbf6059309053513c3236d9987d68f682908d06b107364ae789e4a6d41c29"
+    },
+    "minimal_driver_probe": {
+      "description": "With rasterizer discard and no transform-feedback output, the tested NVIDIA driver returned all 10 input points even when the geometry shader immediately returned without EmitVertex. A half-emitting shader also returned 10 with a fragment shader or rasterization enabled. Making emitted points observable through transform feedback produced the expected 5. These are observed driver/context results; no untested wider driver claim is made.",
+      "variants": [
+        {
+          "name": "simple_none",
+          "rasterizer_discard": true,
+          "transform_feedback": false,
+          "primitives_generated": 10,
+          "geometry_shader": true,
+          "gl_error": 0
+        },
+        {
+          "name": "simple_all",
+          "rasterizer_discard": true,
+          "transform_feedback": false,
+          "primitives_generated": 10,
+          "geometry_shader": true,
+          "gl_error": 0
+        },
+        {
+          "name": "simple_half",
+          "rasterizer_discard": true,
+          "transform_feedback": false,
+          "primitives_generated": 10,
+          "geometry_shader": true,
+          "gl_error": 0
+        },
+        {
+          "name": "simple_half_with_fragment",
+          "rasterizer_discard": true,
+          "transform_feedback": false,
+          "primitives_generated": 10,
+          "geometry_shader": true,
+          "gl_error": 0
+        },
+        {
+          "name": "simple_half_with_tf",
+          "rasterizer_discard": true,
+          "transform_feedback": true,
+          "primitives_generated": 5,
+          "geometry_shader": true,
+          "tf_primitives_written": 5,
+          "captured_ints": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "gl_error": 0
+        },
+        {
+          "name": "simple_half_rasterized",
+          "rasterizer_discard": false,
+          "transform_feedback": false,
+          "primitives_generated": 10,
+          "geometry_shader": true,
+          "gl_error": 0
+        },
+        {
+          "name": "renderer_vertex_flags_tf",
+          "rasterizer_discard": true,
+          "transform_feedback": true,
+          "primitives_generated": 10,
+          "geometry_shader": false,
+          "tf_primitives_written": 10,
+          "captured_ints": [
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "gl_error": 0
+        }
+      ],
+      "renderer_vertex_flags_visible_sum": 3,
+      "raw_local_report_sha256": "ed5ea132027db67be241dc2916ae6da90e2481bff90066fb809d1d103915d04c"
+    },
+    "historical_reports": "All original BEFORE/AFTER raw reports and viewport-summary.json are retained. Their NVIDIA frustum counts equal to all source rows were incorrect. The correction changes statistics execution, not the display/picking shaders or source data."
+  },
+  "implementation": {
+    "opengl_minimum": "3.3",
+    "query_target": "GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN",
+    "scratch_buffers": 1,
+    "scratch_bytes_per_maximum_source_row": 4,
+    "scratch_contents": "One Float32 proof per emitted point; overwritten on subsequent samples and never read back to CPU",
+    "query_pool_maximum": 3,
+    "maximum_sampling_hz": 10,
+    "cpu_per_gaussian_visibility_readback": false,
+    "scalar_result_read": "Only after GL_QUERY_RESULT_AVAILABLE; otherwise prior completed sample remains available with its age/time/pose",
+    "state_preservation": "Generic and indexed transform-feedback bindings, indexed offset/size range, program/VAO and rasterizer-discard state restored; error paths end active capture/query and disable statistics while rendering continues",
+    "cleanup": "Proof buffer, program and every allocated query are deleted during close; proof capacity included in estimated resident bytes"
+  },
+  "targeted_regressions": {
+    "actual_nvidia": {
+      "graphics": {
+        "vendor": "NVIDIA Corporation",
+        "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+        "version": "4.6.0 NVIDIA 620.70.06",
+        "display_backend": "X11Display"
+      },
+      "tests_run": 9,
+      "success": true,
+      "failures": 0,
+      "errors": 0,
+      "raw_local_report_sha256": "961dd86310a9e3b6b63e5f7307491c3155348af1b9ff7875de8a22166a5789ec"
+    },
+    "mesa_software": {
+      "graphics": {
+        "vendor": "Mesa",
+        "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+        "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+        "display_backend": "X11Display"
+      },
+      "tests_run": 14,
+      "success": true,
+      "failures": 0,
+      "errors": 0,
+      "raw_local_report_sha256": "aa13e824af998ffc1f394963b92d7983195569d4fd453bd8e76a489a5ff02724"
+    },
+    "covered_behaviors": [
+      "Default frustum/near/behind/offscreen/nonfinite/opacity threshold exclusions",
+      "Gaussian scale and opacity controls produce expected counts 3, 2, 0",
+      "Prepared interpolation validity, tiny interior weights and exact endpoints",
+      "Source cohort reset, all hidden and all inactive exact zero",
+      "Bounded proof allocation/reuse and at most three asynchronous queries",
+      "No per-Gaussian buffer readback during count",
+      "Exact indexed transform-feedback range and generic binding restoration",
+      "Injected failure after capture begins ends transform feedback and query; display continues",
+      "RGBA byte equality with visibility enabled/disabled",
+      "Proof buffer and all queries actually deleted at close"
+    ],
+    "additional_viewport_regression_tests": {
+      "tests_run": 37,
+      "success": true,
+      "evidence": "Targeted test_viewport unittest invocation recorded in agent tool transcript; no separate local report file"
+    }
+  },
+  "production_full_source_cpu_oracle": {
+    "method": "Full-source, chunked CPU Float64 endpoint interpolation, quaternion SLERP, covariance projection and the shader display-frustum mask at recorded source camera0, native time, fitted K and actual raster. CPU and GPU floating-point evaluation differ; count equality is observed evidence, not a bit-exact numerical-boundary guarantee. No source GPU array is read back. Existing production benchmark independently performed full SDK source validation; this additional sparse-access SDK Scene is opened verify=False to avoid a redundant whole-file hash pass.",
+    "gpu_float_boundary_note": "GPU shader Float32 and CPU Float64 projection use different arithmetic. Exact scalar equality was observed for these four complete datasets at the recorded camera/time; this is not a guarantee of identical boundary classification on other sources/poses. Illustrative near-boundary counts use 0.01px, 1e-5 world-depth and 1e-7 opacity proximity, not a proved error bound.",
+    "settings": {
+      "chunk_rows": 32768,
+      "near": 0.01,
+      "gaussian_scale": 1.0,
+      "opacity_multiplier": 1.0,
+      "pixel_shift": 0.0
+    },
+    "scenes": [
+      {
+        "alias": "production-160k",
+        "source_count": 160000,
+        "cpu_float64_visible_count": 120116,
+        "cpu_visible_fraction": 0.750725,
+        "gpu_resident_visible_counts": [
+          120116
+        ],
+        "gpu_resident_matching_metadata_rows": 14,
+        "gpu_minus_cpu_counts": [
+          0
+        ],
+        "gpu_count_equals_cpu_float64": true,
+        "illustrative_boundary_proximity_count": 5,
+        "illustrative_pixel_margin": 0.01,
+        "illustrative_z_margin": 1e-05,
+        "illustrative_opacity_margin": 1e-07,
+        "weight": 0.25,
+        "elapsed_ms": 228.00760302925482,
+        "source_stat_unchanged": true,
+        "source_stat_matches_validated_profile": true,
+        "profile_sha256": "66fb87c5808efadf9aef9bc5a8ae8dae4d14c23d0795ee889f5c3f679c29dbe1"
+      },
+      {
+        "alias": "production-640k",
+        "source_count": 640000,
+        "cpu_float64_visible_count": 346450,
+        "cpu_visible_fraction": 0.541328125,
+        "gpu_resident_visible_counts": [
+          346450
+        ],
+        "gpu_resident_matching_metadata_rows": 14,
+        "gpu_minus_cpu_counts": [
+          0
+        ],
+        "gpu_count_equals_cpu_float64": true,
+        "illustrative_boundary_proximity_count": 8,
+        "illustrative_pixel_margin": 0.01,
+        "illustrative_z_margin": 1e-05,
+        "illustrative_opacity_margin": 1e-07,
+        "weight": 0.25,
+        "elapsed_ms": 835.1471350179054,
+        "source_stat_unchanged": true,
+        "source_stat_matches_validated_profile": true,
+        "profile_sha256": "e7c565e5aecec05a94e75d4b7d687fdd0f1b577e6f1c724a10be3902685920af"
+      },
+      {
+        "alias": "production-1280k",
+        "source_count": 1280000,
+        "cpu_float64_visible_count": 688578,
+        "cpu_visible_fraction": 0.5379515625,
+        "gpu_resident_visible_counts": [
+          688578
+        ],
+        "gpu_resident_matching_metadata_rows": 14,
+        "gpu_minus_cpu_counts": [
+          0
+        ],
+        "gpu_count_equals_cpu_float64": true,
+        "illustrative_boundary_proximity_count": 15,
+        "illustrative_pixel_margin": 0.01,
+        "illustrative_z_margin": 1e-05,
+        "illustrative_opacity_margin": 1e-07,
+        "weight": 0.25,
+        "elapsed_ms": 1672.0510640298016,
+        "source_stat_unchanged": true,
+        "source_stat_matches_validated_profile": true,
+        "profile_sha256": "597fa21c4d66868c7624ca104c00d6dd9e6198e18e2e2be20a1163ec273f2d20"
+      },
+      {
+        "alias": "production-2560k",
+        "source_count": 2560000,
+        "cpu_float64_visible_count": 1377453,
+        "cpu_visible_fraction": 0.538067578125,
+        "gpu_resident_visible_counts": [
+          1377453
+        ],
+        "gpu_resident_matching_metadata_rows": 14,
+        "gpu_minus_cpu_counts": [
+          0
+        ],
+        "gpu_count_equals_cpu_float64": true,
+        "illustrative_boundary_proximity_count": 27,
+        "illustrative_pixel_margin": 0.01,
+        "illustrative_z_margin": 1e-05,
+        "illustrative_opacity_margin": 1e-07,
+        "weight": 0.25,
+        "elapsed_ms": 3317.6344130188227,
+        "source_stat_unchanged": true,
+        "source_stat_matches_validated_profile": true,
+        "profile_sha256": "ff9c62f006fbd21e3ce703b10238ab9234015c297e4e740545ee72c0f7c05b25"
+      }
+    ],
+    "all_four_counts_equal": true,
+    "raw_local_report_sha256": "e1a257ca72f625a5ff25177f14e63f8256f5a289cbc33903d5427bf9ff04bdaa"
+  },
+  "production_render_pick_camera_integrity": {
+    "comparisons": [
+      {
+        "alias": "production-160k/pre-fix-after-vs-corrected",
+        "old_report_sha256": "79bec19326bbb1538da36aab9cddd74a466402723bb8ed8ceca8f6d35413e2f9",
+        "corrected_report_sha256": "66fb87c5808efadf9aef9bc5a8ae8dae4d14c23d0795ee889f5c3f679c29dbe1",
+        "old_source_commit": "bf7a41021fed94ac1371fc42a8e4db3f6374671b",
+        "corrected_source_commit": "771be79b46c00729c3986193fe87a0e636c888d6",
+        "old_tool_sha256": "ef280ef3ac000e119d630aa82b80ca13bb6b4d11af476f5c92c3c4834cbeb03e",
+        "corrected_tool_sha256": "b7d92b51223fe070b8fa72fc22358afd56d62b690a9b4b2b1fa96bd8676c3e2a",
+        "old_png_sha256": "fa0a49ac0e4df76edcd0e2e6dd9075ba9cda18a4922ae1afdcaf33371fe8fff8",
+        "corrected_png_sha256": "fa0a49ac0e4df76edcd0e2e6dd9075ba9cda18a4922ae1afdcaf33371fe8fff8",
+        "same_rgba_shape": true,
+        "rgba_shape": [
+          720,
+          1280,
+          4
+        ],
+        "changed_pixels": 0,
+        "maximum_channel_delta": 0,
+        "rgba_equal": true,
+        "five_picks_compared": true,
+        "pick_checks": [
+          {
+            "ordinal": 1,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 2,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 3,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 4,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 5,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          }
+        ],
+        "all_five_pick_identities_equal": true,
+        "same_K": true,
+        "same_c2w": true,
+        "same_initial_time": true,
+        "same_manifest_sha256": true,
+        "source_stat_unchanged_across_runs": true,
+        "old_samples": 94,
+        "corrected_samples": 94,
+        "same_94_case_plan": true,
+        "passed": true
+      },
+      {
+        "alias": "production-640k/pre-fix-after-vs-corrected",
+        "old_report_sha256": "5885d5bcc9bcb46031bcfea2c6c56eb2d88e348ddc8c5b6839ad2dc6fc99c268",
+        "corrected_report_sha256": "e7c565e5aecec05a94e75d4b7d687fdd0f1b577e6f1c724a10be3902685920af",
+        "old_source_commit": "bf7a41021fed94ac1371fc42a8e4db3f6374671b",
+        "corrected_source_commit": "771be79b46c00729c3986193fe87a0e636c888d6",
+        "old_tool_sha256": "ef280ef3ac000e119d630aa82b80ca13bb6b4d11af476f5c92c3c4834cbeb03e",
+        "corrected_tool_sha256": "b7d92b51223fe070b8fa72fc22358afd56d62b690a9b4b2b1fa96bd8676c3e2a",
+        "old_png_sha256": "e8338d4462832e44044bea8cdb5d27571cb49f6627f39531ed66a1c06644759f",
+        "corrected_png_sha256": "e8338d4462832e44044bea8cdb5d27571cb49f6627f39531ed66a1c06644759f",
+        "same_rgba_shape": true,
+        "rgba_shape": [
+          720,
+          1280,
+          4
+        ],
+        "changed_pixels": 0,
+        "maximum_channel_delta": 0,
+        "rgba_equal": true,
+        "five_picks_compared": true,
+        "pick_checks": [
+          {
+            "ordinal": 1,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 2,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 3,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 4,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 5,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          }
+        ],
+        "all_five_pick_identities_equal": true,
+        "same_K": true,
+        "same_c2w": true,
+        "same_initial_time": true,
+        "same_manifest_sha256": true,
+        "source_stat_unchanged_across_runs": true,
+        "old_samples": 94,
+        "corrected_samples": 94,
+        "same_94_case_plan": true,
+        "passed": true
+      },
+      {
+        "alias": "production-1280k/pre-fix-after-vs-corrected",
+        "old_report_sha256": "618b4511b1728516ec95c23d2e6bc72de290df6415e6b1017bb7385dfd885362",
+        "corrected_report_sha256": "597fa21c4d66868c7624ca104c00d6dd9e6198e18e2e2be20a1163ec273f2d20",
+        "old_source_commit": "bf7a41021fed94ac1371fc42a8e4db3f6374671b",
+        "corrected_source_commit": "771be79b46c00729c3986193fe87a0e636c888d6",
+        "old_tool_sha256": "ef280ef3ac000e119d630aa82b80ca13bb6b4d11af476f5c92c3c4834cbeb03e",
+        "corrected_tool_sha256": "b7d92b51223fe070b8fa72fc22358afd56d62b690a9b4b2b1fa96bd8676c3e2a",
+        "old_png_sha256": "86ce5da12189187f0502137efa5a9251aeb79ac843038595f50cded920e53931",
+        "corrected_png_sha256": "86ce5da12189187f0502137efa5a9251aeb79ac843038595f50cded920e53931",
+        "same_rgba_shape": true,
+        "rgba_shape": [
+          720,
+          1280,
+          4
+        ],
+        "changed_pixels": 0,
+        "maximum_channel_delta": 0,
+        "rgba_equal": true,
+        "five_picks_compared": true,
+        "pick_checks": [
+          {
+            "ordinal": 1,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 2,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 3,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 4,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 5,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          }
+        ],
+        "all_five_pick_identities_equal": true,
+        "same_K": true,
+        "same_c2w": true,
+        "same_initial_time": true,
+        "same_manifest_sha256": true,
+        "source_stat_unchanged_across_runs": true,
+        "old_samples": 94,
+        "corrected_samples": 94,
+        "same_94_case_plan": true,
+        "passed": true
+      },
+      {
+        "alias": "production-2560k/pre-fix-after-vs-corrected",
+        "old_report_sha256": "9450109862feb75822f487dcd106158c44a764c7243407ba4f18eca2c13c5033",
+        "corrected_report_sha256": "ff9c62f006fbd21e3ce703b10238ab9234015c297e4e740545ee72c0f7c05b25",
+        "old_source_commit": "bf7a41021fed94ac1371fc42a8e4db3f6374671b",
+        "corrected_source_commit": "771be79b46c00729c3986193fe87a0e636c888d6",
+        "old_tool_sha256": "ef280ef3ac000e119d630aa82b80ca13bb6b4d11af476f5c92c3c4834cbeb03e",
+        "corrected_tool_sha256": "b7d92b51223fe070b8fa72fc22358afd56d62b690a9b4b2b1fa96bd8676c3e2a",
+        "old_png_sha256": "c24b24e383267c81397e9f77d3a619487b174eac8f599b3a3e4d1392398488a3",
+        "corrected_png_sha256": "c24b24e383267c81397e9f77d3a619487b174eac8f599b3a3e4d1392398488a3",
+        "same_rgba_shape": true,
+        "rgba_shape": [
+          720,
+          1280,
+          4
+        ],
+        "changed_pixels": 0,
+        "maximum_channel_delta": 0,
+        "rgba_equal": true,
+        "five_picks_compared": true,
+        "pick_checks": [
+          {
+            "ordinal": 1,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 2,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 3,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 4,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 5,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          }
+        ],
+        "all_five_pick_identities_equal": true,
+        "same_K": true,
+        "same_c2w": true,
+        "same_initial_time": true,
+        "same_manifest_sha256": true,
+        "source_stat_unchanged_across_runs": true,
+        "old_samples": 94,
+        "corrected_samples": 94,
+        "same_94_case_plan": true,
+        "passed": true
+      },
+      {
+        "alias": "production-1280k/pre-optimization-before-vs-corrected",
+        "old_report_sha256": "a8f883fd439f5fd4c591e9ffaf312504b5556dcda504bb0333e62bcc2e41608b",
+        "corrected_report_sha256": "597fa21c4d66868c7624ca104c00d6dd9e6198e18e2e2be20a1163ec273f2d20",
+        "old_source_commit": "76f95454478b693dc929b142a4aeafe3625dd60d",
+        "corrected_source_commit": "771be79b46c00729c3986193fe87a0e636c888d6",
+        "old_tool_sha256": "ef280ef3ac000e119d630aa82b80ca13bb6b4d11af476f5c92c3c4834cbeb03e",
+        "corrected_tool_sha256": "b7d92b51223fe070b8fa72fc22358afd56d62b690a9b4b2b1fa96bd8676c3e2a",
+        "old_png_sha256": "86ce5da12189187f0502137efa5a9251aeb79ac843038595f50cded920e53931",
+        "corrected_png_sha256": "86ce5da12189187f0502137efa5a9251aeb79ac843038595f50cded920e53931",
+        "same_rgba_shape": true,
+        "rgba_shape": [
+          720,
+          1280,
+          4
+        ],
+        "changed_pixels": 0,
+        "maximum_channel_delta": 0,
+        "rgba_equal": true,
+        "five_picks_compared": true,
+        "pick_checks": [
+          {
+            "ordinal": 1,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 2,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 3,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 4,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 5,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          }
+        ],
+        "all_five_pick_identities_equal": true,
+        "same_K": true,
+        "same_c2w": true,
+        "same_initial_time": true,
+        "same_manifest_sha256": true,
+        "source_stat_unchanged_across_runs": true,
+        "old_samples": 94,
+        "corrected_samples": 94,
+        "same_94_case_plan": true,
+        "passed": true
+      },
+      {
+        "alias": "production-2560k/pre-optimization-before-vs-corrected",
+        "old_report_sha256": "58b768c123bdaf7b9f0517efa288d4ed2e97ba1202529de08ac590df81cc7697",
+        "corrected_report_sha256": "ff9c62f006fbd21e3ce703b10238ab9234015c297e4e740545ee72c0f7c05b25",
+        "old_source_commit": "76f95454478b693dc929b142a4aeafe3625dd60d",
+        "corrected_source_commit": "771be79b46c00729c3986193fe87a0e636c888d6",
+        "old_tool_sha256": "ef280ef3ac000e119d630aa82b80ca13bb6b4d11af476f5c92c3c4834cbeb03e",
+        "corrected_tool_sha256": "b7d92b51223fe070b8fa72fc22358afd56d62b690a9b4b2b1fa96bd8676c3e2a",
+        "old_png_sha256": "c24b24e383267c81397e9f77d3a619487b174eac8f599b3a3e4d1392398488a3",
+        "corrected_png_sha256": "c24b24e383267c81397e9f77d3a619487b174eac8f599b3a3e4d1392398488a3",
+        "same_rgba_shape": true,
+        "rgba_shape": [
+          720,
+          1280,
+          4
+        ],
+        "changed_pixels": 0,
+        "maximum_channel_delta": 0,
+        "rgba_equal": true,
+        "five_picks_compared": true,
+        "pick_checks": [
+          {
+            "ordinal": 1,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 2,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 3,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 4,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          },
+          {
+            "ordinal": 5,
+            "same_identity": true,
+            "same_pixel_fraction": true,
+            "both_hit": true
+          }
+        ],
+        "all_five_pick_identities_equal": true,
+        "same_K": true,
+        "same_c2w": true,
+        "same_initial_time": true,
+        "same_manifest_sha256": true,
+        "source_stat_unchanged_across_runs": true,
+        "old_samples": 94,
+        "corrected_samples": 94,
+        "same_94_case_plan": true,
+        "passed": true
+      }
+    ],
+    "all_passed": true,
+    "raw_local_report_sha256": "b10f2c0eb685e4c73db5c02a07d2e3c210f363cc5d04204da8ebf609fcce8e9f"
+  },
+  "performance_limits": "Existing unrelated workloads remained running. Before/after snapshots do not measure continuous load. Previous pre-fix AFTER captures were 100% busy on both GPUs; corrected-run snapshots ranged 20–99% and 61–100%. GPU elapsed changes across these runs cannot be attributed solely to this counter correction or the renderer. No desktop presentation FPS, isolated throughput or 60-fps claim is made.",
+  "passed": true
+}

@@ -1,0 +1,1225 @@
+"""Cross-platform scene and authoring acceptance tests, without GTK or GPU."""
+from pathlib import Path
+import gc
+import hashlib
+import os
+import subprocess
+import sys
+import tempfile
+import unittest
+import weakref
+from unittest import mock
+
+import numpy as np
+
+from gsv import GSVError, Scene, Writer, add_camera, add_persistent_gaussians
+from gs_studio.model import SceneDocument, PreparedFrame, density_rows
+from gs_studio.camera import (CameraHistory, CameraKeyframe, CameraTrack, export_camera_animation,
+                              import_camera_animation, SnapshotScene, interpolate_pose, slerp)
+from gsv.evaluate import matrix_quat, quat_matrix
+from gs_studio import model
+
+
+def record(x=0., valid=True):
+    a = np.zeros((2, 16), np.float32)
+    a[:, :3] = [[x, 0, 2], [1 + x, 0, 2]]
+    a[:, 3] = .8
+    a[:, 4:7] = [.1, .2, .3]
+    a[:, 7] = [valid, True]
+    a[:, 8] = 1
+    a[:, 12:15] = [[1, .1, .2], [.2, .3, 1]]
+    a[:, 15] = -1
+    return a
+
+
+def add_static(out, identifier='static', *, clock=None):
+    out.manifest['spaces'].setdefault('world', {'unit': 'meter', 'axes': ['x', 'y', 'z'], 'handedness': 'right'})
+    if clock:
+        out.manifest['clocks'][clock] = {'unit': 'normalized'}
+    values = {'ids': np.array([9], np.int64), 'means': np.array([[1., 2., 3.]]),
+              'scales': np.ones((1, 3)), 'quaternions': np.array([[1., 0., 0., 0.]]),
+              'opacity': np.array([.5]), 'colors': np.array([[2., -.5, .3]])}
+    data = {name: out.add_array(identifier + '/' + name, value) for name, value in values.items()}
+    data['color_space'] = 'srgb'
+    return out.add_object(identifier, 'gaussian', 'gsv.gaussian.static', data, space='world',
+                          **({'clock': clock} if clock else {}))
+
+
+def write(path, *, gap=False, clocks=False):
+    with Writer(path) as out:
+        ids = np.array([-2**60 - 7, 2**60 + 3], np.int64)
+        frames = [record(i, valid=not (gap and i == 2)) for i in range(5)]
+        add_persistent_gaussians(out, 'field', ids, np.arange(5, dtype=np.float64), iter(frames))
+        k = np.array([[200., 3., 160.], [0., 220., 120.], [0., 0., 1.]])
+        pose = np.repeat(np.eye(4)[None, None], 2, axis=0)
+        pose[1, 0, :3, :3] = np.diag([-1., -1., 1.])
+        pose[1, 0, 0, 3] = 2
+        add_camera(out, 'camera', [0., 4.], np.repeat(k[None, None], 2, axis=0), pose,
+                   [[320, 240]], pixel_center='half')
+        if clocks:
+            add_persistent_gaussians(out, 'foreign', ids, [0.], iter([record()]), clock='foreign-time', space='elsewhere')
+
+
+def write_camera_animation(path, source, count, *, invalid_middle=False):
+    """Write dense camera arrays directly; fixture construction stays linear."""
+    k=np.tile(np.array([[200.,3.,160.],[0.,210.,120.],[0.,0.,1.]]),(count,1,1,1))
+    poses=np.tile(np.eye(4),(count,1,1,1));poses[:,0,0,3]=np.arange(count)*.001
+    if invalid_middle:
+        poses[count//2,0,3,3]=2.
+    with Writer(path,validate=not invalid_middle,metadata={'source_document':{
+            'name':source.path.name,'manifest_sha256':source.manifest_sha256}}) as out:
+        out.manifest['spaces']=source.manifest['spaces'].copy()
+        out.manifest['clocks']=source.manifest['clocks'].copy()
+        data={'times':out.add_array('times',np.arange(count,dtype=np.float64)),
+              'view_ids':['main'],
+              'projection':{'intrinsics':out.add_array('K',k),
+                            'image_sizes':out.add_array('size',np.array([[320,240]],np.int32)),
+                            'pixel_center':'integer','distortion':{'model':'none'}},
+              'pose':{'camera_to_world':out.add_array('poses',poses)},
+              'view_volume':{'near':out.add_array('near',np.full((count,1),.01)),
+                             'far':out.add_array('far',np.where((np.arange(count)%2==1)[:,None],0.,100.)),
+                             'far_unbounded':out.add_array('unbounded',(np.arange(count)%2==1)[:,None])}}
+        out.add_object('dense-user-camera','camera','gsv.camera.pinhole',data,
+                       space=source.space,clock=source.clock,metadata={'role':'user'})
+
+
+def write_physical_rig(path):
+    """Distinct views exercise interpolation and nearest-sample metadata."""
+    times = np.array([0., 2., 5.])
+    grid = np.arange(12, dtype=np.float64).reshape(3, 4)
+    k = np.tile(np.array([[200., 3., 160.], [0., 220., 120.], [0., 0., 1.]]), (3, 4, 1, 1))
+    k[:, :, 0, 0] += grid
+    k[:, :, 0, 1] += grid * .1
+    poses = np.tile(np.eye(4), (3, 4, 1, 1))
+    axes = np.array([[1., 0, 0], [0, 1., 0], [0, 0, 1.], [1., 2., 3.]])
+    axes /= np.linalg.norm(axes, axis=1, keepdims=True)
+    angles = np.array([0., np.pi, -.9 * np.pi])[:, None]
+    quaternions = np.concatenate([np.broadcast_to(np.cos(angles / 2)[..., None], (3, 4, 1)),
+                                 np.sin(angles / 2)[..., None] * axes], axis=-1)
+    poses[:, :, :3, :3] = quat_matrix(quaternions)
+    poses[:, :, 0, 3] = times[:, None]
+    poses[:, :, 1, 3] = np.arange(4)[None]
+    near = .01 + grid * .001
+    unbounded = np.array([[0, 1, 0, 1], [1, 0, 0, 1], [0, 0, 1, 1]], bool)
+    far = np.where(unbounded, 0., 10 + grid)
+    coefficients = np.arange(60, dtype=np.float64).reshape(3, 4, 5) * .001
+    with Writer(path) as out:
+        add_camera(out, 'rig', times, k, poses, [[320+i, 240+i] for i in range(4)],
+                   view_ids=['left', 'right', 'top', 'diagonal'], pixel_center='integer',
+                   depth_mapping={'near': .005, 'far': None, 'ndc_range': 'minus-one-to-one', 'direction': 'reversed'},
+                   view_volume={'near': near, 'far': far, 'far_unbounded': unbounded},
+                   distortion={'model': 'opencv-brown', 'coefficients': coefficients},
+                   optics={'f_number': 2 + grid, 'focus_distance': 1 + grid},
+                   acquisition={'exposure_seconds': .001 * (1+grid), 'iso': 100 * (1+grid),
+                                'shutter_open': -.0001 * (1+grid), 'shutter_close': .0001 * (1+grid),
+                                'rolling_readout': .0001 * (1+grid), 'rolling_direction': 'top-to-bottom'})
+    return times, k, poses, near, far, unbounded, coefficients, grid
+
+
+class ModelTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.path = Path(self.temp.name) / 'source.gsv'
+        write(self.path)
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def test_nonregular_inputs_fail_without_blocking_source_or_camera_import(self):
+        fifo = Path(self.temp.name) / 'named-pipe.gsv'
+        os.mkfifo(fifo)
+        script = '''
+import sys
+from gsv import GSVError
+from gs_studio.model import SceneDocument
+from gs_studio.camera import import_camera_animation
+for operation in (SceneDocument, lambda path: import_camera_animation(path, None)):
+    try:
+        operation(sys.argv[1])
+    except GSVError as error:
+        assert 'regular file' in str(error), error
+    else:
+        raise AssertionError('nonregular source accepted')
+'''
+        result = subprocess.run([sys.executable, '-c', script, str(fifo)],
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_owned_source_snapshots_survive_truncation_without_sigbus(self):
+        # Isolate a regression to mmap's fatal SIGBUS from the test runner.
+        script = '''
+import sys
+from pathlib import Path
+import numpy as np
+from gsv import GSVError
+from gs_studio.model import SceneDocument
+path = Path(sys.argv[1])
+with SceneDocument(path) as document:
+    frame = document.prepare_frame(.25)
+    snapshot = document.scene.array('field/frame/0')
+    expected = snapshot.copy()
+    path.write_bytes(b'')
+    np.testing.assert_array_equal(snapshot, expected)
+    np.testing.assert_allclose(frame.element('field', -2**60-7).position, [.25,0,2])
+    try:
+        document.evaluate(.5)
+    except GSVError as error:
+        assert 'changed' in str(error), error
+    else:
+        raise AssertionError('changed source accepted')
+'''
+        result = subprocess.run([sys.executable, '-c', script, str(self.path)],
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_truncation_during_snapshot_read_fails_and_closes_descriptor(self):
+        scene = SnapshotScene(self.path)
+        real_read = os.preadv
+        def truncate_after_read(*args):
+            size = real_read(*args)
+            self.path.write_bytes(b'')
+            return size
+        try:
+            with mock.patch.object(os, 'preadv', side_effect=truncate_after_read):
+                with self.assertRaisesRegex(GSVError, 'changed|truncated'):
+                    scene.array('field/frame/0')
+        finally:
+            scene.close()
+        self.assertTrue(scene._file.closed)
+
+    def test_failed_snapshot_constructor_cleans_up_before_cache_initialization(self):
+        self.path.write_bytes(b'not a GSV container')
+        with self.assertRaises(GSVError):
+            SnapshotScene(self.path)
+
+    def test_inactive_source_element_keeps_raw_values_and_foreign_domain(self):
+        self.path.unlink()
+        write(self.path, gap=True, clocks=True)
+        with SceneDocument(self.path) as doc:
+            state = doc.space, doc.clock, list(doc.visible_ids)
+            element = doc.element('field', -2**60-7, 2.)
+            self.assertFalse(element.valid)
+            np.testing.assert_allclose(element.position, [2.,0,2.])
+            np.testing.assert_allclose(element.scales, [.1,.2,.3])
+            np.testing.assert_allclose(element.color, [1.,.1,.2])
+            self.assertEqual(element.confidence, -1.)
+            self.assertIsNotNone(doc.element('foreign', 2**60+3, 0.))
+            self.assertEqual((doc.space, doc.clock, doc.visible_ids), state)
+            self.assertIsNone(doc.element('field', 9, 2.))
+
+    def test_selected_persistent_rows_do_not_copy_whole_frames(self):
+        count = 50_000
+        path = Path(self.temp.name) / 'sparse-inspection.gsv'
+        first = np.tile(record()[0], (count, 1))
+        with Writer(path) as out:
+            add_persistent_gaussians(out, 'large', np.arange(count, dtype=np.int64),
+                                     [0., 1.], [first, first])
+        with SceneDocument(path) as doc:
+            doc.object_times('large')
+            doc.scene.array(doc.object('large')['data']['ids'])
+            with mock.patch.object(os, 'preadv', wraps=os.preadv) as read:
+                self.assertIsNotNone(doc.element('large', 42, .5))
+                paths = doc.trajectories('large', ids=[42], density=0)
+            self.assertEqual(len(paths), 1)
+            self.assertEqual(sum(sum(len(buffer) for buffer in call.args[1])
+                                 for call in read.call_args_list), 4*16*4)
+
+    def test_zero_path_density_does_not_rank_the_entire_source(self):
+        with mock.patch.object(model.np, 'argsort', side_effect=AssertionError('unnecessary full rank')):
+            self.assertEqual(density_rows(np.arange(1000), 'field', 0).tolist(), [])
+
+    def test_owner_metadata_shares_one_immutable_identity_per_field(self):
+        with SceneDocument(self.path) as doc:
+            prepared = doc.prepare_frame(.5)
+            self.assertEqual(prepared.object_ids.tolist(), ['field', 'field'])
+            self.assertIs(prepared.object_ids[0], prepared.object_ids[1])
+            cpu = doc.evaluate(.5)
+            self.assertIs(cpu.object_ids[0], cpu.object_ids[1])
+            self.assertFalse(prepared.object_ids.flags.writeable)
+            self.assertFalse(cpu.object_ids.flags.writeable)
+
+    def test_interpolation_covariance_and_int64_identity(self):
+        with SceneDocument(self.path) as doc:
+            frame = doc.evaluate(.5)
+            np.testing.assert_allclose(frame.means[:, 0], [.5, 1.5])
+            np.testing.assert_allclose(frame.covariance[0], np.diag([.01, .04, .09]), atol=1e-7)
+            self.assertEqual(frame.ids.tolist(), [-2**60 - 7, 2**60 + 3])
+            self.assertEqual(frame.object_ids.tolist(), ['field', 'field'])
+            self.assertFalse(frame.means.flags.writeable)
+            self.assertEqual(doc.times.tolist(), [0., 1., 2., 3., 4.])
+
+    def test_source_samples_are_reused_across_interpolated_seeks(self):
+        with SceneDocument(self.path) as doc:
+            with mock.patch.object(doc.scene, 'array', wraps=doc.scene.array) as read:
+                first = doc.evaluate(.25)
+                second = doc.evaluate(.4)
+                self.assertIs(doc.evaluate(.25), first)
+                self.assertIsNot(second, first)
+                frame_reads = [call.args[0] for call in read.call_args_list if '/frame/' in call.args[0]]
+                self.assertEqual(frame_reads, ['field/frame/0', 'field/frame/1'])
+            self.assertIs(doc.evaluate(-2), doc.evaluate(-1))
+            self.assertLessEqual(doc._cache_bytes, doc.cache_budget)
+
+    def test_prepared_frame_keeps_resident_endpoints_without_cpu_covariance(self):
+        with SceneDocument(self.path) as doc:
+            with mock.patch.object(model, 'quat_matrix', side_effect=AssertionError('unexpected CPU covariance')):
+                prepared = doc.prepare_frame(.25)
+                self.assertIsInstance(prepared, PreparedFrame)
+                self.assertIsNone(prepared.weights)
+                self.assertEqual(prepared.count, 2)
+                with mock.patch.object(doc.scene, 'array', wraps=doc.scene.array) as read:
+                    next_frame = doc.prepare_frame(.4)
+                self.assertEqual(read.call_count, 0)
+                self.assertIs(prepared.first, next_frame.first)
+                self.assertIs(prepared.second, next_frame.second)
+                self.assertEqual(prepared.endpoint_key, next_frame.endpoint_key)
+                self.assertFalse(prepared.first.flags.writeable)
+            cpu = doc.evaluate(.25)
+            actual = prepared.materialize()
+            np.testing.assert_allclose(actual.records, cpu.records)
+            np.testing.assert_allclose(actual.covariance, cpu.covariance)
+            selected = prepared.element('field', -2**60 - 7)
+            np.testing.assert_allclose(selected.position, cpu.means[0])
+            self.assertTrue(selected.valid)
+            self.assertIsNone(prepared.element('field', 123456))
+        # GPU snapshots and selected-row inspection do not own a live descriptor.
+        np.testing.assert_allclose(prepared.materialize().records, cpu.records)
+
+    def test_prepared_active_interval_survives_tiny_optional_caches_and_reuses_neighbor(self):
+        with SceneDocument(self.path) as doc:
+            # The active pair is larger than either optional cache, just as a
+            # production 2.56M-row pair exceeds the default 256 MiB LRU.
+            doc.cache_budget = 1
+            doc.scene.snapshot_budget = 0
+            doc.scene._snapshots.clear()
+            doc.scene._snapshot_bytes = 0
+            with mock.patch.object(doc.scene, '_read_into', wraps=doc.scene._read_into) as reads:
+                first = doc.prepare_frame(.25)
+                self.assertEqual(sum(c.args[0].shape == (2, 16) for c in reads.call_args_list), 2)
+                reads.reset_mock()
+                for time in (.3, .5, .9):
+                    current = doc.prepare_frame(time)
+                    self.assertIs(current.first, first.first)
+                    self.assertIs(current.second, first.second)
+                    np.testing.assert_allclose(current.element('field', -2**60 - 7).position[0], time)
+                self.assertEqual(reads.call_count, 0)
+                following = doc.prepare_frame(1.25)
+                self.assertIs(following.first, first.second)
+                self.assertEqual(sum(c.args[0].shape == (2, 16) for c in reads.call_args_list), 1)
+                reads.reset_mock()
+                previous = doc.prepare_frame(.75)
+                self.assertIs(previous.second, following.first)
+                self.assertEqual(sum(c.args[0].shape == (2, 16) for c in reads.call_args_list), 1)
+            self.assertLessEqual(doc._cache_bytes, doc.cache_budget)
+            np.testing.assert_allclose(previous.materialize().records, doc.evaluate(.75).records)
+
+    def test_prepared_retains_only_current_cohort_and_releases_it_on_close(self):
+        doc = SceneDocument(self.path)
+        try:
+            doc.cache_budget = 0
+            doc.scene.snapshot_budget = 0
+            doc.scene._snapshots.clear()
+            doc.scene._snapshot_bytes = 0
+            frame = doc.prepare_frame(.5)
+            old_source = weakref.ref(frame.first)
+            del frame
+            doc.prepare_frame(2.5)
+            gc.collect()
+            self.assertIsNone(old_source())
+            current = weakref.ref(doc.prepare_frame(3.5).second)
+            self.assertIsNotNone(current())
+            doc.close()
+            gc.collect()
+            self.assertIsNone(current())
+        finally:
+            doc.close()
+
+    def test_prepared_empty_source_cohort_releases_previous_active_geometry(self):
+        path = Path(self.temp.name) / 'empty-cohort.gsv'
+        with Writer(path) as out:
+            add_persistent_gaussians(out, 'field', np.array([3, 7], np.int64), [0., 1.],
+                                     [record(), record(1)])
+            add_persistent_gaussians(out, 'empty', np.empty(0, np.int64), [], [])
+        with SceneDocument(path) as doc:
+            doc.cache_budget = 0
+            doc.scene.snapshot_budget = 0
+            doc.scene._snapshots.clear()
+            doc.scene._snapshot_bytes = 0
+            old_source = weakref.ref(doc.prepare_frame(.5, ['field']).first)
+            self.assertIsNotNone(old_source())
+            self.assertEqual(len(doc.prepare_frame(.5, ['empty'])), 0)
+            gc.collect()
+            self.assertIsNone(old_source())
+
+    def test_prepared_multifield_neighbor_reuse_preserves_owner_local_records(self):
+        path = Path(self.temp.name) / 'resident-mixed.gsv'
+        ids = np.array([-2**60 - 7, 2**60 + 3], np.int64)
+        with Writer(path) as out:
+            add_persistent_gaussians(out, 'one', ids, [0., 1., 2.],
+                                     [record(), record(1), record(2)])
+            add_persistent_gaussians(out, 'two', ids, [0., 2., 4.],
+                                     [record(-4), record(-2), record()])
+            add_static(out)
+        with SceneDocument(path) as doc:
+            doc.cache_budget = 0
+            doc.scene.snapshot_budget = 0
+            doc.scene._snapshots.clear()
+            doc.scene._snapshot_bytes = 0
+            order = ['two', 'static', 'one']
+            doc.prepare_frame(.25, order)
+            with mock.patch.object(doc.scene, '_read_into', wraps=doc.scene._read_into) as reads:
+                following = doc.prepare_frame(1.25, order)
+            self.assertEqual(sum(c.args[0].shape == (2, 16) for c in reads.call_args_list), 1)
+            self.assertEqual(following.object_ids.tolist(), ['two', 'two', 'static', 'one', 'one'])
+            self.assertIsNone(following.element(None, int(ids[0])))
+            self.assertAlmostEqual(following.element('one', int(ids[0])).position[0], 1.25)
+            self.assertAlmostEqual(following.element('two', int(ids[0])).position[0], -2.75)
+            np.testing.assert_allclose(following.materialize().records, doc.evaluate(1.25, order).records)
+
+    def test_cancelled_interval_does_not_replace_accepted_resident_pair(self):
+        with SceneDocument(self.path) as doc:
+            doc.cache_budget = 0
+            accepted = doc.prepare_frame(.25)
+            original = doc.scene.array
+            canceled = False
+
+            def read_then_cancel(key, **kwargs):
+                nonlocal canceled
+                value = original(key, **kwargs)
+                if key == 'field/frame/2':
+                    canceled = True
+                return value
+
+            with mock.patch.object(doc.scene, 'array', side_effect=read_then_cancel):
+                with self.assertRaises(InterruptedError):
+                    doc.prepare_frame(1.5, cancelled=lambda: canceled)
+            with mock.patch.object(doc.scene, 'array', side_effect=AssertionError('accepted interval reread')):
+                resumed = doc.prepare_frame(.75)
+            self.assertIs(resumed.first, accepted.first)
+            self.assertIs(resumed.second, accepted.second)
+
+    def test_prepared_cached_interval_still_rejects_source_mutation(self):
+        with SceneDocument(self.path) as doc:
+            doc.cache_budget = 0
+            doc.prepare_frame(.25)
+            before = self.path.stat()
+            os.utime(self.path, ns=(before.st_atime_ns, before.st_mtime_ns + 1))
+            with self.assertRaises(GSVError):
+                doc.prepare_frame(.75)
+
+    def test_prepared_validity_counts_are_cached_for_exact_and_interior_multifield_times(self):
+        path = Path(self.temp.name) / 'counted-mixed.gsv'
+        ids = np.array([-2**60 - 7, 2**60 + 3], np.int64)
+        one = [record(i) for i in range(3)]
+        two = [record(i * 2) for i in range(3)]
+        one[0][:, 7], one[1][:, 7] = [0, 1], [1, 0]
+        two[1][:, 7] = [1, 0]
+        with Writer(path) as out:
+            add_persistent_gaussians(out, 'one', ids, [0., 1., 2.], one)
+            add_persistent_gaussians(out, 'two', ids, [0., 2., 4.], two)
+        with SceneDocument(path) as doc:
+            doc.cache_budget = 0
+            self.assertEqual(doc.prepare_frame(0).valid_count, 3)
+            with mock.patch.object(model.np, 'count_nonzero', side_effect=AssertionError('validity rescanned')):
+                for time in (.1, .5, .9):
+                    frame = doc.prepare_frame(time)
+                    self.assertEqual(frame.valid_count, 1)
+                    self.assertIsNone(frame.element(None, ids[0]))
+                    self.assertFalse(frame.element('one', int(ids[0])).valid)
+                    self.assertTrue(frame.element('two', int(ids[0])).valid)
+            self.assertEqual(doc.prepare_frame(1).valid_count, 2)
+            self.assertEqual(doc.prepare_frame(2).valid_count, 3)
+            self.assertEqual(doc.prepare_frame(4).valid_count, 4)
+
+    def test_prepared_validity_preserves_inactive_identities_at_sample_boundaries(self):
+        path = Path(self.temp.name) / 'prepared-gaps.gsv'
+        write(path, gap=True)
+        with SceneDocument(path) as doc:
+            frame = doc.prepare_frame(3-1e-10)
+            self.assertEqual(frame.count, 2)
+            self.assertEqual(frame.valid_count, 1)
+            self.assertTrue(0 < frame.weight < 1)
+            self.assertFalse(frame.element('field', -2**60 - 7).valid)
+            self.assertEqual(len(frame.materialize()), 1)
+            self.assertEqual(frame.materialize().source_count,2)
+            self.assertEqual(doc.evaluate(2).source_count,2)
+            self.assertEqual(doc.evaluate(0).source_layout,doc.evaluate(2).source_layout)
+            self.assertEqual(doc.prepare_frame(.5).source_layout,doc.prepare_frame(3.5).source_layout)
+            self.assertEqual(doc.prepare_frame(3).valid_count, 2)
+            self.assertEqual(doc.prepare_frame(2).valid_count, 1)
+
+    def test_prepared_public_snapshot_storage_is_immutable_and_survives_source_replacement(self):
+        with SceneDocument(self.path) as doc:
+            frame = doc.prepare_frame(.25)
+            original = frame.materialize().records.copy()
+            for array in (frame.first, frame.second, frame.ids, frame.object_ids, *frame.bounds):
+                with self.assertRaises(ValueError):
+                    array.flat[0] = 'changed' if array.dtype.kind == 'O' else 0
+            element = frame.element('field', -2**60 - 7)
+            element.position[:] = 100
+            self.assertNotEqual(frame.element('field', -2**60 - 7).position[0], 100)
+        self.path.write_bytes(b'source replaced after close')
+        np.testing.assert_allclose(frame.materialize().records, original)
+
+    def test_prepared_mixed_fields_use_independent_native_intervals_and_global_source_order(self):
+        path = Path(self.temp.name) / 'prepared-mixed.gsv'
+        with Writer(path) as out:
+            ids = np.array([-2**60 - 7, 2**60 + 3], np.int64)
+            add_persistent_gaussians(out, 'one', ids, [0., 1.], [record(), record(1)])
+            add_persistent_gaussians(out, 'two', ids, [0., 2.], [record(), record(2)])
+            add_static(out, 'static-peer')
+        with SceneDocument(path) as doc:
+            order = ['two', 'static-peer', 'one']
+            frame = doc.prepare_frame(.5, order)
+            self.assertIsNone(frame.weight)
+            np.testing.assert_allclose(frame.weights, [.25, .25, 0., .5, .5])
+            self.assertEqual(frame.count, 5)
+            self.assertIsNone(frame.element(None, 2**60 + 3))
+            np.testing.assert_allclose(frame.materialize().records, doc.evaluate(.5, order).records)
+            later = doc.prepare_frame(.75, order)
+            self.assertEqual(frame.endpoint_key, later.endpoint_key)
+            self.assertNotEqual(frame.endpoint_key, doc.prepare_frame(1.5, order).endpoint_key)
+            self.assertLessEqual(doc._cache_bytes, doc.cache_budget)
+
+    def test_cancelled_load_checks_each_checksum_chunk_and_closes_descriptor(self):
+        path = Path(self.temp.name) / 'large-buffer.gsv'
+        count = 150_000  # A single frame exceeds the SDK's 8 MiB read chunk.
+        with Writer(path) as out:
+            add_persistent_gaussians(out, 'large', np.arange(count, dtype=np.int64), [0.],
+                                     [np.tile(record()[0], (count, 1))])
+        opened, stopped = [], [False]
+        real_scene, real_pread = model.Scene, model.os.pread
+        def open_scene(*args, **kwargs):
+            scene = real_scene(*args, **kwargs)
+            opened.append(scene)
+            return scene
+        def pread(fd, length, offset):
+            result = real_pread(fd, length, offset)
+            if length == 8 * 1024**2:
+                stopped[0] = True
+            return result
+        with mock.patch.object(model, 'Scene', side_effect=open_scene), mock.patch.object(model.os, 'pread', side_effect=pread):
+            with self.assertRaises(InterruptedError):
+                SceneDocument(path, cancelled=lambda: stopped[0])
+        self.assertTrue(stopped[0])
+        self.assertTrue(opened[0]._file.closed)
+
+    def test_loading_cancellation_does_not_poison_accepted_document(self):
+        stopped = [False]
+        with SceneDocument(self.path, cancelled=lambda: stopped[0]) as doc:
+            stopped[0] = True
+            self.assertEqual(len(doc.evaluate(.5)), 2)
+            with self.assertRaises(InterruptedError):
+                doc.evaluate(.75, cancelled=lambda: True)
+            self.assertEqual(len(doc.evaluate(.75)), 2)
+
+    def test_cancelled_interpolation_does_not_publish_a_partial_frame(self):
+        path = Path(self.temp.name) / 'cancel-interpolation.gsv'
+        count = 70_000
+        first = np.tile(record()[0], (count, 1))
+        second = first.copy()
+        second[:, 0] = 1
+        second[:, 8:12] = [np.sqrt(1-.01**2), .01, 0, 0]
+        with Writer(path) as out:
+            add_persistent_gaussians(out, 'large', np.arange(count, dtype=np.int64), [0., 1.], [first, second])
+        stopped = [False]
+        real_slerp = model.slerp
+        def completed_chunk(*args):
+            result = real_slerp(*args)
+            stopped[0] = True
+            return result
+        with SceneDocument(path) as doc:
+            with mock.patch.object(model, 'slerp', side_effect=completed_chunk):
+                with self.assertRaises(InterruptedError):
+                    doc.evaluate(.5, cancelled=lambda: stopped[0])
+            self.assertFalse(any(key[0] == 'frame' for key in doc._cache))
+            frame = doc.evaluate(.5)
+            self.assertEqual(len(frame), count)
+            np.testing.assert_allclose(frame.means[:, 0], .5)
+            self.assertLessEqual(doc._cache_bytes, doc.cache_budget)
+
+    def test_static_covariance_and_complete_frame_are_cached_across_time(self):
+        path = Path(self.temp.name) / 'static-cache.gsv'
+        with Writer(path) as out:
+            add_static(out)
+        with SceneDocument(path) as doc, mock.patch.object(model, 'quat_matrix', wraps=model.quat_matrix) as rotations:
+            frame = doc.evaluate(0)
+            self.assertIs(doc.evaluate(1000), frame)
+            self.assertEqual(rotations.call_count, 1)
+            self.assertFalse(frame.records.flags.writeable)
+            self.assertLessEqual(doc._cache_bytes, doc.cache_budget)
+
+    def test_static_first_field_does_not_hide_dynamic_native_clock(self):
+        path = Path(self.temp.name) / 'cohort.gsv'
+        k = np.array([[100., 0, 160], [0, 100., 120], [0, 0, 1]])
+        with Writer(path) as out:
+            add_static(out, clock='unrelated')
+            add_persistent_gaussians(out, 'moving', np.array([3, 9], np.int64), [0., 1.], [record(), record(1)])
+            add_camera(out, 'active-camera', [.2, .8], np.tile(k, (2, 1, 1, 1)),
+                       np.tile(np.eye(4), (2, 1, 1, 1)), [[320, 240]])
+            add_camera(out, 'foreign-camera', [-100., 100.], np.tile(k, (2, 1, 1, 1)),
+                       np.tile(np.eye(4), (2, 1, 1, 1)), [[320, 240]], space='elsewhere')
+        with SceneDocument(path) as doc:
+            self.assertEqual(doc.visible_ids, ['static', 'moving'])
+            self.assertEqual(doc.clock, 'scene')
+            np.testing.assert_array_equal(doc.times, [0., 1.])
+            self.assertEqual(len(doc.evaluate(.5)), 3)
+            doc.activate_domain('active-camera')
+            np.testing.assert_array_equal(doc.times, [0., .2, .8, 1.])
+
+    def test_static_scene_uses_compatible_camera_clock_without_invented_samples(self):
+        path = Path(self.temp.name) / 'static-clock.gsv'
+        k = np.array([[100., 0, 160], [0, 100., 120], [0, 0, 1]])
+        with Writer(path) as out:
+            add_static(out)
+            add_camera(out, 'camera', [3., 7.], np.tile(k, (2, 1, 1, 1)),
+                       np.tile(np.eye(4), (2, 1, 1, 1)), [[320, 240]], clock='capture')
+        with SceneDocument(path) as doc:
+            self.assertEqual(doc.clock, 'capture')
+            np.testing.assert_array_equal(doc.times, [3., 7.])
+
+    def test_frame_survives_close_and_closed_access_fails(self):
+        doc = SceneDocument(self.path)
+        frame = doc.evaluate(0)
+        doc.close()
+        doc.close()
+        self.assertEqual(frame.ids[1], 2**60 + 3)
+        with self.assertRaisesRegex(GSVError, 'closed'):
+            doc.evaluate(1)
+
+    def test_validity_gap_never_bridged(self):
+        gap_path = Path(self.temp.name) / 'gaps.gsv'
+        write(gap_path, gap=True)
+        with SceneDocument(gap_path) as doc:
+            self.assertEqual(len(doc.evaluate(1.5)), 1)
+            self.assertEqual(len(doc.evaluate(2.5)), 1)
+            paths = doc.trajectories('field', ids=[-2**60 - 7], density=0)
+            self.assertEqual([p.times.tolist() for p in paths], [[0., 1.], [3., 4.]])
+            self.assertTrue(all(p.identity == -2**60 - 7 for p in paths))
+
+    def test_density_nested_and_picks_override_zero(self):
+        ids = np.arange(-20, 80, dtype=np.int64)
+        rows = density_rows(ids, 'field', .25)
+        self.assertEqual(len(rows), 25)
+        self.assertTrue(set(rows) <= set(density_rows(ids, 'field', .5)))
+        with SceneDocument(self.path) as doc:
+            self.assertEqual(len(doc.trajectories('field', density=0)), 0)
+            self.assertEqual(len(doc.trajectories('field', ids=[2**60 + 3], density=0)), 1)
+            with self.assertRaisesRegex(GSVError, 'memory budget'):
+                doc.trajectories('field', max_bytes=1)
+            with self.assertRaises(InterruptedError):
+                doc.trajectories('field', cancelled=lambda: True)
+
+    def test_inspection_retains_physical_capture_and_named_rig_views(self):
+        path = Path(self.temp.name) / 'physical-camera.gsv'
+        with Writer(path) as out:
+            k = np.array([[200., 3., 160.], [0., 220., 120.], [0., 0., 1.]])
+            add_camera(out, 'physical', [0., 2.], np.tile(k, (2, 2, 1, 1)),
+                       np.tile(np.eye(4), (2, 2, 1, 1)), [[320, 240], [320, 240]],
+                       view_ids=['left', 'right'],
+                       optics={'f_number': [[2., 4.], [8., 16.]]},
+                       acquisition={'exposure_seconds': [[.01, .02], [.03, .04]]})
+        with SceneDocument(path) as doc:
+            camera = doc.camera('physical', 1.8, view=1)
+            self.assertEqual(camera.details['view_id'], 'right')
+            self.assertEqual(camera.details['inspection_sample_time'], 2.)
+            self.assertEqual(camera.details['optics']['f_number'], 16.)
+            self.assertEqual(camera.details['acquisition']['exposure_seconds'], .04)
+            np.testing.assert_allclose(camera.K, k)
+
+    def test_batch_camera_matches_single_views_and_legacy_scalar_contract(self):
+        path = Path(self.temp.name) / 'batch-rig.gsv'
+        times, ks, poses, near, far, unbounded, coefficients, grid = write_physical_rig(path)
+        cases = [(-10., 0, 0, 0.), (0., 0, 0, 0.), (1., 0, 1, .5),
+                 (1.8, 0, 1, .9), (2., 0, 1, 1.), (3.5, 1, 2, .5),
+                 (5., 1, 2, 1.), (100., 1, 2, 1.)]
+        with SceneDocument(path) as doc:
+            for time, a, b, weight in cases:
+                batch = doc.camera_views('rig', time)
+                self.assertEqual(list(batch), [0, 1, 2, 3])
+                nearest = a if weight <= .5 else b
+                for view, calibration in batch.items():
+                    single = doc.camera('rig', time, view)
+                    np.testing.assert_array_equal(calibration.K, single.K)
+                    np.testing.assert_array_equal(calibration.c2w, single.c2w)
+                    self.assertEqual(calibration.details, single.details)
+                    self.assertEqual((calibration.width, calibration.height, calibration.pixel_center,
+                                      calibration.distortion, calibration.near, calibration.far),
+                                     (single.width, single.height, single.pixel_center,
+                                      single.distortion, single.near, single.far))
+                    # The former scalar interpolation contract, independent of
+                    # the new leading-dimension implementation.
+                    expected_pose = np.eye(4)
+                    expected_pose[:3, :3] = quat_matrix(slerp(matrix_quat(poses[a, view, :3, :3]),
+                                                            matrix_quat(poses[b, view, :3, :3]), weight))
+                    expected_pose[:3, 3] = (1-weight)*poses[a, view, :3, 3] + weight*poses[b, view, :3, 3]
+                    np.testing.assert_array_equal(calibration.c2w, expected_pose)
+                    np.testing.assert_array_equal(calibration.K, (1-weight)*ks[a, view] + weight*ks[b, view])
+                    np.testing.assert_allclose(calibration.c2w[:3, :3].T @ calibration.c2w[:3, :3], np.eye(3), atol=1e-14)
+                    self.assertAlmostEqual(np.linalg.det(calibration.c2w[:3, :3]), 1.)
+                    self.assertEqual((calibration.width, calibration.height, calibration.pixel_center), (320+view, 240+view, 'integer'))
+                    self.assertEqual(calibration.near, float((1-weight)*near[a, view]+weight*near[b, view]))
+                    is_unbounded = unbounded[a, view] if weight == 0 else unbounded[b, view] if weight == 1 else unbounded[a, view] or unbounded[b, view]
+                    self.assertEqual(calibration.far, None if is_unbounded else float((1-weight)*far[a, view]+weight*far[b, view]))
+                    details = calibration.details
+                    self.assertEqual(details['evaluated_time'], time)
+                    self.assertEqual(details['inspection_sample_time'], times[nearest])
+                    self.assertEqual(details['distortion_coefficients'], coefficients[nearest, view].tolist())
+                    self.assertEqual(details['depth_mapping']['direction'], 'reversed')
+                    self.assertEqual(details['optics'], {'f_number': 2+grid[nearest, view], 'focus_distance': 1+grid[nearest, view]})
+                    self.assertEqual(details['acquisition']['exposure_seconds'], .001*(1+grid[nearest, view]))
+                    self.assertEqual(details['acquisition']['rolling_direction'], 'top-to-bottom')
+                    self.assertEqual(details['authored_view_volume'], {'near': near[nearest, view], 'far': None if unbounded[nearest, view] else far[nearest, view]})
+            batch = doc.camera_views('rig', 1., views=[3, 1, 3])
+            self.assertEqual(list(batch), [3, 1])
+            batch[3].K[:] = 0
+            self.assertGreater(doc.camera('rig', 1., 3).K[0, 0], 0)
+
+    def test_batch_camera_reads_arrays_and_searches_interval_once_and_single_is_sparse(self):
+        path = Path(self.temp.name) / 'batch-work.gsv'
+        write_physical_rig(path)
+        with SceneDocument(path) as doc:
+            doc.object_times('rig')
+            with mock.patch.object(doc.scene, 'array', wraps=doc.scene.array) as reads, \
+                    mock.patch.object(model.np, 'searchsorted', wraps=model.np.searchsorted) as searches:
+                doc.camera_views('rig', 1.)
+            keys = [call.args[0] for call in reads.call_args_list]
+            self.assertEqual(len(keys), len(set(keys)))
+            self.assertEqual(searches.call_count, 1)
+            with mock.patch.object(model, 'interpolate_pose', wraps=interpolate_pose) as interpolate:
+                doc.camera('rig', 1., view=np.int64(2))
+            self.assertEqual(interpolate.call_args.args[0].shape, (1, 4, 4))
+            self.assertEqual(doc.camera_views('rig', 0, views=[]), {})
+            for views in ([4], [-1], [.5], [True]):
+                with self.assertRaises(GSVError):
+                    doc.camera_views('rig', 0, views=views)
+            with self.assertRaises(GSVError):
+                doc.camera_views('rig', float('nan'))
+            with self.assertRaises(InterruptedError):
+                doc.camera_views('rig', 0, cancelled=lambda: True)
+            first = np.eye(4)
+            last = np.tile(np.eye(4), (2, 3, 1, 1))
+            last[..., 0, 3] = np.arange(6).reshape(2, 3)
+            interpolated = interpolate_pose(first, last, .25)
+            self.assertEqual(interpolated.shape, (2, 3, 4, 4))
+            np.testing.assert_array_equal(interpolated[..., 0, 3], last[..., 0, 3]*.25)
+
+    def test_camera_slerp_calibration_and_range(self):
+        with SceneDocument(self.path) as doc:
+            camera = doc.camera('camera', 2)
+            np.testing.assert_allclose(camera.c2w[:3, 3], [1, 0, 0])
+            np.testing.assert_allclose(camera.c2w[:3, :3].T @ camera.c2w[:3, :3], np.eye(3), atol=1e-12)
+            self.assertAlmostEqual(np.linalg.det(camera.c2w[:3, :3]), 1)
+            self.assertEqual((camera.width, camera.height, camera.pixel_center), (320, 240, 'half'))
+            np.testing.assert_allclose(doc.camera('camera', 100).c2w[:3, 3], [2, 0, 0])
+            with self.assertRaises(GSVError):
+                doc.camera('camera', 0, view=9)
+            with self.assertRaises(GSVError):
+                doc.evaluate(float('nan'))
+            paths = doc.trajectories('camera')
+            self.assertEqual(len(paths), 1)
+            self.assertIsNone(paths[0].identity)
+            self.assertEqual(paths[0].times.tolist(), [0., 4.])
+            np.testing.assert_allclose(paths[0].positions, [[0, 0, 0], [2, 0, 0]])
+            with self.assertRaisesRegex(GSVError, 'view index'):
+                doc.trajectories('camera', view=9)
+
+    def test_domains_are_not_implicitly_aligned(self):
+        path = Path(self.temp.name) / 'domains.gsv'
+        write(path, clocks=True)
+        with SceneDocument(path) as doc:
+            self.assertEqual(doc.visible_ids, ['field'])
+            with self.assertRaisesRegex(GSVError, 'matching coordinate'):
+                doc.evaluate(0, ['field', 'foreign'])
+            doc.set_visible(['foreign'])
+            self.assertEqual(doc.clock, 'foreign-time')
+            self.assertEqual(doc.space, 'elsewhere')
+            self.assertEqual(doc.activate_domain('camera'), ['field'])
+            self.assertEqual(doc.time_unit, 'second')
+
+    def test_extreme_clocks_preserve_midpoint_and_native_times(self):
+        path = Path(self.temp.name) / 'extreme.gsv'
+        with Writer(path) as out:
+            add_persistent_gaussians(out, 'field', np.array([3, 9], np.int64),
+                                    [-1e308, 1e308], iter([record(0), record(2)]))
+        with SceneDocument(path) as doc:
+            np.testing.assert_allclose(doc.evaluate(0).means[:, 0], [1, 2])
+            np.testing.assert_array_equal(doc.times, [-1e308, 1e308])
+            path = doc.trajectories('field', density=0, ids=[3])[0]
+            np.testing.assert_array_equal(path.times, [-1e308, 1e308])
+
+    def test_linked_display_cache_is_not_double_rendered(self):
+        path = Path(self.temp.name) / 'proxy.gsv'
+        with Writer(path) as out:
+            ids = np.array([3, 9], np.int64)
+            add_persistent_gaussians(out, 'native', ids, [0.], iter([record()]))
+            add_persistent_gaussians(out, 'cache', ids, [0.], iter([record()]), links={'source': 'native'},
+                                    metadata={'role': 'evaluated-cache'})
+        with SceneDocument(path) as doc:
+            self.assertEqual(doc.visible_ids, ['cache'])
+            self.assertEqual(len(doc.evaluate(0)), 2)
+            self.assertEqual(doc.activate_domain('native'), ['cache'])
+            self.assertEqual(doc.object('native')['type'], 'gaussian')
+
+    def test_empty_document_can_author_camera_without_editing_manifest(self):
+        path = Path(self.temp.name) / 'empty.gsv'
+        with Writer(path):
+            pass
+        with SceneDocument(path) as doc:
+            self.assertEqual((doc.space, doc.clock), ('world', 'timeline'))
+            self.assertEqual(len(doc.evaluate(0)), 0)
+            camera = CameraTrack('Camera', doc.space, doc.clock, 320, 240)
+            camera.record(0, np.array([[100., 0, 160], [0, 100., 120], [0, 0, 1]]), np.eye(4))
+            target = Path(self.temp.name) / 'empty-camera.gsv'
+            export_camera_animation(target, [camera], doc)
+            self.assertEqual(doc.manifest['spaces'], {})
+            imported = import_camera_animation(target, doc)
+            self.assertEqual(imported[0].space, 'world')
+            with SceneDocument(target) as reopened:
+                self.assertEqual(reopened.authored_cameras, [])
+                self.assertEqual(reopened.camera(camera.id, 0).width, 320)
+
+    def test_modified_source_is_detected_even_after_cache_hit(self):
+        with SceneDocument(self.path) as doc:
+            doc.evaluate(0)
+            with self.path.open('ab') as f:
+                f.write(b'x')
+            with self.assertRaisesRegex(GSVError, 'changed'):
+                doc.evaluate(0)
+
+    def test_static_analytic_field_and_unknown_objects_inspectable(self):
+        path = Path(self.temp.name) / 'static.gsv'
+        with Writer(path) as out:
+            out.manifest['spaces']['world'] = {'unit': 'meter', 'axes': ['x', 'y', 'z'], 'handedness': 'right'}
+            data = {'color_space': 'srgb'}
+            values = {'ids': np.array([9], np.int64), 'means': np.array([[1., 2., 3.]]),
+                      'scales': np.ones((1, 3)), 'quaternions': np.array([[1., 0., 0., 0.]]),
+                      'opacity': np.array([.5]), 'colors': np.array([[2., -.5, .3]])}
+            for name, value in values.items():
+                data[name] = out.add_array(name, value)
+            out.add_object('static', 'gaussian', 'gsv.gaussian.static', data, space='world')
+            out.add_object('vendor', 'archive', 'vendor.example', {'safe': 'opaque'})
+        with SceneDocument(path) as doc:
+            f = doc.evaluate(4)
+            np.testing.assert_allclose(f.colors[0], [2., -.5, .3])
+            self.assertEqual(doc.object('vendor')['data'], {'safe': 'opaque'})
+            self.assertEqual(doc.trajectories('static'), [])
+
+    def test_scaffold_glyphs_and_edges_obey_source_validity(self):
+        path = Path(self.temp.name) / 'scaffold.gsv'
+        with Writer(path) as out:
+            out.manifest['spaces']['world'] = {'unit': 'meter', 'axes': ['x', 'y', 'z'], 'handedness': 'right'}
+            out.manifest['clocks']['scene'] = {'unit': 'second'}
+            data = {}
+            for name, value in {
+                'ids': np.array([3, 9], np.int64), 'times': np.array([0., 1., 2.]),
+                'positions': np.array([[[0, 0, 2], [1, 0, 2]], [[0, 1, 2], [1, 1, 2]],
+                                       [[0, 2, 2], [1, 2, 2]]], np.float32),
+                'edges': np.array([[0, 1]], np.int32),
+                'certainty': np.array([[False, True], [True, True], [True, True]]),
+                'visibility': np.array([[True, True], [False, True], [True, True]]),
+                'validity': np.ones((3, 2), bool),
+            }.items():
+                data[name] = out.add_array(name, value)
+            out.add_object('graph', 'scaffold', 'gsv.scaffold.graph', data, space='world', clock='scene')
+        with SceneDocument(path) as doc:
+            self.assertEqual(len(doc.evaluate(0)), 2)  # Certainty is not validity.
+            np.testing.assert_allclose(doc.evaluate(0).edges, [[[0, 0, 2], [1, 0, 2]]])
+            self.assertEqual(len(doc.evaluate(.5).edges), 0)
+            self.assertEqual(len(doc.evaluate(1).edges), 0)
+            self.assertEqual(len(doc.evaluate(2).edges), 1)
+            first, last = doc.evaluate(0), doc.evaluate(2)
+            np.testing.assert_array_equal(first.bounds, last.bounds)
+            np.testing.assert_array_equal(first.object_bounds['graph'], [[0,0,2],[1,2,2]])
+            self.assertFalse(first.bounds[0].flags.writeable)
+            self.assertTrue(doc.element('graph', 3, 0).valid)  # Uncertain still present.
+            inactive = doc.element('graph', 3, 1)
+            self.assertFalse(inactive.valid)
+            np.testing.assert_allclose(inactive.position, [0,1,2])
+            self.assertEqual(inactive.details['visibility'], [False,False])
+
+    def test_empty_scaffold_timeline_has_no_samples_but_preserves_identity_table(self):
+        path = Path(self.temp.name) / 'empty-scaffold.gsv'
+        with Writer(path) as out:
+            out.manifest['spaces']['world'] = {'unit':'meter', 'axes':['x','y','z'], 'handedness':'right'}
+            out.manifest['clocks']['scene'] = {'unit':'second'}
+            data = {name:out.add_array(name,value) for name,value in {
+                'ids':np.array([3],np.int64), 'times':np.empty(0,np.float64),
+                'positions':np.empty((0,1,3),np.float32)}.items()}
+            out.add_object('graph','scaffold','gsv.scaffold.graph',data,space='world',clock='scene')
+        with SceneDocument(path) as doc:
+            self.assertEqual(len(doc.evaluate(0)),0)
+            self.assertEqual(doc.evaluate(0).source_count,1)
+            self.assertIsNone(doc.element('graph',3,0))
+            self.assertEqual(doc.trajectories('graph'),[])
+
+
+class AuthoringTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.path = Path(self.temp.name) / 'source.gsv'
+        write(self.path)
+        self.doc = SceneDocument(self.path)
+        self.track = CameraTrack('User view', self.doc.space, self.doc.clock, 640, 480)
+        k = np.array([[300., 5., 160.], [0., 300., 120.], [0., 0., 1.]])
+        self.track.record(0, k, np.eye(4), width=320, height=240)
+        second = np.eye(4)
+        second[0, 3] = 2
+        self.track.record(2, k, second, width=320, height=240, near=.1, far=100)
+
+    def tearDown(self):
+        self.doc.close()
+        self.temp.cleanup()
+
+    def test_camera_roundtrip_sdk_provenance_and_source_unchanged(self):
+        original = self.path.read_bytes()
+        target = Path(self.temp.name) / 'cameras.gsv'
+        export_camera_animation(target, [self.track], self.doc)
+        with Scene(target) as exported:
+            exported.validate()
+            self.assertEqual(exported.manifest['metadata']['source_document']['manifest_sha256'], self.doc.digest)
+            self.assertEqual(exported.objects[0]['metadata']['role'], 'user')
+        imported = import_camera_animation(target, self.doc)
+        self.assertEqual(len(imported), 1)
+        np.testing.assert_allclose(imported[0].at(1).c2w[:3, 3], [1., 0, 0])
+        self.assertEqual(imported[0].at(0).K[0, 2], 320)
+        self.assertEqual(self.path.read_bytes(), original)
+        with self.assertRaisesRegex(GSVError, 'already exists'):
+            import_camera_animation(target, self.doc, existing_ids=[self.track.id])
+        with self.assertRaisesRegex(GSVError, 'separate file'):
+            export_camera_animation(self.path, [self.track], self.doc, overwrite=True)
+
+    def test_large_camera_import_preserves_every_key_calibration_and_source_bytes(self):
+        target=Path(self.temp.name)/'dense-camera.gsv'
+        write_camera_animation(target,self.doc,10_000)
+        source_hash=hashlib.sha256(self.path.read_bytes()).hexdigest()
+        camera_hash=hashlib.sha256(target.read_bytes()).hexdigest()
+        track=import_camera_animation(target,self.doc)[0]
+        self.assertEqual(len(track.keyframes),10_000)
+        np.testing.assert_array_equal(track.times,np.arange(10_000,dtype=np.float64))
+        for index in (0,4999,5000,9999):
+            key=track.keyframes[index]
+            self.assertFalse(key.K.flags.writeable)
+            self.assertFalse(key.c2w.flags.writeable)
+            np.testing.assert_allclose(key.K[:2,2],[160.5,120.5])
+            self.assertAlmostEqual(key.c2w[0,3],index*.001)
+            self.assertEqual((key.near,key.far),(.01,None if index%2 else 100.))
+        self.assertAlmostEqual(track.at(4321.5).c2w[0,3],4.3215)
+        self.assertEqual(hashlib.sha256(self.path.read_bytes()).hexdigest(),source_hash)
+        self.assertEqual(hashlib.sha256(target.read_bytes()).hexdigest(),camera_hash)
+
+    def test_import_rejects_invalid_middle_key_and_keeps_authoring_guards(self):
+        target=Path(self.temp.name)/'invalid-middle-camera.gsv'
+        write_camera_animation(target,self.doc,1000,invalid_middle=True)
+        with self.assertRaisesRegex(GSVError,'pose'):
+            import_camera_animation(target,self.doc)
+        # Even if a future SDK validator accepts a broader source encoding,
+        # the editable-camera adapter still enforces its affine contract.
+        with mock.patch('gs_studio.camera.validate_object',return_value=None):
+            with self.assertRaisesRegex(GSVError,'affine pose'):
+                import_camera_animation(target,self.doc)
+
+    def test_large_camera_import_cancellation_discards_partial_tracks_and_closes_source(self):
+        from gs_studio import camera
+        target=Path(self.temp.name)/'cancel-dense-camera.gsv'
+        write_camera_animation(target,self.doc,1000)
+        opened=[];calls=[0];real_open=camera.open_regular_scene
+        def open_scene(path):
+            scene=real_open(path);opened.append(scene);return scene
+        def cancelled():
+            calls[0]+=1
+            return calls[0]>=4  # Stop at the second 128-key chunk.
+        with mock.patch.object(camera,'open_regular_scene',side_effect=open_scene):
+            with self.assertRaises(InterruptedError):
+                import_camera_animation(target,self.doc,cancelled=cancelled)
+        self.assertTrue(opened[0]._file.closed)
+
+    def test_import_checks_digest(self):
+        target = Path(self.temp.name) / 'cameras.gsv'
+        export_camera_animation(target, [self.track], self.doc)
+        unrelated = Path(self.temp.name) / 'unrelated.gsv'
+        write(unrelated, gap=True)
+        with SceneDocument(unrelated) as other:
+            with self.assertRaisesRegex(GSVError, 'manifest digest'):
+                import_camera_animation(target, other)
+
+    def test_exact_camera_keys_preserve_finite_far_despite_unbounded_neighbor(self):
+        self.assertEqual(self.track.at(2).far, 100)
+        self.assertIsNone(self.track.at(1).far)
+        self.assertIsNone(self.track.at(0).far)
+        target = Path(self.temp.name) / 'volume.gsv'
+        export_camera_animation(target, [self.track], self.doc)
+        with SceneDocument(target) as source:
+            self.assertEqual(source.camera(self.track.id, 2).far, 100)
+            self.assertIsNone(source.camera(self.track.id, 1).far)
+
+    def test_invalid_camera_edits_fail_before_mutating_the_track(self):
+        old = list(self.track.keyframes)
+        pose = np.eye(4)
+        pose[3, 3] = 1.000001
+        with self.assertRaisesRegex(GSVError, 'affine pose'):
+            self.track.record(4, self.track.at(0).K, pose)
+        self.assertEqual([f.time for f in self.track.keyframes], [f.time for f in old])
+        k = np.eye(3)
+        k[0, 0] = 1e308
+        with self.assertRaisesRegex(GSVError, 'numeric range'):
+            self.track.record(4, k, np.eye(4), width=1, height=1)
+        self.assertEqual([f.time for f in self.track.keyframes], [f.time for f in old])
+
+    def test_camera_only_reexport_retains_original_reconstruction_digest(self):
+        original = Path(self.temp.name) / 'original-cameras.gsv'
+        export_camera_animation(original, [self.track], self.doc)
+        with SceneDocument(original) as camera_only:
+            new = CameraTrack('Another view', self.track.space, self.track.clock, 640, 480)
+            new.record(0, self.track.at(0).K, np.eye(4))
+            target = Path(self.temp.name) / 'new-cameras.gsv'
+            export_camera_animation(target, [new], camera_only)
+        imported = import_camera_animation(target, self.doc)
+        self.assertEqual(imported[0].id, new.id)
+
+    def test_imported_supplemental_domain_descriptors_survive_reexport(self):
+        empty = Path(self.temp.name) / 'empty-descriptors.gsv'
+        with Writer(empty):
+            pass
+        with SceneDocument(empty) as source:
+            incoming = Path(self.temp.name) / 'external-camera.gsv'
+            with Writer(incoming, metadata={'source_document': {'manifest_sha256': source.digest}}) as out:
+                out.manifest['spaces']['world'] = {'unit': 'meter', 'axes': ['east', 'north', 'up'], 'handedness': 'right'}
+                out.manifest['clocks']['timeline'] = {'unit': 'frame', 'mapping': {'target': 'capture', 'scale': .04, 'offset': 1.}}
+                out.manifest['clocks']['capture'] = {'unit': 'second'}
+                add_camera(out, 'external', [10.], np.eye(3)[None, None], np.eye(4)[None, None], [[32, 24]],
+                           clock='timeline', pixel_center='half', metadata={'role': 'user'})
+            tracks = import_camera_animation(incoming, source)
+            outgoing = Path(self.temp.name) / 'preserved-camera.gsv'
+            export_camera_animation(outgoing, tracks, source)
+            with Scene(incoming) as before, Scene(outgoing) as after:
+                self.assertEqual(before.manifest['spaces'], after.manifest['spaces'])
+                self.assertEqual(before.manifest['clocks'], after.manifest['clocks'])
+                after.validate()
+
+    def test_malformed_source_provenance_is_a_validation_error(self):
+        incoming = Path(self.temp.name) / 'bad-provenance.gsv'
+        with Writer(incoming, metadata={'source_document': 'opaque vendor value'}) as out:
+            add_camera(out, 'camera-user', [0.], np.eye(3)[None, None], np.eye(4)[None, None], [[32, 24]],
+                       metadata={'role': 'user'})
+        with self.assertRaisesRegex(GSVError, 'matching source manifest'):
+            import_camera_animation(incoming, self.doc)
+
+    def test_source_aliases_cannot_be_overwritten(self):
+        symlink = Path(self.temp.name) / 'symlink.gsv'
+        symlink.symlink_to(self.path)
+        with self.assertRaisesRegex(GSVError, 'separate file'):
+            export_camera_animation(symlink, [self.track], self.doc, overwrite=True)
+        hardlink = Path(self.temp.name) / 'hardlink.gsv'
+        hardlink.hardlink_to(self.path)
+        with self.assertRaisesRegex(GSVError, 'source reconstruction'):
+            export_camera_animation(hardlink, [self.track], self.doc, overwrite=True)
+
+    def test_mac_writer_camera_archive_contract_and_integer_centers(self):
+        # The macOS GSVCameraWriter schema is reproduced with the SDK writer,
+        # including inherited provenance, explicit volume and role=user. This
+        # also exercises imports from integer-centered source cameras, whose
+        # editable viewport representation must shift K by exactly half a pixel.
+        target = Path(self.temp.name) / 'mac-camera.gsv'
+        k = np.array([[100., 2., 160.], [0., 100., 120.], [0., 0., 1.]])
+        with Writer(target, metadata={'created_by': '4DGS Studio', 'source_document': {
+                'name': self.path.name, 'manifest_sha256': self.doc.digest}}) as out:
+            out.manifest['spaces'] = self.doc.manifest['spaces'].copy()
+            out.manifest['clocks'] = self.doc.manifest['clocks'].copy()
+            add_camera(out, 'camera-macos', [0., 1.], np.repeat(k[None, None], 2, axis=0),
+                       np.repeat(np.eye(4)[None, None], 2, axis=0), [[320, 240]],
+                       pixel_center='integer', space=self.doc.space, clock=self.doc.clock,
+                       view_ids=['0'], metadata={'role': 'user', 'created_by': '4DGS Studio',
+                                                'interpolation': 'translation/K linear; rotation shortest-arc SLERP'},
+                       view_volume={'near': [[.01], [.1]], 'far': [[100.], [0.]],
+                                    'far_unbounded': np.array([[False], [True]])})
+        track = import_camera_animation(target, self.doc)[0]
+        self.assertEqual(track.id, 'camera-macos')
+        np.testing.assert_allclose(track.at(0).K[:2, 2], [160.5, 120.5])
+        self.assertAlmostEqual(track.keyframes[0].near, .01)
+        self.assertEqual(track.keyframes[0].far, 100.)
+        self.assertIsNone(track.keyframes[1].far)
+
+    def test_retime_collision_and_history(self):
+        history = CameraHistory([self.track])
+        history.remember()
+        history.tracks[0].retime(1, 3)
+        self.assertEqual(history.tracks[0].keyframes[1].time, 3)
+        self.assertTrue(history.undo())
+        self.assertEqual(history.tracks[0].keyframes[1].time, 2)
+        self.assertTrue(history.redo())
+        self.assertEqual(history.tracks[0].keyframes[1].time, 3)
+        with self.assertRaisesRegex(GSVError, 'already exists'):
+            history.tracks[0].retime(0, 3)
+        history.tracks[0].remove(0)
+        with self.assertRaisesRegex(GSVError, 'at least one'):
+            history.tracks[0].remove(0)
+
+    def test_same_named_cameras_use_stable_identity_and_immutable_history(self):
+        second = self.track.clone()
+        second.id = 'another-camera'
+        history = CameraHistory([self.track, second])
+        self.assertEqual(history.tracks.index(second), 1)
+        self.assertNotEqual(self.track, second)
+        history.remember()
+        key = self.track.keyframes[0]
+        k = key.K.copy()
+        k[0, 0] *= 2
+        second.record(key.time, k, key.c2w)
+        self.assertEqual(second.keyframes[0].K[0, 0], 2 * key.K[0, 0])
+        self.assertTrue(history.undo())
+        self.assertEqual(history.tracks[1].keyframes[0].K[0, 0], key.K[0, 0])
+        with self.assertRaises(ValueError):
+            history.tracks[1].keyframes[0].K[0, 0] = 1
+        with self.assertRaises(GSVError):
+            CameraHistory(limit=0)
+
+    def test_large_authored_camera_seek_reuses_readonly_times_and_edits_refresh_index(self):
+        class ObservedKeys(list):
+            traversals=0
+            def __iter__(self):
+                self.traversals+=1
+                return super().__iter__()
+        k=np.array([[200.,0,160.],[0,200.,120.],[0,0,1.]])
+        poses=[np.eye(4),np.eye(4)];poses[1][0,3]=10
+        for value in [k,*poses]:value.flags.writeable=False
+        track=CameraTrack('Large animation',self.doc.space,self.doc.clock,320,240)
+        keys=ObservedKeys(CameraKeyframe(float(i),k,poses[i%2]) for i in range(100_000))
+        track.keyframes=keys
+        times=track.times
+        with self.assertRaises(ValueError):times[0]=123
+        traversals=keys.traversals
+        for time,expected in [(99998.25,2.5),(12345.75,2.5),(-10.,0.),(1e9,10.)]:
+            self.assertAlmostEqual(track.at(time).c2w[0,3],expected)
+            self.assertIs(track.times,times)
+        self.assertEqual(keys.traversals,traversals,'Seeking traversed the entire authored track')
+        track.record(100001,k,poses[0])
+        self.assertIsNot(track.times,times)
+        self.assertEqual(track.times[-1],100001)
+        track.remove(len(track.keyframes)-1)
+        self.assertEqual(track.times[-1],99999)
+        track.retime(0,-10)
+        self.assertEqual(track.times[0],-10)
+        self.assertAlmostEqual(track.at(-4.5).c2w[0,3],5.)
+        clone=track.clone()
+        np.testing.assert_array_equal(clone.times,track.times)
+        clone.record(-5,k,poses[0])
+        self.assertNotIn(-5,track.times)
+
+
+@unittest.skipUnless(os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY'),
+                     'Inspector needs GTK; use xvfb-run')
+class InspectorParityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import gi
+        gi.require_version('Gtk','4.0')
+        gi.require_version('Adw','1')
+        from gi.repository import Gtk,Adw,GLib
+        from gs_studio.inspector import Inspector
+        Gtk.init()
+        Adw.init()
+        cls.Inspector,cls.GLib=Inspector,GLib
+
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory()
+        self.path=Path(self.temp.name)/'source.gsv'
+        write(self.path,gap=True)
+        self.doc=SceneDocument(self.path)
+        self.inspector=self.Inspector()
+
+    def tearDown(self):
+        self.doc.close()
+        self.temp.cleanup()
+
+    def test_document_has_coordinate_clock_storage_and_source_counts(self):
+        from gs_studio.i18n import tr
+        self.inspector.document(self.doc,self.doc.prepare_frame(2))
+        rows={row.get_title():row.get_subtitle() for row in self.inspector.rows}
+        for key in ('document.coordinates','document.clock','document.storage'):
+            self.assertIn(self.GLib.markup_escape_text(tr(key)),rows)
+        self.assertEqual(rows[self.GLib.markup_escape_text(tr('document.primitives'))],'2')
+        self.assertIn('x · y · z',rows[self.GLib.markup_escape_text(tr('document.coordinates'))])
+
+    def test_inactive_element_details_arriving_at_same_time_refresh_and_escape_markup(self):
+        from gs_studio.i18n import tr
+        identifier=-2**60-7
+        self.doc.object('field')['label']='<b>field & source</b>'
+        frame=self.doc.evaluate(2)
+        self.inspector.update(self.doc,'field',{('field',identifier)},frame,None,None,2)
+        elements={('field',identifier):self.doc.element('field',identifier,2)}
+        self.inspector.update(self.doc,'field',{('field',identifier)},frame,None,None,2,elements=elements)
+        rows={row.get_title():row.get_subtitle() for row in self.inspector.rows}
+        # Adwaita exposes the decoded title; markup characters remain literal.
+        self.assertEqual(self.inspector.group.get_title(),'<b>field & source</b>')
+        self.assertEqual(rows[tr('property.present')],tr('element.absent'))
+        self.assertIn('2.',rows[tr('property.position')])
+        self.assertIn(tr('property.sigma'),rows)
+
+    def test_comparison_preview_has_no_scoring_rows(self):
+        from types import SimpleNamespace
+        preview=SimpleNamespace(role=None,render=np.zeros((2,3,3)),color_space='linear-srgb',
+                                metrics=None,details={'source':'a & b'})
+        self.inspector.comparison(preview)
+        titles={row.get_title() for row in self.inspector.rows}
+        self.assertNotIn('PSNR',titles)
+        preview.metrics={'psnr':float('inf'),'valid_pixels':6,'ssim_windows':0}
+        self.inspector.comparison(preview)
+        self.assertIn('PSNR',{row.get_title() for row in self.inspector.rows})
+
+    def test_playback_updates_values_in_place_without_rebuilding_accessible_rows(self):
+        from gs_studio.i18n import tr
+        member=('field',-2**60-7)
+        def update(time):
+            elements={member:self.doc.element(*member,time)}
+            self.inspector.update(self.doc,'field',{member},None,None,None,time,elements=elements)
+        update(0.)
+        rows=tuple(self.inspector.rows)
+        initial={row.get_title():row.get_subtitle() for row in rows}
+        unchanged_notifications=[]
+        rows[0].connect('notify::subtitle',lambda *args:unchanged_notifications.append(True))
+        raw_changes=[]
+        self.inspector.raw.get_buffer().connect('changed',lambda *args:raw_changes.append(True))
+        self.inspector.expander.set_expanded(True)
+        for time in np.linspace(.1,4.,40):
+            update(float(time))
+            self.assertEqual(tuple(self.inspector.rows),rows)
+        current={row.get_title():row.get_subtitle() for row in rows}
+        self.assertNotEqual(current[tr('property.position')],initial[tr('property.position')])
+        self.assertEqual(unchanged_notifications,[])
+        self.assertEqual(raw_changes,[])
+        self.assertTrue(self.inspector.expander.get_expanded())
+
+    def test_large_authored_track_keeps_count_and_cached_complete_raw_descriptor_during_seek(self):
+        import json
+        from gs_studio.i18n import tr
+        k=np.array([[200.,0,160.],[0,200.,120.],[0,0,1.]])
+        pose=np.eye(4)
+        k.flags.writeable=pose.flags.writeable=False
+        track=CameraTrack('Large animation',self.doc.space,self.doc.clock,320,240)
+        track.keyframes=[CameraKeyframe(float(i),k,pose) for i in range(100_000)]
+        calibration=track.at(0)
+        with mock.patch('gs_studio.inspector.json.dumps',wraps=json.dumps) as serialize:
+            self.inspector.update(self.doc,track.id,{(track.id,None)},None,calibration,track,0)
+            rows=tuple(self.inspector.rows)
+            for time in np.linspace(0,99999,25):
+                self.inspector.update(self.doc,track.id,{(track.id,None)},None,track.at(float(time)),track,float(time))
+                self.assertEqual(tuple(self.inspector.rows),rows)
+            self.assertEqual(serialize.call_count,1,'Playback rebuilt the complete raw camera descriptor')
+            track.retime(0,-10)
+            self.inspector.update(self.doc,track.id,{(track.id,None)},None,track.at(0),track,0)
+            self.assertEqual(serialize.call_count,2)
+        values={row.get_title():row.get_subtitle() for row in self.inspector.rows}
+        self.assertEqual(values[tr('camera.keys')],'100000')
+        buffer=self.inspector.raw.get_buffer()
+        descriptor=json.loads(buffer.get_text(buffer.get_start_iter(),buffer.get_end_iter(),False))
+        self.assertEqual(len(descriptor['key_times']),100_000)
+        self.assertEqual(descriptor['key_times'][0],-10)
+        track.label='Renamed large animation'
+        self.inspector.update(self.doc,track.id,{(track.id,None)},None,track.at(0),track,0)
+        descriptor=json.loads(buffer.get_text(buffer.get_start_iter(),buffer.get_end_iter(),False))
+        self.assertEqual(descriptor['label'],track.label)
+
+
+if __name__ == '__main__':
+    unittest.main()

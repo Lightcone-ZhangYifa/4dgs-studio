@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=4DGS Studio
+Name[zh_CN]=4DGS Studio
+Comment=Inspect dynamic Gaussian scenes and calibrated cameras
+Comment[zh_CN]=检查动态高斯场景与校准相机
+Exec=4dgs-studio %F
+Icon=io.github.LightconeZhangYifa.GSVStudio
+Terminal=false
+Categories=Graphics;3DGraphics;
+MimeType=application/x-gsv;
+StartupNotify=true
+DBusActivatable=false
+StartupWMClass=io.github.LightconeZhangYifa.GSVStudio
+PrefersNonDefaultGPU=true

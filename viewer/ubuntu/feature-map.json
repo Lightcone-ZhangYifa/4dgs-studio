@@ -1,0 +1,501 @@
+{
+  "scope": "Every @objc desktop action in App, WorkspaceController and Studio*.swift. This mapping guards review completeness; passing it is not execution evidence.",
+  "actions": {
+    "App.changeLanguage": {
+      "behavior": "Select System/English/Simplified Chinese for next launch.",
+      "ubuntu": [
+        "application.py:preferences",
+        "i18n.py:Translator"
+      ]
+    },
+    "App.openAuthorProfile": {
+      "behavior": "Expose the author/project website through the native About window.",
+      "ubuntu": [
+        "application.py:about"
+      ]
+    },
+    "App.showAbout": {
+      "behavior": "Show version, author, license and project website.",
+      "ubuntu": [
+        "application.py:about"
+      ]
+    },
+    "StudioActions.authorTimeChanged": {
+      "behavior": "Commit finite document time, pause playback and extend the session timeline for the active clock.",
+      "ubuntu": [
+        "application.py:_author_time_changed"
+      ]
+    },
+    "StudioActions.backgroundChanged": {
+      "behavior": "Choose Studio/Black/Gray/White browsing background.",
+      "ubuntu": [
+        "application.py:_set_view_property"
+      ]
+    },
+    "StudioActions.cameraFOVChanged": {
+      "behavior": "Edit inclusive 1–170 degree horizontal FOV, scaling focal Y and skew together while preserving raster, principal point and pose.",
+      "ubuntu": [
+        "application.py:_edit_track"
+      ]
+    },
+    "StudioActions.cameraFront": {
+      "behavior": "Front perspective through the View menu or viewport 1 key.",
+      "ubuntu": [
+        "application.py:_viewport_key",
+        "viewport.py:preset"
+      ]
+    },
+    "StudioActions.cameraIsometric": {
+      "behavior": "Isometric perspective.",
+      "ubuntu": [
+        "viewport.py:preset"
+      ]
+    },
+    "StudioActions.cameraPreset": {
+      "behavior": "Choose a world-up standard perspective orientation.",
+      "ubuntu": [
+        "application.py:_preset",
+        "viewport.py:preset"
+      ]
+    },
+    "StudioActions.cameraRight": {
+      "behavior": "Right perspective through the View menu or viewport 3 key.",
+      "ubuntu": [
+        "application.py:_viewport_key",
+        "viewport.py:preset"
+      ]
+    },
+    "StudioActions.cameraTop": {
+      "behavior": "Top perspective through the View menu or viewport 7 key.",
+      "ubuntu": [
+        "application.py:_viewport_key",
+        "viewport.py:preset"
+      ]
+    },
+    "StudioActions.cameraTransformChanged": {
+      "behavior": "Commit finite XYZ and normalized WXYZ.",
+      "ubuntu": [
+        "application.py:_edit_track"
+      ]
+    },
+    "StudioActions.camerasChanged": {
+      "behavior": "Toggle camera wireframes.",
+      "ubuntu": [
+        "application.py:_toggle_preview"
+      ]
+    },
+    "StudioActions.cancelLoading": {
+      "behavior": "Cancel an obsolete source load without replacing the current document.",
+      "ubuntu": [
+        "application.py:cancel_loading"
+      ]
+    },
+    "StudioActions.createCamera": {
+      "behavior": "Create a separate authored camera from the current view.",
+      "ubuntu": [
+        "application.py:create_camera"
+      ]
+    },
+    "StudioActions.deleteCamera": {
+      "behavior": "Delete the authored camera with undo history.",
+      "ubuntu": [
+        "application.py:delete_camera"
+      ]
+    },
+    "StudioActions.deleteCameraKey": {
+      "behavior": "Remove an authored camera key with undo history.",
+      "ubuntu": [
+        "application.py:delete_key"
+      ]
+    },
+    "StudioActions.exportScreenshot": {
+      "behavior": "Export completed viewport or native calibrated image pixels.",
+      "ubuntu": [
+        "application.py:export_image"
+      ]
+    },
+    "StudioActions.exportWorkspace": {
+      "behavior": "Export the current native GTK workbench before the save dialog.",
+      "ubuntu": [
+        "application.py:export_image"
+      ]
+    },
+    "StudioActions.findID": {
+      "behavior": "Find an exact signed 64-bit identity in its owner; reject an ownerless identity that matches multiple objects.",
+      "ubuntu": [
+        "application.py:_find_id",
+        "model.py:element"
+      ]
+    },
+    "StudioActions.firstFrame": {
+      "behavior": "Seek first source/authoring time.",
+      "ubuntu": [
+        "application.py:_step"
+      ]
+    },
+    "StudioActions.fitTimeline": {
+      "behavior": "Fit source and authored timeline extents.",
+      "ubuntu": [
+        "timeline.py:fit"
+      ]
+    },
+    "StudioActions.focusSelection": {
+      "behavior": "Frame selected geometry/cameras while retaining view orientation.",
+      "ubuntu": [
+        "application.py:_frame_selection",
+        "viewport.py:frame_selection"
+      ]
+    },
+    "StudioActions.gridChanged": {
+      "behavior": "Toggle fixed world-unit coordinate grid.",
+      "ubuntu": [
+        "application.py:_toggle_preview"
+      ]
+    },
+    "StudioActions.importCameras": {
+      "behavior": "Import compatible camera-only GSV into the authoring session.",
+      "ubuntu": [
+        "application.py:choose_file",
+        "camera.py:import_camera_animation"
+      ]
+    },
+    "StudioActions.jumpCameraKey": {
+      "behavior": "Choose a camera key and seek its time.",
+      "ubuntu": [
+        "application.py:_key_chosen",
+        "application.py:_select_key"
+      ]
+    },
+    "StudioActions.lastFrame": {
+      "behavior": "Seek last source/authoring time.",
+      "ubuntu": [
+        "application.py:_step"
+      ]
+    },
+    "StudioActions.lookThroughSelection": {
+      "behavior": "Explicitly look through the inspected camera.",
+      "ubuntu": [
+        "application.py:_look_through"
+      ]
+    },
+    "StudioActions.loopChanged": {
+      "behavior": "Toggle looping inside the active preview range.",
+      "ubuntu": [
+        "application.py:loop",
+        "application.py:_tick"
+      ]
+    },
+    "StudioActions.navigationToolChanged": {
+      "behavior": "Choose select/orbit/pan/dolly with native cursor feedback.",
+      "ubuntu": [
+        "viewport.py:tool"
+      ]
+    },
+    "StudioActions.nearClipFieldChanged": {
+      "behavior": "Change near clip within declared scene-unit limits.",
+      "ubuntu": [
+        "application.py:_view_option"
+      ]
+    },
+    "StudioActions.nextFrame": {
+      "behavior": "Seek next native source/authoring time.",
+      "ubuntu": [
+        "application.py:_step"
+      ]
+    },
+    "StudioActions.nextView": {
+      "behavior": "Restore next navigation state.",
+      "ubuntu": [
+        "application.py:_view_history"
+      ]
+    },
+    "StudioActions.openDocument": {
+      "behavior": "Open one local GSV with the native file dialog.",
+      "ubuntu": [
+        "application.py:choose_file"
+      ]
+    },
+    "StudioActions.orbitStyleChanged": {
+      "behavior": "Choose turntable or trackball navigation.",
+      "ubuntu": [
+        "viewport.py:navigation_mode"
+      ]
+    },
+    "StudioActions.pivotSelection": {
+      "behavior": "Set the pivot from selection without changing the camera.",
+      "ubuntu": [
+        "viewport.py:center_on_selection"
+      ]
+    },
+    "StudioActions.pivotView": {
+      "behavior": "Set the pivot using bounded visible-depth sampling.",
+      "ubuntu": [
+        "viewport.py:center_on_depth"
+      ]
+    },
+    "StudioActions.pivotVisibilityChanged": {
+      "behavior": "Toggle the amber orbit-center display.",
+      "ubuntu": [
+        "application.py:_set_view_property"
+      ]
+    },
+    "StudioActions.previewRateChanged": {
+      "behavior": "Commit a valid positive preview-units/second rate.",
+      "ubuntu": [
+        "application.py:_preview_rate_changed"
+      ]
+    },
+    "StudioActions.previousFrame": {
+      "behavior": "Seek previous native source/authoring time.",
+      "ubuntu": [
+        "application.py:_step"
+      ]
+    },
+    "StudioActions.previousView": {
+      "behavior": "Restore previous navigation state.",
+      "ubuntu": [
+        "application.py:_view_history"
+      ]
+    },
+    "StudioActions.rangeChanged": {
+      "behavior": "Commit or disable an ordered in/out preview range.",
+      "ubuntu": [
+        "application.py:_preview_range_changed"
+      ]
+    },
+    "StudioActions.recordCameraKeyframe": {
+      "behavior": "Record the current camera at committed playhead time.",
+      "ubuntu": [
+        "application.py:record_key"
+      ]
+    },
+    "StudioActions.redoCamera": {
+      "behavior": "Redo a camera edit independently of view navigation.",
+      "ubuntu": [
+        "application.py:_undo",
+        "camera.py:CameraHistory"
+      ]
+    },
+    "StudioActions.renameCamera": {
+      "behavior": "Rename the selected authored camera.",
+      "ubuntu": [
+        "application.py:_edit_track"
+      ]
+    },
+    "StudioActions.renderSliderChanged": {
+      "behavior": "Change browsing size/opacity/exposure independently of scientific capture.",
+      "ubuntu": [
+        "application.py:_view_option"
+      ]
+    },
+    "StudioActions.resetCamera": {
+      "behavior": "Frame the whole scene with the default free camera.",
+      "ubuntu": [
+        "application.py:_home",
+        "viewport.py:frame_scene"
+      ]
+    },
+    "StudioActions.resolutionChanged": {
+      "behavior": "Choose 100/75/50 percent preview raster without sampling identities.",
+      "ubuntu": [
+        "application.py:_set_render_scale"
+      ]
+    },
+    "StudioActions.retimeCameraKey": {
+      "behavior": "Retime one key atomically without collisions.",
+      "ubuntu": [
+        "application.py:_retime"
+      ]
+    },
+    "StudioActions.saveCameras": {
+      "behavior": "Export separate source-linked camera-only GSV.",
+      "ubuntu": [
+        "application.py:choose_file",
+        "camera.py:export_camera_animation"
+      ]
+    },
+    "StudioActions.showNavigationHelp": {
+      "behavior": "Show the platform-adapted navigation guide.",
+      "ubuntu": [
+        "application.py:help"
+      ]
+    },
+    "StudioActions.snapChanged": {
+      "behavior": "Toggle native-sample timeline snapping.",
+      "ubuntu": [
+        "timeline.py:snap"
+      ]
+    },
+    "StudioActions.speedChanged": {
+      "behavior": "Choose the preview playback multiplier.",
+      "ubuntu": [
+        "application.py:speed",
+        "application.py:_tick"
+      ]
+    },
+    "StudioActions.toggleInspector": {
+      "behavior": "Toggle the inspector.",
+      "ubuntu": [
+        "application.py:_actions"
+      ]
+    },
+    "StudioActions.togglePlayback": {
+      "behavior": "Toggle native-time playback.",
+      "ubuntu": [
+        "application.py:toggle_playback"
+      ]
+    },
+    "StudioActions.toggleScenePane": {
+      "behavior": "Toggle the outliner.",
+      "ubuntu": [
+        "application.py:_actions"
+      ]
+    },
+    "StudioActions.trajectoryChanged": {
+      "behavior": "Toggle full selected-object trajectories.",
+      "ubuntu": [
+        "application.py:_toggle_preview"
+      ]
+    },
+    "StudioActions.undoCamera": {
+      "behavior": "Undo a camera edit independently of view navigation.",
+      "ubuntu": [
+        "application.py:_undo",
+        "camera.py:CameraHistory"
+      ]
+    },
+    "StudioActions.upAxisChanged": {
+      "behavior": "Choose one of six signed world up axes.",
+      "ubuntu": [
+        "viewport.py:set_up_axis"
+      ]
+    },
+    "StudioActions.viewChanged": {
+      "behavior": "Follow a selected source or user camera.",
+      "ubuntu": [
+        "application.py:_camera_changed"
+      ]
+    },
+    "StudioComparison.actualPixels": {
+      "behavior": "Display one image pixel per display backing pixel.",
+      "ubuntu": [
+        "image_view.py:actual_pixels"
+      ]
+    },
+    "StudioComparison.closeComparison": {
+      "behavior": "Return to 3D browsing.",
+      "ubuntu": [
+        "application.py:compare_toggle"
+      ]
+    },
+    "StudioComparison.compareSelectedObservation": {
+      "behavior": "Compare a selected observation through its linked render view.",
+      "ubuntu": [
+        "application.py:_compare_selected_observation"
+      ]
+    },
+    "StudioComparison.fitBoth": {
+      "behavior": "Fit the linked image pair.",
+      "ubuntu": [
+        "image_view.py:reset"
+      ]
+    },
+    "StudioComparison.previewSelectedRenderView": {
+      "behavior": "Preview a selected render view without scores.",
+      "ubuntu": [
+        "application.py:_preview_selected_render"
+      ]
+    },
+    "StudioComparison.selectEntry": {
+      "behavior": "Choose an explicit observation/capture row.",
+      "ubuntu": [
+        "application.py:_capture_selected"
+      ]
+    },
+    "StudioComparison.selectRenderView": {
+      "behavior": "Choose an explicit render view and activate its space/clock.",
+      "ubuntu": [
+        "application.py:_render_selected"
+      ]
+    },
+    "StudioComparison.toggleComparison": {
+      "behavior": "Open or close calibrated rendering/comparison.",
+      "ubuntu": [
+        "application.py:_comparison_toggled"
+      ]
+    },
+    "StudioComparison.toggleComparisonDetails": {
+      "behavior": "Inspect rendering/metric contract details.",
+      "ubuntu": [
+        "inspector.py:expander"
+      ]
+    },
+    "StudioInspector.copySelection": {
+      "behavior": "Copy displayed source attributes to the native clipboard.",
+      "ubuntu": [
+        "application.py:_copy_attributes"
+      ]
+    },
+    "StudioInspector.inspectorDidScroll": {
+      "behavior": "Keep the native inspector scrolling position while refreshing values.",
+      "ubuntu": [
+        "inspector.py:Inspector",
+        "application.py:scroller"
+      ]
+    },
+    "StudioInspector.inspectorTabChanged": {
+      "behavior": "Select Selection/Viewport/Document inspection.",
+      "ubuntu": [
+        "application.py:_inspect"
+      ]
+    },
+    "StudioInspector.makePrimarySelection": {
+      "behavior": "Choose a primary member without changing mixed membership.",
+      "ubuntu": [
+        "application.py:_member_selected"
+      ]
+    },
+    "StudioInspector.showDescriptor": {
+      "behavior": "Expand selectable original object descriptors.",
+      "ubuntu": [
+        "inspector.py:expander"
+      ]
+    },
+    "StudioPreviewControls.pathOpacityChanged": {
+      "behavior": "Change complete trajectory opacity as a percentage.",
+      "ubuntu": [
+        "application.py:_view_option"
+      ]
+    },
+    "StudioPreviewControls.trailFramesChanged": {
+      "behavior": "Choose 1–4096 recent source intervals.",
+      "ubuntu": [
+        "application.py:_view_option"
+      ]
+    },
+    "StudioPreviewControls.trailsChanged": {
+      "behavior": "Toggle recent source-interval motion trails.",
+      "ubuntu": [
+        "application.py:_toggle_preview"
+      ]
+    },
+    "StudioPreviewControls.trajectoryDensityChanged": {
+      "behavior": "Choose 1–100 percent nested deterministic path density.",
+      "ubuntu": [
+        "application.py:_view_option"
+      ]
+    },
+    "WorkspaceController.objectVisibilityChanged": {
+      "behavior": "Toggle one supported source or authored object.",
+      "ubuntu": [
+        "application.py:_visibility_changed"
+      ]
+    },
+    "WorkspaceController.outlineDoubleClick": {
+      "behavior": "Activate a camera/render view or another source space/clock.",
+      "ubuntu": [
+        "application.py:_object_activated"
+      ]
+    }
+  }
+}

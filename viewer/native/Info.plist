@@ -19,6 +19,9 @@
 <key>Name</key><string>Yifa Zhang</string>
 <key>NativeName</key><string>张亦法</string>
 <key>ProfileURL</key><string>https://github.com/Lightcone-ZhangYifa</string>
+<key>Email</key><string>139779251+Lightcone-ZhangYifa@users.noreply.github.com</string>
+<key>RepositoryURL</key><string>https://github.com/Lightcone-ZhangYifa/4dgs-studio</string>
+<key>IssuesURL</key><string>https://github.com/Lightcone-ZhangYifa/4dgs-studio/issues</string>
 </dict>
 <key>NSHighResolutionCapable</key><true/>
 <key>NSPrincipalClass</key><string>NSApplication</string>

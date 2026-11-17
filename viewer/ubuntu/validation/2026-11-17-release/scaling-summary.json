@@ -1,0 +1,492 @@
+{
+  "format": "gsv.native-desktop-scaling-summary/1",
+  "runtime_source_commit": "5dfdc0ec879acbed57ea708613aa24bf2cff5c76",
+  "session_environment_file": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/environment.json",
+  "source_accepted_cases": [
+    {
+      "backend": "wayland",
+      "desktop_scale": 1.25,
+      "language": "zh-Hans",
+      "gtk_backing_scale": 2,
+      "viewport_pixels": [
+        4272,
+        2512
+      ],
+      "workspace_pixels": [
+        5376,
+        3296
+      ],
+      "mutter_layout_mode": 1,
+      "mutter_legacy_ui_scale": 1,
+      "checks": 9,
+      "pointer_input_tested": true,
+      "report_directory": "<checkout>/viewer/dist/release-validation/scaling-source-pango-ready/wayland-125-zh-Hans"
+    },
+    {
+      "backend": "wayland",
+      "desktop_scale": 1.0,
+      "language": "en",
+      "gtk_backing_scale": 1,
+      "viewport_pixels": [
+        2808,
+        1678
+      ],
+      "workspace_pixels": [
+        3360,
+        2068
+      ],
+      "mutter_layout_mode": 1,
+      "mutter_legacy_ui_scale": 1,
+      "checks": 9,
+      "pointer_input_tested": true,
+      "report_directory": "<checkout>/viewer/dist/release-validation/scaling-source-pango-ready/wayland-100-en"
+    },
+    {
+      "backend": "wayland",
+      "desktop_scale": 1.5,
+      "language": "en",
+      "gtk_backing_scale": 2,
+      "viewport_pixels": [
+        3376,
+        1960
+      ],
+      "workspace_pixels": [
+        4480,
+        2736
+      ],
+      "mutter_layout_mode": 1,
+      "mutter_legacy_ui_scale": 1,
+      "checks": 9,
+      "pointer_input_tested": true,
+      "report_directory": "<checkout>/viewer/dist/release-validation/scaling-source-pango-ready/wayland-150-en"
+    },
+    {
+      "backend": "wayland",
+      "desktop_scale": 1.75,
+      "language": "zh-Hans",
+      "gtk_backing_scale": 2,
+      "viewport_pixels": [
+        2736,
+        1552
+      ],
+      "workspace_pixels": [
+        3840,
+        2336
+      ],
+      "mutter_layout_mode": 1,
+      "mutter_legacy_ui_scale": 1,
+      "checks": 9,
+      "pointer_input_tested": true,
+      "report_directory": "<checkout>/viewer/dist/release-validation/scaling-source-pango-ready/wayland-175-zh-Hans"
+    },
+    {
+      "backend": "wayland",
+      "desktop_scale": 2.0,
+      "language": "en",
+      "gtk_backing_scale": 2,
+      "viewport_pixels": [
+        2256,
+        1260
+      ],
+      "workspace_pixels": [
+        3360,
+        2036
+      ],
+      "mutter_layout_mode": 1,
+      "mutter_legacy_ui_scale": 1,
+      "checks": 9,
+      "pointer_input_tested": true,
+      "report_directory": "<checkout>/viewer/dist/release-validation/scaling-source-pango-ready/wayland-200-en"
+    },
+    {
+      "backend": "x11",
+      "desktop_scale": 1.0,
+      "language": "en",
+      "gtk_backing_scale": 1,
+      "viewport_pixels": [
+        2808,
+        1678
+      ],
+      "workspace_pixels": [
+        3360,
+        2068
+      ],
+      "mutter_layout_mode": 1,
+      "mutter_legacy_ui_scale": 1,
+      "checks": 9,
+      "pointer_input_tested": true,
+      "report_directory": "<checkout>/viewer/dist/release-validation/scaling-source-xsettings/x11-100-en"
+    },
+    {
+      "backend": "x11",
+      "desktop_scale": 1.5,
+      "language": "zh-Hans",
+      "gtk_backing_scale": 1,
+      "viewport_pixels": [
+        1688,
+        974
+      ],
+      "workspace_pixels": [
+        2240,
+        1368
+      ],
+      "mutter_layout_mode": 1,
+      "mutter_legacy_ui_scale": 1,
+      "checks": 9,
+      "pointer_input_tested": true,
+      "report_directory": "<checkout>/viewer/dist/release-validation/scaling-source-xsettings/x11-150-zh-Hans"
+    },
+    {
+      "backend": "x11",
+      "desktop_scale": 2.0,
+      "language": "zh-Hans",
+      "gtk_backing_scale": 1,
+      "viewport_pixels": [
+        1128,
+        624
+      ],
+      "workspace_pixels": [
+        1680,
+        1018
+      ],
+      "mutter_layout_mode": 1,
+      "mutter_legacy_ui_scale": 1,
+      "checks": 9,
+      "pointer_input_tested": true,
+      "report_directory": "<checkout>/viewer/dist/release-validation/scaling-source-xsettings/x11-200-zh-Hans"
+    }
+  ],
+  "deb_accepted_cases": [
+    {
+      "backend": "wayland",
+      "desktop_scale": 1.25,
+      "language": "zh-Hans",
+      "gtk_backing_scale": 2,
+      "viewport_pixels": [
+        4272,
+        2512
+      ],
+      "workspace_pixels": [
+        5376,
+        3296
+      ],
+      "mutter_layout_mode": 1,
+      "mutter_legacy_ui_scale": 1,
+      "checks": 9,
+      "pointer_input_tested": true,
+      "report_directory": "<checkout>/viewer/dist/release-validation/scaling-deb-final/wayland-125-zh-Hans"
+    },
+    {
+      "backend": "wayland",
+      "desktop_scale": 2.0,
+      "language": "en",
+      "gtk_backing_scale": 2,
+      "viewport_pixels": [
+        2256,
+        1260
+      ],
+      "workspace_pixels": [
+        3360,
+        2036
+      ],
+      "mutter_layout_mode": 1,
+      "mutter_legacy_ui_scale": 1,
+      "checks": 9,
+      "pointer_input_tested": true,
+      "report_directory": "<checkout>/viewer/dist/release-validation/scaling-deb-final/wayland-200-en"
+    },
+    {
+      "backend": "x11",
+      "desktop_scale": 1.5,
+      "language": "zh-Hans",
+      "gtk_backing_scale": 1,
+      "viewport_pixels": [
+        1688,
+        974
+      ],
+      "workspace_pixels": [
+        2240,
+        1368
+      ],
+      "mutter_layout_mode": 1,
+      "mutter_legacy_ui_scale": 1,
+      "checks": 9,
+      "pointer_input_tested": true,
+      "report_directory": "<checkout>/viewer/dist/release-validation/scaling-deb-xsettings/x11-150-zh-Hans"
+    }
+  ],
+  "reports": {
+    "scaling-source-pango-ready": {
+      "path": "<checkout>/viewer/dist/release-validation/scaling-source-pango-ready/report.json",
+      "sha256": "f81a525f66f7c6983f3e6d3f42414be4ba291898b97007e8aa2de7bcb28997c7",
+      "passed": true,
+      "cases": 8,
+      "checks": 72,
+      "pointer_cases": 8,
+      "restoration": {
+        "display_configuration_restored": true,
+        "feature_override_restored": true,
+        "monitors_xml_unchanged": true,
+        "source_unchanged": true,
+        "runtime_unchanged": true,
+        "remaining_studio_owner": null
+      },
+      "initial_features": [
+        "scale-monitor-framebuffer"
+      ],
+      "final_features": [
+        "scale-monitor-framebuffer"
+      ],
+      "runtime_module_root": "<checkout>/viewer/ubuntu",
+      "runtime_sha256": {
+        "gs_studio/__init__.py": "7ae7486d3c96022fb219c133b1030d691d72aed0bc77d7019c5a4d6c2ceab63e",
+        "gs_studio/__main__.py": "c30c17c2d60a6cf70d5680cd218bc0f5632ba0b042e07b9bab9e7488c4945021",
+        "gs_studio/application.py": "df60ba9ce0b005c6322ade442690126e653600cc55137d3d1e52b12ebeb8127a",
+        "gs_studio/branding.py": "7e6d8fb5b311915acd8dab0bdd9eff28833af01b9dc8ccb8a878c3385cc8b57e",
+        "gs_studio/camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967",
+        "gs_studio/capture_catalog.py": "c71805e7b6ad73fb06c70a9ebef09da2fa736c9dfa96091f10672ed67671cc57",
+        "gs_studio/comparison.py": "75152ab8f808d9492cf22780ca2b840dc0827721928fde4c40490d9c5c667a1a",
+        "gs_studio/drawing_text.py": "09427df909b75c91f8a227566d2c529f63dd2c1a8d446a8b6ef14895c1c6ffdd",
+        "gs_studio/gl_renderer.py": "86d69b376f9fdaaa13b2689d57fe08eb476f532d350dac7d83b9a35673d208cd",
+        "gs_studio/gpu_sort.py": "1e336b92fd7a4dc728398a32747be5a46cdff522f43b5c7f3bcf91d51036cf10",
+        "gs_studio/gpu_visibility.py": "bae39d7e8bbdcee72de792210454302d026c967513f0622c4f76abfc4fbf5ffe",
+        "gs_studio/i18n.py": "7b12218879de0e9fda662ae0f64f9bb27be7556776b6a89fafdcf4fdb40b06cd",
+        "gs_studio/image_view.py": "e36416c0fd70def05a8136c4a8836d631c288e0981dcdfd73234c3eb6dbbd529",
+        "gs_studio/inspector.py": "d809370287dd82b97088c09c19f7dac4c3c2ae71bdc9a99b3016a2a3c06e18ad",
+        "gs_studio/jobs.py": "b2814538d702029a21316bc65696e1ab3d0fa65ed5954d036e1e6627425b2180",
+        "gs_studio/model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+        "gs_studio/navigation.py": "903805f8472c765e0d6a2577d96908ee08fafc00f4b6ac417656238bf6007f99",
+        "gs_studio/outliner.py": "c22b9888064a90792457fc9f1f5b958997f265c487905b55ad9eb6ab2c4b9c3c",
+        "gs_studio/snapshots.py": "fddaf9e47491c2eea1b59de2975a741ec6daff80b184fdf58b7cd391107656e0",
+        "gs_studio/timeline.py": "2b41ee156d4993337cca32f807c6ddbbb032fc7b2264bcbbc4e5bb42a21078bb",
+        "gs_studio/viewport.py": "2eb8cfa2c0ce8fcb0cab40c9f046f3777dddb8809ceb6cf9d907c4a01f829364"
+      }
+    },
+    "scaling-deb-final": {
+      "path": "<checkout>/viewer/dist/release-validation/scaling-deb-final/report.json",
+      "sha256": "1f8dad52a620106df4c6d05863f9bbcd5efc21850a848bcc11160e124cb9da84",
+      "passed": true,
+      "cases": 3,
+      "checks": 27,
+      "pointer_cases": 3,
+      "restoration": {
+        "display_configuration_restored": true,
+        "feature_override_restored": true,
+        "monitors_xml_unchanged": true,
+        "source_unchanged": true,
+        "runtime_unchanged": true,
+        "remaining_studio_owner": null
+      },
+      "initial_features": [
+        "scale-monitor-framebuffer"
+      ],
+      "final_features": [
+        "scale-monitor-framebuffer"
+      ],
+      "runtime_module_root": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu",
+      "runtime_sha256": {
+        "gs_studio/__init__.py": "7ae7486d3c96022fb219c133b1030d691d72aed0bc77d7019c5a4d6c2ceab63e",
+        "gs_studio/__main__.py": "c30c17c2d60a6cf70d5680cd218bc0f5632ba0b042e07b9bab9e7488c4945021",
+        "gs_studio/application.py": "df60ba9ce0b005c6322ade442690126e653600cc55137d3d1e52b12ebeb8127a",
+        "gs_studio/branding.py": "7e6d8fb5b311915acd8dab0bdd9eff28833af01b9dc8ccb8a878c3385cc8b57e",
+        "gs_studio/camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967",
+        "gs_studio/capture_catalog.py": "c71805e7b6ad73fb06c70a9ebef09da2fa736c9dfa96091f10672ed67671cc57",
+        "gs_studio/comparison.py": "75152ab8f808d9492cf22780ca2b840dc0827721928fde4c40490d9c5c667a1a",
+        "gs_studio/drawing_text.py": "09427df909b75c91f8a227566d2c529f63dd2c1a8d446a8b6ef14895c1c6ffdd",
+        "gs_studio/gl_renderer.py": "86d69b376f9fdaaa13b2689d57fe08eb476f532d350dac7d83b9a35673d208cd",
+        "gs_studio/gpu_sort.py": "1e336b92fd7a4dc728398a32747be5a46cdff522f43b5c7f3bcf91d51036cf10",
+        "gs_studio/gpu_visibility.py": "bae39d7e8bbdcee72de792210454302d026c967513f0622c4f76abfc4fbf5ffe",
+        "gs_studio/i18n.py": "7b12218879de0e9fda662ae0f64f9bb27be7556776b6a89fafdcf4fdb40b06cd",
+        "gs_studio/image_view.py": "e36416c0fd70def05a8136c4a8836d631c288e0981dcdfd73234c3eb6dbbd529",
+        "gs_studio/inspector.py": "d809370287dd82b97088c09c19f7dac4c3c2ae71bdc9a99b3016a2a3c06e18ad",
+        "gs_studio/jobs.py": "b2814538d702029a21316bc65696e1ab3d0fa65ed5954d036e1e6627425b2180",
+        "gs_studio/model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+        "gs_studio/navigation.py": "903805f8472c765e0d6a2577d96908ee08fafc00f4b6ac417656238bf6007f99",
+        "gs_studio/outliner.py": "c22b9888064a90792457fc9f1f5b958997f265c487905b55ad9eb6ab2c4b9c3c",
+        "gs_studio/snapshots.py": "fddaf9e47491c2eea1b59de2975a741ec6daff80b184fdf58b7cd391107656e0",
+        "gs_studio/timeline.py": "2b41ee156d4993337cca32f807c6ddbbb032fc7b2264bcbbc4e5bb42a21078bb",
+        "gs_studio/viewport.py": "2eb8cfa2c0ce8fcb0cab40c9f046f3777dddb8809ceb6cf9d907c4a01f829364"
+      }
+    },
+    "scaling-source-xsettings": {
+      "path": "<checkout>/viewer/dist/release-validation/scaling-source-xsettings/report.json",
+      "sha256": "6495a817795a2511ad1455ca61db0b6f152a55698f34aa157a739280e1884291",
+      "passed": true,
+      "cases": 3,
+      "checks": 27,
+      "pointer_cases": 3,
+      "restoration": {
+        "display_configuration_restored": true,
+        "feature_override_restored": true,
+        "monitors_xml_unchanged": true,
+        "source_unchanged": true,
+        "runtime_unchanged": true,
+        "remaining_studio_owner": null
+      },
+      "initial_features": [
+        "scale-monitor-framebuffer"
+      ],
+      "final_features": [
+        "scale-monitor-framebuffer"
+      ],
+      "runtime_module_root": "<checkout>/viewer/ubuntu",
+      "runtime_sha256": {
+        "gs_studio/__init__.py": "7ae7486d3c96022fb219c133b1030d691d72aed0bc77d7019c5a4d6c2ceab63e",
+        "gs_studio/__main__.py": "c30c17c2d60a6cf70d5680cd218bc0f5632ba0b042e07b9bab9e7488c4945021",
+        "gs_studio/application.py": "df60ba9ce0b005c6322ade442690126e653600cc55137d3d1e52b12ebeb8127a",
+        "gs_studio/branding.py": "7e6d8fb5b311915acd8dab0bdd9eff28833af01b9dc8ccb8a878c3385cc8b57e",
+        "gs_studio/camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967",
+        "gs_studio/capture_catalog.py": "c71805e7b6ad73fb06c70a9ebef09da2fa736c9dfa96091f10672ed67671cc57",
+        "gs_studio/comparison.py": "75152ab8f808d9492cf22780ca2b840dc0827721928fde4c40490d9c5c667a1a",
+        "gs_studio/drawing_text.py": "09427df909b75c91f8a227566d2c529f63dd2c1a8d446a8b6ef14895c1c6ffdd",
+        "gs_studio/gl_renderer.py": "86d69b376f9fdaaa13b2689d57fe08eb476f532d350dac7d83b9a35673d208cd",
+        "gs_studio/gpu_sort.py": "1e336b92fd7a4dc728398a32747be5a46cdff522f43b5c7f3bcf91d51036cf10",
+        "gs_studio/gpu_visibility.py": "bae39d7e8bbdcee72de792210454302d026c967513f0622c4f76abfc4fbf5ffe",
+        "gs_studio/i18n.py": "7b12218879de0e9fda662ae0f64f9bb27be7556776b6a89fafdcf4fdb40b06cd",
+        "gs_studio/image_view.py": "e36416c0fd70def05a8136c4a8836d631c288e0981dcdfd73234c3eb6dbbd529",
+        "gs_studio/inspector.py": "d809370287dd82b97088c09c19f7dac4c3c2ae71bdc9a99b3016a2a3c06e18ad",
+        "gs_studio/jobs.py": "b2814538d702029a21316bc65696e1ab3d0fa65ed5954d036e1e6627425b2180",
+        "gs_studio/model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+        "gs_studio/navigation.py": "903805f8472c765e0d6a2577d96908ee08fafc00f4b6ac417656238bf6007f99",
+        "gs_studio/outliner.py": "c22b9888064a90792457fc9f1f5b958997f265c487905b55ad9eb6ab2c4b9c3c",
+        "gs_studio/snapshots.py": "fddaf9e47491c2eea1b59de2975a741ec6daff80b184fdf58b7cd391107656e0",
+        "gs_studio/timeline.py": "2b41ee156d4993337cca32f807c6ddbbb032fc7b2264bcbbc4e5bb42a21078bb",
+        "gs_studio/viewport.py": "2eb8cfa2c0ce8fcb0cab40c9f046f3777dddb8809ceb6cf9d907c4a01f829364"
+      }
+    },
+    "scaling-deb-xsettings": {
+      "path": "<checkout>/viewer/dist/release-validation/scaling-deb-xsettings/report.json",
+      "sha256": "a53ba65faa4d280c54bd613f3ee6336c58ed9b835f7936dbc6cdc4e68a6b39f0",
+      "passed": true,
+      "cases": 1,
+      "checks": 9,
+      "pointer_cases": 1,
+      "restoration": {
+        "display_configuration_restored": true,
+        "feature_override_restored": true,
+        "monitors_xml_unchanged": true,
+        "source_unchanged": true,
+        "runtime_unchanged": true,
+        "remaining_studio_owner": null
+      },
+      "initial_features": [
+        "scale-monitor-framebuffer"
+      ],
+      "final_features": [
+        "scale-monitor-framebuffer"
+      ],
+      "runtime_module_root": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu",
+      "runtime_sha256": {
+        "gs_studio/__init__.py": "7ae7486d3c96022fb219c133b1030d691d72aed0bc77d7019c5a4d6c2ceab63e",
+        "gs_studio/__main__.py": "c30c17c2d60a6cf70d5680cd218bc0f5632ba0b042e07b9bab9e7488c4945021",
+        "gs_studio/application.py": "df60ba9ce0b005c6322ade442690126e653600cc55137d3d1e52b12ebeb8127a",
+        "gs_studio/branding.py": "7e6d8fb5b311915acd8dab0bdd9eff28833af01b9dc8ccb8a878c3385cc8b57e",
+        "gs_studio/camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967",
+        "gs_studio/capture_catalog.py": "c71805e7b6ad73fb06c70a9ebef09da2fa736c9dfa96091f10672ed67671cc57",
+        "gs_studio/comparison.py": "75152ab8f808d9492cf22780ca2b840dc0827721928fde4c40490d9c5c667a1a",
+        "gs_studio/drawing_text.py": "09427df909b75c91f8a227566d2c529f63dd2c1a8d446a8b6ef14895c1c6ffdd",
+        "gs_studio/gl_renderer.py": "86d69b376f9fdaaa13b2689d57fe08eb476f532d350dac7d83b9a35673d208cd",
+        "gs_studio/gpu_sort.py": "1e336b92fd7a4dc728398a32747be5a46cdff522f43b5c7f3bcf91d51036cf10",
+        "gs_studio/gpu_visibility.py": "bae39d7e8bbdcee72de792210454302d026c967513f0622c4f76abfc4fbf5ffe",
+        "gs_studio/i18n.py": "7b12218879de0e9fda662ae0f64f9bb27be7556776b6a89fafdcf4fdb40b06cd",
+        "gs_studio/image_view.py": "e36416c0fd70def05a8136c4a8836d631c288e0981dcdfd73234c3eb6dbbd529",
+        "gs_studio/inspector.py": "d809370287dd82b97088c09c19f7dac4c3c2ae71bdc9a99b3016a2a3c06e18ad",
+        "gs_studio/jobs.py": "b2814538d702029a21316bc65696e1ab3d0fa65ed5954d036e1e6627425b2180",
+        "gs_studio/model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+        "gs_studio/navigation.py": "903805f8472c765e0d6a2577d96908ee08fafc00f4b6ac417656238bf6007f99",
+        "gs_studio/outliner.py": "c22b9888064a90792457fc9f1f5b958997f265c487905b55ad9eb6ab2c4b9c3c",
+        "gs_studio/snapshots.py": "fddaf9e47491c2eea1b59de2975a741ec6daff80b184fdf58b7cd391107656e0",
+        "gs_studio/timeline.py": "2b41ee156d4993337cca32f807c6ddbbb032fc7b2264bcbbc4e5bb42a21078bb",
+        "gs_studio/viewport.py": "2eb8cfa2c0ce8fcb0cab40c9f046f3777dddb8809ceb6cf9d907c4a01f829364"
+      }
+    }
+  },
+  "scope": "Real Ubuntu GNOME/Mutter owned virtual output. Nine public native GUI checks per case. No physical-display/input-device claim and no full macOS-feature or production-data benchmark rerun. Wayland explicitly software; Xwayland uses requested NVIDIA PRIME, independent GL renderer evidence belongs to separate package checks.",
+  "font_evidence_files": [
+    "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/font-settings-evidence.json",
+    "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/font-settings-with-xsettings.json"
+  ],
+  "about_scope": "Author names and required native controls checked within About bounds. Accessibility exposes no image/icon rectangle; About icon image boundaries are not asserted by this runner. Welcome icon is visibly present in retained owned PNG.",
+  "all_scientific_png_sha256": [
+    "33e90a717dee420ba30d10b2b2acd99f88c43535e19f2d9d74e0ff0055680378"
+  ],
+  "all_native_and_fallback_checks": 135,
+  "accepted_native_font_checks": 99,
+  "final_studio_name_owned": false,
+  "final_display_state": [
+    2,
+    [
+      [
+        [
+          "Meta-0",
+          "MetaVendor",
+          "MetaVirtualMonitor",
+          "0x00"
+        ],
+        [
+          [
+            "3360x2100@30.000",
+            3360,
+            2100,
+            30.0,
+            1.0,
+            [
+              1.0,
+              1.25,
+              1.5,
+              1.75,
+              2.0,
+              2.2459893226623535,
+              2.5,
+              2.745098114013672,
+              3.0,
+              3.2558138370513916,
+              3.5,
+              3.75,
+              4.0
+            ],
+            {
+              "is-current": true,
+              "is-preferred": true
+            }
+          ]
+        ],
+        {
+          "is-builtin": false,
+          "display-name": "MetaVendor"
+        }
+      ]
+    ],
+    [
+      [
+        0,
+        0,
+        1.0,
+        0,
+        true,
+        [
+          [
+            "Meta-0",
+            "MetaVendor",
+            "MetaVirtualMonitor",
+            "0x00"
+          ]
+        ],
+        {}
+      ]
+    ],
+    {
+      "renderer": "native",
+      "layout-mode": 1,
+      "supports-changing-layout-mode": true,
+      "legacy-ui-scaling-factor": 1
+    }
+  ],
+  "xsettings_selection_owner": "0x800002",
+  "kept_alive_for_root": {
+    "gnome_shell_pid": 270101,
+    "session_pgid": 270099,
+    "xsettings_pid_and_pgid": 284840
+  },
+  "input_session_scope": "Each runner closed its owned RemoteDesktop/EIS session in finally; all four reports have no cleanup_error and remaining Studio owner None. No scaling runner process remains."
+}

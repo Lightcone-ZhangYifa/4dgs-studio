@@ -1,0 +1,12 @@
+{
+  "daemon_pid": 284840,
+  "gtk_probe": {
+    "gtk-font-name": "Cantarell 11",
+    "gtk-xft-dpi": 98304,
+    "gtk-theme-name": "Adwaita",
+    "gtk-icon-theme-name": "Adwaita"
+  },
+  "stderr": "libEGL warning: DRI3 error: Could not get DRI3 device\nlibEGL warning: Ensure your X server supports DRI3 to get accelerated rendering\n",
+  "xprop_root": "_XSETTINGS_SETTINGS:  not found.\n",
+  "note": "XSettings settings are held on its selection-owner window, not necessarily the root; Gtk.Settings is the effective client read."
+}

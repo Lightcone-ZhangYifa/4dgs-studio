@@ -438,3 +438,60 @@
 "about.version" = "Version %@";
 "about.versionUnavailable" = "Version unavailable";
 "about.github" = "GitHub";
+
+/* Ubuntu native desktop controls; shared catalog, registered in DynamicKeys.json. */
+"about.title" = "About 4DGS Studio";
+"common.discard" = "Discard";
+"common.preferences" = "Preferences";
+"compare.refresh" = "Refresh comparison";
+"navigation.sensitivity" = "Navigation sensitivity";
+"render.noViews" = "No render views";
+"scene.visibility" = "Object visibility";
+"status.ready" = "Ready";
+"ubuntu.activateDomain" = "Activating coordinate space and clock…";
+"ubuntu.appearance" = "Appearance";
+"ubuntu.autoObservation" = "Auto observation";
+"ubuntu.changedDuringDialog" = "Scene changed while the camera dialog was open.";
+"ubuntu.coordinates" = "Navigation up axis";
+"ubuntu.counts" = "{objects} objects · {samples} time samples";
+"ubuntu.createBeforeSave" = "Create a camera before saving camera animation.";
+"ubuntu.dark" = "Dark";
+"ubuntu.domain" = "Space: {space} · Clock: {clock} · {unit}";
+"ubuntu.domainHint" = "Double-click this object to activate its coordinate space and clock.";
+"ubuntu.frame" = "{count} Gaussians · t={time}";
+"ubuntu.idAbsent" = "Identity is not present at the displayed time.";
+"ubuntu.inspectable" = "Inspectable source representation. Select its declared evaluated display cache for geometry; no executable decoder is loaded.";
+"ubuntu.light" = "Light";
+"ubuntu.localFile" = "Choose a local GSV file.";
+"ubuntu.newCamera" = "Camera {number}";
+"ubuntu.referenceLabel" = "REFERENCE";
+"ubuntu.renderAccessibility" = "Calibrated render and reference image. Scroll to zoom; drag to pan both panes.";
+"ubuntu.renderLabel" = "RENDER";
+"ubuntu.renderPrompt" = "Select a render view to compare calibrated images.";
+"ubuntu.rendering" = "Rendering calibrated image…";
+"ubuntu.selectAuthored" = "Create or select an authored camera before recording a keyframe.";
+"ubuntu.selectCamera" = "Select an authored camera first.";
+"ubuntu.selectKey" = "Select a keyframe in the timeline first.";
+"ubuntu.selected" = "{count} selected";
+"ubuntu.system" = "System";
+"ubuntu.colorSpace" = "Color space";
+"ubuntu.links" = "Linked objects";
+"ubuntu.rgb" = "RGB";
+"ubuntu.opacity" = "Opacity";
+"ubuntu.covariance" = "Covariance";
+"property.type" = "Type";
+"camera.exportOverwrite" = "Source reconstruction cannot be overwritten.";
+"ubuntu.submissionTiming" = "CPU frame submission time; GPU completion and display frame rate are not measured.";
+"ubuntu.graphicsInformation" = "Graphics Information";
+
+"timeline.speed" = "Playback speed";
+
+"navigation.orbitStyle" = "Orbit style";
+
+"ubuntu.cameraCapture" = "Camera capture";
+
+"ubuntu.completedTiming" = "GPU {gpu} · {active} / {total} IDs · {scale}%";
+
+"ubuntu.completedTimingDetail" = "GPU render: {render} ms · sort: {sort} ms\nCompleted GPU renders/s: {fps}\nEstimated GPU storage: {memory} MiB\nCPU submission: {cpu} ms\nGPU completion timing is not desktop presentation FPS or total process memory.";
+
+"ubuntu.visibilityTiming" = "Visible IDs are the latest completed GPU frustum sample, not an occlusion count. Source time: {source_time}. Age at publication: {age} ms.";

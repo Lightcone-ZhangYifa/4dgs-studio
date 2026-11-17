@@ -1,0 +1,894 @@
+{
+  "format": "gsv.isolated-desktop-cleanup/1",
+  "started_utc": "2026-11-17T05:52:16.700202+00:00",
+  "scope": "Only explicitly owned isolated GNOME sessions, private XSettings and private-bus IBUS descendants. No global GNOME/systemd/training services were stopped.",
+  "before_processes": [
+    {
+      "pid": 270099,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935084",
+      "command": "dbus-run-session -- <checkout>/viewer/dist/release-validation/isolated-gnome-ready/start-session.sh ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": ""
+    },
+    {
+      "pid": 270100,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935084",
+      "command": "dbus-daemon --nofork --print-address 4 --session ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": ""
+    },
+    {
+      "pid": 270101,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935085",
+      "command": "/usr/bin/gnome-shell --headless --wayland --wayland-display=wayland-gsv-release-ready --virtual-monitor=3360x2100@30 --sm-disable --mode=ubuntu ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270108,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935087",
+      "command": "/usr/libexec/gvfsd ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270135,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935109",
+      "command": "/usr/libexec/at-spi-bus-launcher ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270140,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935110",
+      "command": "/usr/bin/dbus-daemon --config-file=/usr/share/defaults/at-spi2/accessibility.conf --nofork --print-address 11 --address=unix:path=/run/user/1003/at-spi/bus ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270141,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935110",
+      "command": "/usr/bin/Xwayland :1 -rootless -noreset -accessx -core -auth /run/user/1003/.mutter-Xwaylandauth.V48QY3 -listenfd 4 -listenfd 5 -displayfd 6 -initfd 7 -byteswappedclients ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270143,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935114",
+      "command": "/usr/libexec/at-spi2-registryd --use-gnome-session ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270172,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935146",
+      "command": "/usr/libexec/xdg-permission-store ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270174,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935146",
+      "command": "/usr/libexec/gnome-shell-calendar-server ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270186,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935147",
+      "command": "/usr/libexec/evolution-source-registry ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270197,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935156",
+      "command": "/usr/libexec/goa-daemon ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270204,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935158",
+      "command": "/usr/libexec/evolution-calendar-factory ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270212,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935159",
+      "command": "/usr/libexec/goa-identity-service ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270230,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935161",
+      "command": "/usr/libexec/evolution-addressbook-factory ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270255,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935186",
+      "command": "/usr/bin/gjs -m /usr/share/gnome-shell/org.gnome.Shell.Notifications ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270280,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935189",
+      "command": "/usr/libexec/gvfs-udisks2-volume-monitor ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270318,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935192",
+      "command": "/usr/libexec/gvfs-afc-volume-monitor ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270325,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935192",
+      "command": "/usr/libexec/gvfs-mtp-volume-monitor ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270333,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935193",
+      "command": "/usr/libexec/gvfs-gphoto2-volume-monitor ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270341,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935193",
+      "command": "/usr/libexec/gvfs-goa-volume-monitor ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270409,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935264",
+      "command": "/usr/libexec/gvfsd-trash --spawner :1.1 /org/gtk/gvfs/exec_spaw/0 ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270441,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935285",
+      "command": "/usr/libexec/xdg-desktop-portal ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270458,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935287",
+      "command": "/usr/libexec/xdg-desktop-portal-gnome ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270466,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32935290",
+      "command": "/usr/libexec/mutter-x11-frames ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270467,
+      "pgid": 270467,
+      "state": "S",
+      "starttime": "32935291",
+      "command": "ibus-daemon --panel disable -r --xim ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270476,
+      "pgid": 270467,
+      "state": "S",
+      "starttime": "32935294",
+      "command": "/usr/libexec/ibus-memconf ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270477,
+      "pgid": 270467,
+      "state": "S",
+      "starttime": "32935294",
+      "command": "/usr/libexec/ibus-extension-gtk3 ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270479,
+      "pgid": 270467,
+      "state": "S",
+      "starttime": "32935294",
+      "command": "/usr/libexec/ibus-x11 --kill-daemon ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 270566,
+      "pgid": 270467,
+      "state": "S",
+      "starttime": "32935301",
+      "command": "/usr/libexec/ibus-engine-simple ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 271950,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32937722",
+      "command": "gjs /usr/share/gnome-shell/extensions/ding@rastersoft.com/app/ding.js -E -P /usr/share/gnome-shell/extensions/ding@rastersoft.com/app ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 272018,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32937821",
+      "command": "/usr/libexec/gvfsd-metadata ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 274735,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32943896",
+      "command": "/usr/libexec/gvfsd-network --spawner :1.1 /org/gtk/gvfs/exec_spaw/1 ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 274743,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32943898",
+      "command": "/usr/libexec/gvfsd-dnssd --spawner :1.1 /org/gtk/gvfs/exec_spaw/2 ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 275013,
+      "pgid": 270099,
+      "state": "S",
+      "starttime": "32944179",
+      "command": "/usr/libexec/gvfsd-recent --spawner :1.1 /org/gtk/gvfs/exec_spaw/15 ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 284840,
+      "pgid": 284840,
+      "state": "S",
+      "starttime": "32983961",
+      "command": "/usr/libexec/gsd-xsettings --verbose ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    },
+    {
+      "pid": 284860,
+      "pgid": 284840,
+      "state": "S",
+      "starttime": "32983968",
+      "command": "/usr/libexec/ibus-x11 ",
+      "config": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "bus": "<isolated-session-bus>"
+    }
+  ],
+  "before_global_settings": {
+    "experimental_features": [],
+    "user_override": null
+  },
+  "monitors_xml_before_cleanup": {
+    "path": "/home/zhangyifa/.config/monitors.xml",
+    "exists": true,
+    "uid": 1003,
+    "mode": "0o100664",
+    "mtime_ns": 1794819480302714064,
+    "type": "file",
+    "sha256": "d66bde845cfd21fc44f93de15ece18bd01501edfb3539f2ce4c7a11f7c3e2fd3"
+  },
+  "owned_named_unix_socket_paths": [
+    "/home/zhangyifa/.cache/ibus/dbus-ao9WBjBG",
+    "/run/user/1003/at-spi/bus",
+    "/run/user/1003/at-spi2-5YZTY3/socket",
+    "/run/user/1003/at-spi2-8XVIY3/socket",
+    "/run/user/1003/at-spi2-BZVTY3/socket",
+    "/run/user/1003/at-spi2-NYVIY3/socket",
+    "/run/user/1003/at-spi2-VYYTY3/socket",
+    "/run/user/1003/at-spi2-XXITY3/socket",
+    "/run/user/1003/gvfsd/socket-D139WF1C",
+    "/run/user/1003/gvfsd/socket-IzTpwTY7",
+    "/run/user/1003/gvfsd/socket-PZjgUiit",
+    "/run/user/1003/gvfsd/socket-YGfgYOvn",
+    "/run/user/1003/gvfsd/socket-aQwoK5rK",
+    "/run/user/1003/gvfsd/socket-eeIumSjg",
+    "/run/user/1003/gvfsd/socket-r1HkScxz",
+    "/run/user/1003/gvfsd/socket-wUBhfIot",
+    "/run/user/1003/gvfsd/socket-wmnFOxFE",
+    "/run/user/1003/wayland-gsv-release-ready",
+    "/tmp/.X11-unix/X1",
+    "/tmp/.X11-unix/X2",
+    "/tmp/dbus-3tCLrar7Ql"
+  ],
+  "resources_before": [
+    {
+      "path": "/home/zhangyifa/.cache/ibus/dbus-ao9WBjBG",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140775",
+      "mtime_ns": 1794893669636331482,
+      "type": "socket"
+    },
+    {
+      "path": "/run/user/1003/.mutter-Xwaylandauth.I2ZQY3",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o100600",
+      "mtime_ns": 1794892996816734764,
+      "type": "file",
+      "sha256": "52e5e0582adc516dc6f1720ceefeb58e6de391a7274250f5b20dbdc97e0d212c"
+    },
+    {
+      "path": "/run/user/1003/.mutter-Xwaylandauth.I80TY3",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o100600",
+      "mtime_ns": 1794893259155403124,
+      "type": "file",
+      "sha256": "3339f3d449236c4385c03e293254e0445a82ff56aaf26def5c6b3ab651fc54bf"
+    },
+    {
+      "path": "/run/user/1003/.mutter-Xwaylandauth.V48QY3",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o100600",
+      "mtime_ns": 1794893667796447309,
+      "type": "file",
+      "sha256": "6012b747e32355128881ee175297e8b45b6e0ed0e65100a386a629c9612afd02"
+    },
+    {
+      "path": "/run/user/1003/at-spi/bus",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140777",
+      "mtime_ns": 1794893667793252764,
+      "type": "socket"
+    },
+    {
+      "path": "/run/user/1003/at-spi2-5YZTY3/socket",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140777",
+      "mtime_ns": 1794893725151708549,
+      "type": "socket"
+    },
+    {
+      "path": "/run/user/1003/at-spi2-8XVIY3/socket",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140777",
+      "mtime_ns": 1794894198663326356,
+      "type": "socket"
+    },
+    {
+      "path": "/run/user/1003/at-spi2-BZVTY3/socket",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140777",
+      "mtime_ns": 1794893725148708421,
+      "type": "socket"
+    },
+    {
+      "path": "/run/user/1003/at-spi2-NYVIY3/socket",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140777",
+      "mtime_ns": 1794894198663326356,
+      "type": "socket"
+    },
+    {
+      "path": "/run/user/1003/at-spi2-VYYTY3/socket",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140777",
+      "mtime_ns": 1794893725149558419,
+      "type": "socket"
+    },
+    {
+      "path": "/run/user/1003/at-spi2-XXITY3/socket",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140777",
+      "mtime_ns": 1794893725177709665,
+      "type": "socket"
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-D139WF1C",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-IzTpwTY7",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-PZjgUiit",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-YGfgYOvn",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-aQwoK5rK",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-eeIumSjg",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-r1HkScxz",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-wUBhfIot",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-wmnFOxFE",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/wayland-gsv-release",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140775",
+      "mtime_ns": 1794892996816734764,
+      "type": "socket"
+    },
+    {
+      "path": "/run/user/1003/wayland-gsv-release-monitor",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140775",
+      "mtime_ns": 1794893259155403124,
+      "type": "socket"
+    },
+    {
+      "path": "/run/user/1003/wayland-gsv-release-monitor.lock",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o100660",
+      "mtime_ns": 1794893259155403124,
+      "type": "file",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/run/user/1003/wayland-gsv-release-ready",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140775",
+      "mtime_ns": 1794893667796447309,
+      "type": "socket"
+    },
+    {
+      "path": "/run/user/1003/wayland-gsv-release-ready.lock",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o100660",
+      "mtime_ns": 1794893667796447309,
+      "type": "file",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/run/user/1003/wayland-gsv-release.lock",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o100660",
+      "mtime_ns": 1794892996816734764,
+      "type": "file",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/.X1-lock",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o100444",
+      "mtime_ns": 1794893667795252849,
+      "type": "file",
+      "sha256": "f206beefb7345658a1211e2b9d24112ea209c07621a4cfbee54074e9d57cc43f"
+    },
+    {
+      "path": "/tmp/.X11-unix/X1",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140775",
+      "mtime_ns": 1794893667795252849,
+      "type": "socket"
+    },
+    {
+      "path": "/tmp/.X11-unix/X2",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140775",
+      "mtime_ns": 1794893667796379053,
+      "type": "socket"
+    },
+    {
+      "path": "/tmp/.X11-unix/X3",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140775",
+      "mtime_ns": 1794893259154236252,
+      "type": "socket"
+    },
+    {
+      "path": "/tmp/.X11-unix/X4",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140775",
+      "mtime_ns": 1794893259155352749,
+      "type": "socket"
+    },
+    {
+      "path": "/tmp/.X2-lock",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o100444",
+      "mtime_ns": 1794893667796379053,
+      "type": "file",
+      "sha256": "f206beefb7345658a1211e2b9d24112ea209c07621a4cfbee54074e9d57cc43f"
+    },
+    {
+      "path": "/tmp/.X3-lock",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o100444",
+      "mtime_ns": 1794893259154236252,
+      "type": "file",
+      "sha256": "a8c3aa9981fdee030a52d1877489d4c85419bd82bd7cd5aa5d4253ea33f103e4"
+    },
+    {
+      "path": "/tmp/.X4-lock",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o100444",
+      "mtime_ns": 1794893259155352749,
+      "type": "file",
+      "sha256": "a8c3aa9981fdee030a52d1877489d4c85419bd82bd7cd5aa5d4253ea33f103e4"
+    },
+    {
+      "path": "/tmp/dbus-3tCLrar7Ql",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140777",
+      "mtime_ns": 1794893667541242002,
+      "type": "socket"
+    },
+    {
+      "path": "/tmp/dbus-nRZIEKDT07",
+      "exists": true,
+      "uid": 1003,
+      "mode": "0o140777",
+      "mtime_ns": 1794893258938227557,
+      "type": "socket"
+    },
+    {
+      "path": "/tmp/dbus-nZ4TS6hrBC",
+      "exists": false
+    }
+  ],
+  "actions": [
+    {
+      "signal": "SIGTERM",
+      "pgid": 284840
+    },
+    {
+      "signal": "SIGTERM",
+      "pgid": 270467
+    },
+    {
+      "signal": "SIGTERM",
+      "pid": 270101
+    }
+  ],
+  "original_pretest_monitors_hash_available": false,
+  "prior_successful_matrix_monitors_xml_hash_comparison_flags": {
+    "scaling-source-pango-ready": true,
+    "scaling-deb-final": true,
+    "scaling-source-xsettings": true,
+    "scaling-deb-xsettings": true
+  },
+  "socket_cleanup": [
+    {
+      "path": "/home/zhangyifa/.cache/ibus/dbus-ao9WBjBG",
+      "removed": true
+    },
+    {
+      "path": "/run/user/1003/.mutter-Xwaylandauth.I2ZQY3",
+      "removed": true
+    },
+    {
+      "path": "/run/user/1003/.mutter-Xwaylandauth.I80TY3",
+      "removed": true
+    },
+    {
+      "path": "/run/user/1003/at-spi2-5YZTY3/socket",
+      "removed": true
+    },
+    {
+      "path": "/run/user/1003/at-spi2-VYYTY3/socket",
+      "removed": true
+    },
+    {
+      "path": "/run/user/1003/wayland-gsv-release",
+      "removed": true
+    },
+    {
+      "path": "/run/user/1003/wayland-gsv-release-monitor",
+      "removed": true
+    },
+    {
+      "path": "/run/user/1003/wayland-gsv-release-monitor.lock",
+      "removed": true
+    },
+    {
+      "path": "/run/user/1003/wayland-gsv-release.lock",
+      "removed": true
+    },
+    {
+      "path": "/tmp/.X11-unix/X3",
+      "removed": true
+    },
+    {
+      "path": "/tmp/.X11-unix/X4",
+      "removed": true
+    },
+    {
+      "path": "/tmp/.X3-lock",
+      "removed": true
+    },
+    {
+      "path": "/tmp/.X4-lock",
+      "removed": true
+    },
+    {
+      "path": "/tmp/dbus-nRZIEKDT07",
+      "removed": true
+    }
+  ],
+  "after_processes": [],
+  "resources_after": [
+    {
+      "path": "/home/zhangyifa/.cache/ibus/dbus-ao9WBjBG",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/.mutter-Xwaylandauth.I2ZQY3",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/.mutter-Xwaylandauth.I80TY3",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/.mutter-Xwaylandauth.V48QY3",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/at-spi/bus",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/at-spi2-5YZTY3/socket",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/at-spi2-8XVIY3/socket",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/at-spi2-BZVTY3/socket",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/at-spi2-NYVIY3/socket",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/at-spi2-VYYTY3/socket",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/at-spi2-XXITY3/socket",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-D139WF1C",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-IzTpwTY7",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-PZjgUiit",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-YGfgYOvn",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-aQwoK5rK",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-eeIumSjg",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-r1HkScxz",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-wUBhfIot",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/gvfsd/socket-wmnFOxFE",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/wayland-gsv-release",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/wayland-gsv-release-monitor",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/wayland-gsv-release-monitor.lock",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/wayland-gsv-release-ready",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/wayland-gsv-release-ready.lock",
+      "exists": false
+    },
+    {
+      "path": "/run/user/1003/wayland-gsv-release.lock",
+      "exists": false
+    },
+    {
+      "path": "/tmp/.X1-lock",
+      "exists": false
+    },
+    {
+      "path": "/tmp/.X11-unix/X1",
+      "exists": false
+    },
+    {
+      "path": "/tmp/.X11-unix/X2",
+      "exists": false
+    },
+    {
+      "path": "/tmp/.X11-unix/X3",
+      "exists": false
+    },
+    {
+      "path": "/tmp/.X11-unix/X4",
+      "exists": false
+    },
+    {
+      "path": "/tmp/.X2-lock",
+      "exists": false
+    },
+    {
+      "path": "/tmp/.X3-lock",
+      "exists": false
+    },
+    {
+      "path": "/tmp/.X4-lock",
+      "exists": false
+    },
+    {
+      "path": "/tmp/dbus-3tCLrar7Ql",
+      "exists": false
+    },
+    {
+      "path": "/tmp/dbus-nRZIEKDT07",
+      "exists": false
+    },
+    {
+      "path": "/tmp/dbus-nZ4TS6hrBC",
+      "exists": false
+    }
+  ],
+  "after_global_settings": {
+    "experimental_features": [],
+    "user_override": null
+  },
+  "monitors_xml_after_cleanup": {
+    "path": "/home/zhangyifa/.config/monitors.xml",
+    "exists": true,
+    "uid": 1003,
+    "mode": "0o100664",
+    "mtime_ns": 1794819480302714064,
+    "type": "file",
+    "sha256": "d66bde845cfd21fc44f93de15ece18bd01501edfb3539f2ce4c7a11f7c3e2fd3"
+  },
+  "monitors_xml_unchanged_during_cleanup": true,
+  "global_features_at_original_default": true,
+  "no_owned_live_processes": true,
+  "no_owned_socket_or_auth_files": true,
+  "no_owned_unix_socket_kernel_entries": true,
+  "completed_utc": "2026-11-17T05:52:17.988193+00:00",
+  "passed": true
+}
