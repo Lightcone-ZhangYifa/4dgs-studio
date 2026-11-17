@@ -3,17 +3,53 @@ on:
   push:
     tags: ['v[0-9]*']
 permissions: {}
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   check:
     uses: ./.github/workflows/check.yml
     permissions:
       contents: read
-  publish:
+  build-ubuntu:
+    needs: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Ubuntu package build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-gi python3-gi-cairo python3-numpy python3-opengl gir1.2-gtk-4.0 gir1.2-adw-1 gir1.2-gdkpixbuf-2.0 librsvg2-common
+      - name: Build Ubuntu distribution from the tagged product version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(/usr/bin/python3 -c 'import plistlib; print(plistlib.load(open("viewer/native/Info.plist", "rb"))["CFBundleShortVersionString"])')"
+          test "v$version" = "$GITHUB_REF_NAME"
+          test -s "docs/releases/$GITHUB_REF_NAME.md"
+          mkdir assets
+          /usr/bin/python3 viewer/tools/package_ubuntu.py assets
+          test "$(dpkg-deb --field assets/*.deb Package)" = 4dgs-studio
+          test "$(dpkg-deb --field assets/*.deb Architecture)" = all
+          test "$(dpkg-deb --field assets/*.deb Version)" = "$version-1"
+      - name: Retain Ubuntu distribution for the release job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-ubuntu
+          path: assets/*.deb
+          if-no-files-found: error
+
+  build-macos-sdk:
     needs: check
     runs-on: macos-15
     timeout-minutes: 25
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -42,11 +78,45 @@ jobs:
           python viewer/native/tests/make_trajectory_fixtures.py "$RUNNER_TEMP/scenes"
           cp "$RUNNER_TEMP/scenes/trajectory_preview.gsv" assets/colored-ring.gsv
           gsv validate assets/colored-ring.gsv
-          (cd assets && shasum -a 256 ./*.zip ./*.whl ./*.tar.gz ./*.gsv > SHA256SUMS && shasum -a 256 -c SHA256SUMS)
+      - name: Retain macOS, Python and sample distributions for the release job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-macos-sdk
+          path: assets/*
+          if-no-files-found: error
+
+  publish:
+    needs: [build-ubuntu, build-macos-sdk]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Collect macOS, Python and sample distributions
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-macos-sdk
+          path: assets
+      - name: Collect Ubuntu distribution
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-ubuntu
+          path: assets
+      - name: Check all platform distributions and generate one checksum manifest
+        working-directory: assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum ./*.zip ./*.whl ./*.tar.gz ./*.gsv ./*.deb > SHA256SUMS
+          sha256sum -c SHA256SUMS
       - name: Publish tagged release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           gh release create "$GITHUB_REF_NAME" assets/* --verify-tag \
             --title "4DGS Studio ${GITHUB_REF_NAME#v}" \
             --notes-file "docs/releases/$GITHUB_REF_NAME.md"

@@ -20,7 +20,7 @@ Select a Gaussian object to see its colored motion paths, or click a single Gaus
 
 ## Ubuntu Desktop
 
-A native GTK 4 / libadwaita and OpenGL frontend is available on the Ubuntu development branch. See the [Ubuntu guide](viewer/ubuntu/README.md) for Ubuntu 24.04+ dependencies, launching, Debian packaging, tests, and the [acceptance inventory](viewer/ubuntu/PARITY.md). Hardware GPU and Wayland release acceptance is still required.
+A native GTK 4 / libadwaita and OpenGL frontend is available for Ubuntu 24.04 or later. The [current release](https://github.com/Lightcone-ZhangYifa/4dgs-studio/releases/tag/v2.3.0) includes the Debian package alongside the macOS application and Python distributions. See the [Ubuntu guide](viewer/ubuntu/README.md) for installation, desktop scaling, tests and the [acceptance inventory](viewer/ubuntu/PARITY.md). Actual GPU/backend validation limits are recorded with the test evidence.
 
 ```sh
 bash viewer/build_ubuntu.sh

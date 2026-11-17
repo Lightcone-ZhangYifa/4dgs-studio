@@ -2,7 +2,9 @@
 <component type="desktop-application">
   <id>io.github.LightconeZhangYifa.GSVStudio</id>
   <name>4DGS Studio</name>
+  <name xml:lang="zh_CN">4DGS Studio</name>
   <summary>Inspect dynamic Gaussian scenes and calibrated cameras</summary>
+  <summary xml:lang="zh_CN">检查动态高斯场景与校准相机</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
   <description>
@@ -15,7 +17,7 @@
   <developer id="io.github.lightconezhangyifa"><name>Yifa Zhang · 张亦法</name></developer>
   <provides><binary>4dgs-studio</binary><mediatype>application/x-gsv</mediatype></provides>
   <content_rating type="oars-1.1"/>
-  <releases><release version="2.3.0" type="development" date="2026-11-15"/></releases>
+  <releases><release version="2.3.0" type="stable" date="2026-11-06"/></releases>
   <supports><control>pointing</control><control>keyboard</control><control>touch</control></supports>
   <requires><display_length compare="ge">1024</display_length></requires>
 </component>

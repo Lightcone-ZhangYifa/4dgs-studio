@@ -16,7 +16,9 @@ gi.require_version("Adw", "1")
 gi.require_foreign("cairo")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
-from . import APPLICATION_ID, PRODUCT_IDENTITY, VERSION
+from . import APPLICATION_ID, VERSION
+from .branding import (APPLICATION_NAME, AUTHOR_DISPLAY_NAME, AUTHOR_PROFILE_URL,
+                       COPYRIGHT, REPOSITORY_URL, ISSUES_URL, register_icons)
 from .i18n import tr, read_preferences, save_preferences
 from .jobs import LatestJob, CommandJobs
 from .model import SceneDocument, Trajectory, TrajectoryLimitError
@@ -242,7 +244,7 @@ class StudioWindow(Adw.ApplicationWindow):
         self.stack.add_named(self.viewport, "scene")
         self.image_view = ComparisonCanvas()
         self.stack.add_named(self.image_view, "comparison")
-        self.empty = Adw.StatusPage(title="4DGS Studio", description=tr("file.openGSV", "Open a GSV scene to begin"), icon_name="applications-graphics-symbolic")
+        self.empty = Adw.StatusPage(title=APPLICATION_NAME, description=tr("file.openGSV", "Open a GSV scene to begin"), icon_name=APPLICATION_ID)
         self.empty.set_child(button(tr("file.openGSV", "Open GSV Scene"), lambda: self.choose_file("open")))
         self.stack.add_named(self.empty, "empty")
         self.stack.set_visible_child_name("empty")
@@ -1961,19 +1963,15 @@ class StudioWindow(Adw.ApplicationWindow):
         dialog.present()
 
     def about(self):
-        from urllib.parse import urlsplit
-        author = PRODUCT_IDENTITY.get('GSVStudioAuthor', {})
-        names = list(dict.fromkeys(value.strip() for key in ('Name', 'NativeName')
-            if isinstance(value := author.get(key), str) and value.strip()))
         dialog = Adw.AboutWindow(transient_for=self, modal=True,
-            application_name=PRODUCT_IDENTITY.get('CFBundleDisplayName', PRODUCT_IDENTITY.get('CFBundleName', '4DGS Studio')),
-            application_icon=APPLICATION_ID, developer_name=' · '.join(names), version=VERSION,
-            copyright=PRODUCT_IDENTITY.get('NSHumanReadableCopyright', ''),
-            website="https://github.com/Lightcone-ZhangYifa/4dgs-studio", license_type=Gtk.License.MIT_X11)
-        profile = author.get('ProfileURL', '').strip()
-        address = urlsplit(profile)
-        if address.scheme == 'https' and address.hostname and address.username is None and address.password is None:
-            dialog.add_link(tr("about.github", "GitHub"), profile)
+            application_name=APPLICATION_NAME, application_icon=APPLICATION_ID,
+            developer_name=AUTHOR_DISPLAY_NAME, version=VERSION, copyright=COPYRIGHT,
+            website=REPOSITORY_URL, issue_url=ISSUES_URL, license_type=Gtk.License.MIT_X11,
+            comments=tr("about.description", "4D Gaussian Splatting"))
+        if AUTHOR_DISPLAY_NAME:
+            dialog.set_developers([AUTHOR_DISPLAY_NAME])
+        if AUTHOR_PROFILE_URL:
+            dialog.add_link(tr("about.github", "GitHub"), AUTHOR_PROFILE_URL)
         dialog.present()
 
     def _close_requested(self, window):
@@ -2020,7 +2018,8 @@ class StudioApplication(Adw.Application):
 
     def do_startup(self):
         Adw.Application.do_startup(self)
-        GLib.set_application_name("4DGS Studio")
+        GLib.set_application_name(APPLICATION_NAME)
+        register_icons(Gdk.Display.get_default())
         Gtk.Window.set_default_icon_name(APPLICATION_ID)
         appearance = read_preferences().get("appearance", 0)
         Adw.StyleManager.get_default().set_color_scheme([Adw.ColorScheme.DEFAULT, Adw.ColorScheme.FORCE_LIGHT, Adw.ColorScheme.FORCE_DARK][appearance if appearance in (0,1,2) else 0])

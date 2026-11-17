@@ -41,7 +41,7 @@ Build the architecture-independent Debian package without root:
 
 ```sh
 python3 viewer/tools/package_ubuntu.py
-sudo apt install './viewer/dist/4dgs-studio_2.3.0~ubuntu1_all.deb'
+sudo apt install './viewer/dist/4dgs-studio_2.3.0-1_all.deb'
 ```
 
 This registers an application launcher, the `application/x-gsv` MIME type and
@@ -52,6 +52,12 @@ catalogs used by this source tree. Product version metadata derives from the sam
 `viewer/native/Info.plist` as macOS; no separate Linux version bump is needed. The SDK is private to the application and
 does not replace another installed `gsv` Python package. The parity inventory and retained validation reports also install under `/usr/share/doc/4dgs-studio`. Uninstall with
 `sudo apt remove 4dgs-studio`.
+
+The shared application icon and author identity come from the same maintained
+SVG and product metadata as macOS: **Yifa Zhang · 张亦法**
+([Lightcone-ZhangYifa](https://github.com/Lightcone-ZhangYifa)). The application
+menu, welcome page, About window, AppStream and Debian metadata use that identity.
+The formal `2.3.0-1` Debian version upgrades the earlier `2.3.0~ubuntu1` previews.
 
 ## Workspace and interaction
 
