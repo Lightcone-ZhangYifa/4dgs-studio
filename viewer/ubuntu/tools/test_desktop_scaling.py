@@ -467,12 +467,20 @@ def run_case(args, case, source, output):
             if process is not None and process.poll() is None:
                 process.terminate()
                 process.wait(timeout=10)
-        d.keyboard_stop()
+        try:
+            d.keyboard_stop()
+        except Exception as error:
+            result['passed']=False
+            result.setdefault('cleanup_errors',{})['keyboard_stop']=str(error)
         if log:
             log.close()
-        result['remaining_studio_owner']=d.owner_pid()
-        if result['remaining_studio_owner'] is not None:
+        try:
+            result['remaining_studio_owner']=d.owner_pid()
+            if result['remaining_studio_owner'] is not None:
+                result['passed']=False
+        except Exception as error:
             result['passed']=False
+            result.setdefault('cleanup_errors',{})['owner_pid']=str(error)
         (folder/'report.json').write_text(json.dumps(result,indent=2,ensure_ascii=False)+'\n')
     return result
 
