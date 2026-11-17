@@ -15,7 +15,7 @@ Install runtime dependencies from Ubuntu's repositories:
 
 ```sh
 sudo apt install python3-gi python3-gi-cairo python3-numpy python3-opengl \
-  gir1.2-gtk-4.0 gir1.2-adw-1 libgl1-mesa-dri
+  gir1.2-gtk-4.0 gir1.2-adw-1 libgl1-mesa-dri fonts-noto-cjk
 bash viewer/build_ubuntu.sh
 bash viewer/build_ubuntu.sh /absolute/path/to/scene.gsv
 ```

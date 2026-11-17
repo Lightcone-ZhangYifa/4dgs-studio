@@ -8,6 +8,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gtk
 from gsv.metrics import convert_rgb
 from .i18n import tr
+from .drawing_text import draw_text
 
 
 class ComparisonCanvas(Gtk.DrawingArea):
@@ -137,12 +138,10 @@ class ComparisonCanvas(Gtk.DrawingArea):
             cr.paint()
             cr.restore()
         cr.set_source_rgb(.7, .74, .8)
-        cr.set_font_size(12)
-        cr.move_to(12, 19)
-        cr.show_text(tr("ubuntu.renderLabel"))
+        draw_text(widget, cr, 12, 19, tr("ubuntu.renderLabel"), 12)
         if len(self.images) == 2:
-            cr.move_to(pane_width+12, 19)
-            cr.show_text(tr("role."+self.reference_role,self.reference_role))
+            draw_text(widget, cr, pane_width+12, 19,
+                      tr("role."+self.reference_role,self.reference_role), 12)
             cr.set_source_rgba(.5, .5, .5, .4)
             cr.rectangle(pane_width, 0, 1, height)
             cr.fill()

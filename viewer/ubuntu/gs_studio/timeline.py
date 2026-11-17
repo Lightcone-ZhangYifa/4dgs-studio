@@ -8,6 +8,7 @@ import numpy as np
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, Gtk
 from .i18n import tr
+from .drawing_text import draw_text
 
 
 def fraction(value, lower, upper):
@@ -256,12 +257,9 @@ class Timeline(Gtk.DrawingArea, Gtk.AccessibleRange):
     def _draw(self, widget, cr, width, height):
         cr.set_source_rgb(.07, .08, .10)
         cr.paint()
-        cr.select_font_face("Sans", 0, 0)
-        cr.set_font_size(10)
         def text(x, y, value):
             cr.set_source_rgb(.66, .69, .73)
-            cr.move_to(x, y)
-            cr.show_text(str(value))
+            draw_text(widget, cr, x, y, value, 10)
         text(12, 22, tr("timeline.time", "TIME") + " · " + tr("unit."+self.unit, self.unit))
         text(12, 52, tr("timeline.source", "Source samples"))
         cr.save()

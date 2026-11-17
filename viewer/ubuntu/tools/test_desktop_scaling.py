@@ -26,6 +26,7 @@ import traceback
 
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[3]
+STOP_REQUESTED = False
 sys.path[:0] = [str(ROOT/'viewer/ubuntu/tools'), str(ROOT/'viewer/ubuntu'), str(ROOT/'packages/gsv/src')]
 
 import gi
@@ -116,6 +117,39 @@ class ScalingDesktop(Desktop):
             self.main_frame = result
         return result
 
+    def portal(self, title):
+        # Portal accessible objects can disappear between GetChildren and
+        # GetName during a real close transition. Skip only those dead nodes;
+        # never treat transport timeouts or an active chooser as cancellation.
+        def stale(error):
+            value=str(error).lower()
+            return any(part in value for part in ('no longer exists','object does not exist','defunct'))
+        for app in self.apps():
+            try:
+                pid=app.get_process_id()
+                try:
+                    portal='xdg-desktop-portal-gnome' in Path(f'/proc/{pid}/cmdline').read_bytes().decode()
+                except (OSError,UnicodeError):
+                    portal=False
+                if pid!=self.pid and not portal:
+                    continue
+                app.clear_cache()
+                for index in range(app.get_child_count()):
+                    try:
+                        node=app.get_child_at_index(index)
+                        if node is None:
+                            continue
+                        node.clear_cache()
+                        if node.get_role_name() in ('dialog','file chooser') and node.get_name()==title and showing(node):
+                            return node
+                    except GLib.Error as error:
+                        if not stale(error):
+                            raise
+            except GLib.Error as error:
+                if not stale(error):
+                    raise
+        return None
+
     def close(self):
         if self.pid and self.owner_pid() == self.pid and self.allow_close:
             self.call('io.github.LightconeZhangYifa.GSVStudio', '/io/github/LightconeZhangYifa/GSVStudio',
@@ -133,6 +167,20 @@ def png(path):
         raise AssertionError('Native screenshot is not PNG')
     return {'file':path.name, 'dimensions':list(struct.unpack('>II',raw[16:24])),
             'bytes':len(raw), 'sha256':hashlib.sha256(raw).hexdigest()}
+
+
+def crop_owned_png(source, target, rectangle, backing_scale):
+    """Retain exact pixels from an owned screenshot for readable glyph review."""
+    gi.require_version('GdkPixbuf','2.0')
+    from gi.repository import GdkPixbuf
+    image=GdkPixbuf.Pixbuf.new_from_file(str(source))
+    x,y,width,height=[round(value*backing_scale) for value in rectangle]
+    if min(width,height)<=0 or x<0 or y<0 or x+width>image.get_width() or y+height>image.get_height():
+        raise AssertionError('Glyph inspection crop lies outside the owned workspace PNG')
+    image.new_subpixbuf(x,y,width,height).savev(str(target),'png',[],[])
+    return dict(png(target), source_png_sha256=digest(source),
+                source_pixel_rectangle=[x,y,width,height],
+                method='Exact owned screenshot crop; no redraw or glyph replacement')
 
 
 def run_case(args, case, source, output):
@@ -204,7 +252,8 @@ def run_case(args, case, source, output):
         if not all(contained(frame,value) for value in tab_rects):
             raise AssertionError('A required inspector tab is clipped outside its window')
         entries = [node for node in d.app_nodes() if 'EditableText' in node.get_interfaces()
-            and node.get_attributes().get('placeholder-text')=='TIME' and showing(node)]
+            and node.get_attributes().get('placeholder-text')==labels['timeline.time'] and showing(node)]
+        result['layout_probe']['time_entries']=[rect(node) for node in entries]
         if len(entries)!=1 or not contained(frame,rect(entries[0])):
             raise AssertionError('Time entry is missing or clipped')
         candidates = [(node,rect(node)) for node in d.app_nodes()
@@ -306,8 +355,12 @@ def run_case(args, case, source, output):
             factor=round(factor_x)
             if viewport['dimensions'] != [view[2]*factor,view[3]*factor]:
                 raise AssertionError('Viewport raster differs from its native GTK backing allocation')
+            timeline=allocation['timeline']
+            crop=crop_owned_png(folder/'workspace.png',folder/'timeline-text.png',
+                [timeline[0],timeline[1],min(180,timeline[2]),timeline[3]],factor)
+            result['artifacts'].append(crop)
             return {'gtk_backing_scale':factor,'desktop_scale':scale,
-                    'viewport':viewport,'workspace':workspace}
+                    'viewport':viewport,'workspace':workspace,'timeline_text_crop':crop}
         check('native-backing-scale-snapshot-sizes',raster_sizes)
 
         def cancel_dialog():
@@ -354,6 +407,21 @@ def run_case(args, case, source, output):
             value=save('screenshot',labels['file.screenshot'],'comparison.png')
             if value['dimensions'] != [1280,480]:
                 raise AssertionError('Scientific comparison raster changed with desktop DPI')
+            if language=='zh-Hans':
+                workspace=save('workspace-snapshot',labels['file.workspaceSnapshot'],'comparison-workspace.png')
+                frame=rect(d.window())
+                factor=workspace['dimensions'][0]/frame[2]
+                images=[(node,rect(node)) for node in d.app_nodes()
+                    if node.get_role_name()=='image' and showing(node)
+                    and node.get_state_set().contains(Atspi.StateType.FOCUSABLE)]
+                images=[item for item in images if item[1][2]>300 and item[1][3]>180]
+                if not images:
+                    raise AssertionError('Native comparison canvas has no accessible allocation for caption review')
+                _,bounds=max(images,key=lambda item:item[1][2]*item[1][3])
+                for side,offset in (('left',0),('right',bounds[2]/2)):
+                    crop=crop_owned_png(folder/'comparison-workspace.png',folder/('comparison-caption-'+side+'.png'),
+                        [bounds[0]+offset,bounds[1],min(180,bounds[2]/2),40],factor)
+                    result['artifacts'].append(crop)
             action(wait_for(lambda:d.button(labels['compare.close']),'native Return to 3D'))
             return value
         check('scientific-raster-independent-of-desktop-scale',scientific)
@@ -468,6 +536,8 @@ def main():
             wait_for(lambda:state(bus)[3].get('layout-mode')==1,'logical framebuffer scaling mode',10)
         layout=1 if fractional or 'scale-monitor-framebuffer' in original_features else int(initial_properties['layout-mode'])
         for case in cases:
+            if STOP_REQUESTED:
+                raise InterruptedError('Stop requested between completed scaling cases')
             backend,scale,language=case
             current=state(bus)
             _,mode,_,_=current_output(current,args.connector)
@@ -518,5 +588,11 @@ def main():
 
 
 if __name__=='__main__':
-    signal.signal(signal.SIGTERM,lambda *_:(_ for _ in ()).throw(KeyboardInterrupt()))
+    def request_stop(*_):
+        global STOP_REQUESTED
+        STOP_REQUESTED=True
+    # GLib may consume Python exceptions raised inside an event dispatch. A
+    # simple flag is checked at the explicit safe case boundary instead.
+    signal.signal(signal.SIGTERM,request_stop)
+    signal.signal(signal.SIGINT,request_stop)
     raise SystemExit(main())

@@ -123,7 +123,7 @@ Priority: optional
 Architecture: all
 Maintainer: {AUTHOR_NAME} <{AUTHOR_EMAIL}>
 Depends: python3 (>= 3.10), python3-gi, python3-gi-cairo, python3-numpy (>= 1.24), python3-opengl, gir1.2-gtk-4.0 (>= 4.10), gir1.2-adw-1 (>= 1.2)
-Recommends: libgl1-mesa-dri, xdg-desktop-portal-gnome
+Recommends: libgl1-mesa-dri, xdg-desktop-portal-gnome, fonts-noto-cjk
 Installed-Size: {sum(p.stat().st_size for p in stage.rglob('*') if p.is_file()) // 1024 + 1}
 Homepage: {REPOSITORY_URL}
 Description: Native dynamic Gaussian scene studio
