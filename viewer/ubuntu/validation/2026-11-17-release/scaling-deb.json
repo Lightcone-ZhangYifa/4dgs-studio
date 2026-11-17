@@ -1,0 +1,1700 @@
+{
+  "format": "gsv.native-desktop-scaling/1",
+  "passed": true,
+  "cases": [
+    {
+      "backend": "wayland",
+      "desktop_scale": 1.25,
+      "language": "zh-Hans",
+      "checks": [
+        {
+          "id": "empty-workspace-branding-export",
+          "passed": true,
+          "seconds": 3.792623786954209,
+          "observed": {
+            "file": "empty-workspace.png",
+            "dimensions": [
+              5376,
+              3296
+            ],
+            "bytes": 297679,
+            "sha256": "b315bfb2f933434279310b98b28e2f2f51df5c338724c27156ecb9e6f124f693"
+          }
+        },
+        {
+          "id": "native-open-source",
+          "passed": true,
+          "seconds": 3.5442342149908654,
+          "observed": {
+            "native_chooser": true,
+            "time_min": 0.0,
+            "time_max": 1.0
+          }
+        },
+        {
+          "id": "scaled-workbench-layout-and-localization",
+          "passed": true,
+          "seconds": 1.1858375850133598,
+          "observed": {
+            "window": [
+              0,
+              0,
+              2688,
+              1648
+            ],
+            "tabs": [
+              "选中内容",
+              "视口",
+              "文档"
+            ],
+            "tab_rects": [
+              [
+                2389,
+                129,
+                83,
+                37
+              ],
+              [
+                2480,
+                129,
+                54,
+                37
+              ],
+              [
+                2542,
+                129,
+                54,
+                37
+              ]
+            ],
+            "time_entry": [
+              438,
+              1535,
+              168,
+              34
+            ],
+            "viewport": [
+              231,
+              93,
+              2136,
+              1256
+            ],
+            "timeline": [
+              231,
+              1421,
+              2136,
+              108
+            ]
+          }
+        },
+        {
+          "id": "native-time-seek",
+          "passed": true,
+          "seconds": 0.3015256919898093,
+          "observed": {
+            "value": 0.5,
+            "method": "Native GTK AccessibleRange / public AT-SPI Value"
+          }
+        },
+        {
+          "id": "native-backing-scale-snapshot-sizes",
+          "passed": true,
+          "seconds": 6.833494135993533,
+          "observed": {
+            "gtk_backing_scale": 2,
+            "desktop_scale": 1.25,
+            "viewport": {
+              "file": "viewport.png",
+              "dimensions": [
+                4272,
+                2512
+              ],
+              "bytes": 203601,
+              "sha256": "7dbf3e767fa59942cfdd0a24b35e592826a25f5b7f41cc96f29c343ed5fcbbe4"
+            },
+            "workspace": {
+              "file": "workspace.png",
+              "dimensions": [
+                5376,
+                3296
+              ],
+              "bytes": 522955,
+              "sha256": "3aba781f2bcab3b0bec3bd63b87775799dafade05f452360af7a7cf0a950e00b"
+            },
+            "timeline_text_crop": {
+              "file": "timeline-text.png",
+              "dimensions": [
+                360,
+                216
+              ],
+              "bytes": 12181,
+              "sha256": "aeffa13e649e11529022297e248473355c9ec7f2a9068ba8fa113f2326346905",
+              "source_png_sha256": "3aba781f2bcab3b0bec3bd63b87775799dafade05f452360af7a7cf0a950e00b",
+              "source_pixel_rectangle": [
+                462,
+                2842,
+                360,
+                216
+              ],
+              "method": "Exact owned screenshot crop; no redraw or glyph replacement"
+            }
+          }
+        },
+        {
+          "id": "native-dialog-and-keyboard-cancel",
+          "passed": true,
+          "seconds": 0.9174672669614665,
+          "observed": {
+            "real_eis_escape": true,
+            "source_time_unchanged": true
+          }
+        },
+        {
+          "id": "native-about-author-and-dialog-layout",
+          "passed": true,
+          "seconds": 0.7851827589911409,
+          "observed": {
+            "author_names_visible": true,
+            "about_bounds": [
+              0,
+              0,
+              360,
+              591
+            ],
+            "visible_image_rects": [],
+            "required_controls_within_window": true,
+            "real_eis_escape": true
+          }
+        },
+        {
+          "id": "scientific-raster-independent-of-desktop-scale",
+          "passed": true,
+          "seconds": 8.686124875966925,
+          "observed": {
+            "file": "comparison.png",
+            "dimensions": [
+              1280,
+              480
+            ],
+            "bytes": 10279,
+            "sha256": "33e90a717dee420ba30d10b2b2acd99f88c43535e19f2d9d74e0ff0055680378"
+          }
+        },
+        {
+          "id": "native-pointer-orbit-when-mapping-is-unambiguous",
+          "passed": true,
+          "seconds": 7.124605757009704,
+          "observed": {
+            "tested": true,
+            "real_middle_drag": true,
+            "exported_camera_pose_changed": true,
+            "verified_pointer_target": {
+              "rect": [
+                231,
+                93,
+                2136,
+                1258
+              ],
+              "start": [
+                1299.0,
+                754.0
+              ],
+              "end": [
+                1427.16,
+                829.4800000000001
+              ]
+            }
+          }
+        }
+      ],
+      "passed": true,
+      "artifacts": [
+        {
+          "file": "empty-workspace.png",
+          "dimensions": [
+            5376,
+            3296
+          ],
+          "bytes": 297679,
+          "sha256": "b315bfb2f933434279310b98b28e2f2f51df5c338724c27156ecb9e6f124f693"
+        },
+        {
+          "file": "viewport.png",
+          "dimensions": [
+            4272,
+            2512
+          ],
+          "bytes": 203601,
+          "sha256": "7dbf3e767fa59942cfdd0a24b35e592826a25f5b7f41cc96f29c343ed5fcbbe4"
+        },
+        {
+          "file": "workspace.png",
+          "dimensions": [
+            5376,
+            3296
+          ],
+          "bytes": 522955,
+          "sha256": "3aba781f2bcab3b0bec3bd63b87775799dafade05f452360af7a7cf0a950e00b"
+        },
+        {
+          "file": "timeline-text.png",
+          "dimensions": [
+            360,
+            216
+          ],
+          "bytes": 12181,
+          "sha256": "aeffa13e649e11529022297e248473355c9ec7f2a9068ba8fa113f2326346905",
+          "source_png_sha256": "3aba781f2bcab3b0bec3bd63b87775799dafade05f452360af7a7cf0a950e00b",
+          "source_pixel_rectangle": [
+            462,
+            2842,
+            360,
+            216
+          ],
+          "method": "Exact owned screenshot crop; no redraw or glyph replacement"
+        },
+        {
+          "file": "comparison.png",
+          "dimensions": [
+            1280,
+            480
+          ],
+          "bytes": 10279,
+          "sha256": "33e90a717dee420ba30d10b2b2acd99f88c43535e19f2d9d74e0ff0055680378"
+        },
+        {
+          "file": "comparison-workspace.png",
+          "dimensions": [
+            5376,
+            3296
+          ],
+          "bytes": 660056,
+          "sha256": "f056c3389d759f5d54680e9241084dcde99b2eb76cd0b8ec8f79a488df2e7602"
+        },
+        {
+          "file": "comparison-caption-left.png",
+          "dimensions": [
+            360,
+            80
+          ],
+          "bytes": 2552,
+          "sha256": "11deb90b07667fa7691aebcaf3debbe37ade949a786a8b980817a912bab396e2",
+          "source_png_sha256": "f056c3389d759f5d54680e9241084dcde99b2eb76cd0b8ec8f79a488df2e7602",
+          "source_pixel_rectangle": [
+            462,
+            186,
+            360,
+            80
+          ],
+          "method": "Exact owned screenshot crop; no redraw or glyph replacement"
+        },
+        {
+          "file": "comparison-caption-right.png",
+          "dimensions": [
+            360,
+            80
+          ],
+          "bytes": 2549,
+          "sha256": "79d3a9e272429946d1264ab862f4d3a4f2edc69c349c53d98caeaf9623f98eb1",
+          "source_png_sha256": "f056c3389d759f5d54680e9241084dcde99b2eb76cd0b8ec8f79a488df2e7602",
+          "source_pixel_rectangle": [
+            2598,
+            186,
+            360,
+            80
+          ],
+          "method": "Exact owned screenshot crop; no redraw or glyph replacement"
+        }
+      ],
+      "pointer_input_tested": true,
+      "requested_software_rendering": true,
+      "runtime_origins": {
+        "app": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/__init__.py",
+        "sdk": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/__init__.py",
+        "version": "2.3.0"
+      },
+      "coordinate_mapping": {
+        "profile": "existing-eis",
+        "output": {
+          "monitor_spec": [
+            "Meta-0",
+            "MetaVendor",
+            "MetaVirtualMonitor",
+            "0x00"
+          ],
+          "physical_size": [
+            3360,
+            2100
+          ],
+          "scale": 1.25,
+          "layout_mode": 1,
+          "legacy_ui_scale": 1.0
+        },
+        "xroot_geometry": [
+          0,
+          0,
+          2688,
+          1680
+        ],
+        "ei_region": {
+          "device_id": 408141328,
+          "device_generation": 4,
+          "region_index": 0,
+          "x": 0,
+          "y": 0,
+          "width": 2688,
+          "height": 1680,
+          "mapping_id": null,
+          "physical_scale": 1.25
+        },
+        "equivalent_absolute_devices": 2,
+        "xroot_to_eis_scale": [
+          1.0,
+          1.0
+        ],
+        "coordinate_space": "Published EIS region; physical_scale is metadata, not an extra multiplier",
+        "temporary_output_created": false
+      },
+      "pid": 283057,
+      "layout_probe": {
+        "window": [
+          0,
+          0,
+          2688,
+          1648
+        ],
+        "tabs": [
+          "选中内容",
+          "视口",
+          "文档"
+        ],
+        "tab_rects": [
+          [
+            2389,
+            129,
+            83,
+            37
+          ],
+          [
+            2480,
+            129,
+            54,
+            37
+          ],
+          [
+            2542,
+            129,
+            54,
+            37
+          ]
+        ],
+        "time_entries": [
+          [
+            438,
+            1535,
+            168,
+            34
+          ]
+        ]
+      },
+      "allocation": {
+        "window": [
+          0,
+          0,
+          2688,
+          1648
+        ],
+        "tabs": [
+          "选中内容",
+          "视口",
+          "文档"
+        ],
+        "tab_rects": [
+          [
+            2389,
+            129,
+            83,
+            37
+          ],
+          [
+            2480,
+            129,
+            54,
+            37
+          ],
+          [
+            2542,
+            129,
+            54,
+            37
+          ]
+        ],
+        "time_entry": [
+          438,
+          1535,
+          168,
+          34
+        ],
+        "viewport": [
+          231,
+          93,
+          2136,
+          1256
+        ],
+        "timeline": [
+          231,
+          1421,
+          2136,
+          108
+        ]
+      },
+      "remaining_studio_owner": null,
+      "display_state": [
+        2,
+        [
+          [
+            [
+              "Meta-0",
+              "MetaVendor",
+              "MetaVirtualMonitor",
+              "0x00"
+            ],
+            [
+              [
+                "3360x2100@30.000",
+                3360,
+                2100,
+                30.0,
+                1.0,
+                [
+                  1.0,
+                  1.25,
+                  1.5,
+                  1.75,
+                  2.0,
+                  2.2459893226623535,
+                  2.5,
+                  2.745098114013672,
+                  3.0,
+                  3.2558138370513916,
+                  3.5,
+                  3.75,
+                  4.0
+                ],
+                {
+                  "is-current": true,
+                  "is-preferred": true
+                }
+              ]
+            ],
+            {
+              "is-builtin": false,
+              "display-name": "MetaVendor"
+            }
+          ]
+        ],
+        [
+          [
+            0,
+            0,
+            1.25,
+            0,
+            true,
+            [
+              [
+                "Meta-0",
+                "MetaVendor",
+                "MetaVirtualMonitor",
+                "0x00"
+              ]
+            ],
+            {}
+          ]
+        ],
+        {
+          "renderer": "native",
+          "layout-mode": 1,
+          "supports-changing-layout-mode": true,
+          "legacy-ui-scaling-factor": 1
+        }
+      ]
+    },
+    {
+      "backend": "wayland",
+      "desktop_scale": 2.0,
+      "language": "en",
+      "checks": [
+        {
+          "id": "empty-workspace-branding-export",
+          "passed": true,
+          "seconds": 3.0003372950013727,
+          "observed": {
+            "file": "empty-workspace.png",
+            "dimensions": [
+              3360,
+              2036
+            ],
+            "bytes": 232394,
+            "sha256": "5a8d902b4e7cc810eb2d5cf619da668283e55a0e08779683bcd5ddd2f6ad057a"
+          }
+        },
+        {
+          "id": "native-open-source",
+          "passed": true,
+          "seconds": 3.4010205710073933,
+          "observed": {
+            "native_chooser": true,
+            "time_min": 0.0,
+            "time_max": 1.0
+          }
+        },
+        {
+          "id": "scaled-workbench-layout-and-localization",
+          "passed": true,
+          "seconds": 1.206749430974014,
+          "observed": {
+            "window": [
+              0,
+              0,
+              1680,
+              1018
+            ],
+            "tabs": [
+              "Selection",
+              "Viewport",
+              "Document"
+            ],
+            "tab_rects": [
+              [
+                1381,
+                127,
+                87,
+                37
+              ],
+              [
+                1476,
+                127,
+                86,
+                37
+              ],
+              [
+                1570,
+                127,
+                97,
+                37
+              ]
+            ],
+            "time_entry": [
+              438,
+              907,
+              168,
+              34
+            ],
+            "viewport": [
+              231,
+              93,
+              1128,
+              630
+            ],
+            "timeline": [
+              231,
+              793,
+              1128,
+              108
+            ]
+          }
+        },
+        {
+          "id": "native-time-seek",
+          "passed": true,
+          "seconds": 0.27696952800033614,
+          "observed": {
+            "value": 0.5,
+            "method": "Native GTK AccessibleRange / public AT-SPI Value"
+          }
+        },
+        {
+          "id": "native-backing-scale-snapshot-sizes",
+          "passed": true,
+          "seconds": 5.642424881050829,
+          "observed": {
+            "gtk_backing_scale": 2,
+            "desktop_scale": 2.0,
+            "viewport": {
+              "file": "viewport.png",
+              "dimensions": [
+                2256,
+                1260
+              ],
+              "bytes": 72695,
+              "sha256": "794c09bba09f9420fcd9aca6bbcd4ef9ba34ecf6e5e1b251ac9bfc557040ed97"
+            },
+            "workspace": {
+              "file": "workspace.png",
+              "dimensions": [
+                3360,
+                2036
+              ],
+              "bytes": 360792,
+              "sha256": "a9ea8ec0c1a104a07f0339bf8e1ae018a7a4705743e32d3e0949d2b7b39ece2a"
+            },
+            "timeline_text_crop": {
+              "file": "timeline-text.png",
+              "dimensions": [
+                360,
+                216
+              ],
+              "bytes": 10203,
+              "sha256": "13e462091c5884d6c259327365d82a41e41820eec3690796d80fff8ced3f3263",
+              "source_png_sha256": "a9ea8ec0c1a104a07f0339bf8e1ae018a7a4705743e32d3e0949d2b7b39ece2a",
+              "source_pixel_rectangle": [
+                462,
+                1586,
+                360,
+                216
+              ],
+              "method": "Exact owned screenshot crop; no redraw or glyph replacement"
+            }
+          }
+        },
+        {
+          "id": "native-dialog-and-keyboard-cancel",
+          "passed": true,
+          "seconds": 0.9438953089993447,
+          "observed": {
+            "real_eis_escape": true,
+            "source_time_unchanged": true
+          }
+        },
+        {
+          "id": "native-about-author-and-dialog-layout",
+          "passed": true,
+          "seconds": 0.844505715998821,
+          "observed": {
+            "author_names_visible": true,
+            "about_bounds": [
+              0,
+              0,
+              360,
+              591
+            ],
+            "visible_image_rects": [],
+            "required_controls_within_window": true,
+            "real_eis_escape": true
+          }
+        },
+        {
+          "id": "scientific-raster-independent-of-desktop-scale",
+          "passed": true,
+          "seconds": 4.156585749005899,
+          "observed": {
+            "file": "comparison.png",
+            "dimensions": [
+              1280,
+              480
+            ],
+            "bytes": 10279,
+            "sha256": "33e90a717dee420ba30d10b2b2acd99f88c43535e19f2d9d74e0ff0055680378"
+          }
+        },
+        {
+          "id": "native-pointer-orbit-when-mapping-is-unambiguous",
+          "passed": true,
+          "seconds": 6.935139128006995,
+          "observed": {
+            "tested": true,
+            "real_middle_drag": true,
+            "exported_camera_pose_changed": true,
+            "verified_pointer_target": {
+              "rect": [
+                231,
+                93,
+                1128,
+                630
+              ],
+              "start": [
+                795.0,
+                440.0
+              ],
+              "end": [
+                862.6800000000001,
+                477.8
+              ]
+            }
+          }
+        }
+      ],
+      "passed": true,
+      "artifacts": [
+        {
+          "file": "empty-workspace.png",
+          "dimensions": [
+            3360,
+            2036
+          ],
+          "bytes": 232394,
+          "sha256": "5a8d902b4e7cc810eb2d5cf619da668283e55a0e08779683bcd5ddd2f6ad057a"
+        },
+        {
+          "file": "viewport.png",
+          "dimensions": [
+            2256,
+            1260
+          ],
+          "bytes": 72695,
+          "sha256": "794c09bba09f9420fcd9aca6bbcd4ef9ba34ecf6e5e1b251ac9bfc557040ed97"
+        },
+        {
+          "file": "workspace.png",
+          "dimensions": [
+            3360,
+            2036
+          ],
+          "bytes": 360792,
+          "sha256": "a9ea8ec0c1a104a07f0339bf8e1ae018a7a4705743e32d3e0949d2b7b39ece2a"
+        },
+        {
+          "file": "timeline-text.png",
+          "dimensions": [
+            360,
+            216
+          ],
+          "bytes": 10203,
+          "sha256": "13e462091c5884d6c259327365d82a41e41820eec3690796d80fff8ced3f3263",
+          "source_png_sha256": "a9ea8ec0c1a104a07f0339bf8e1ae018a7a4705743e32d3e0949d2b7b39ece2a",
+          "source_pixel_rectangle": [
+            462,
+            1586,
+            360,
+            216
+          ],
+          "method": "Exact owned screenshot crop; no redraw or glyph replacement"
+        },
+        {
+          "file": "comparison.png",
+          "dimensions": [
+            1280,
+            480
+          ],
+          "bytes": 10279,
+          "sha256": "33e90a717dee420ba30d10b2b2acd99f88c43535e19f2d9d74e0ff0055680378"
+        }
+      ],
+      "pointer_input_tested": true,
+      "requested_software_rendering": true,
+      "runtime_origins": {
+        "app": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/__init__.py",
+        "sdk": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/__init__.py",
+        "version": "2.3.0"
+      },
+      "coordinate_mapping": {
+        "profile": "existing-eis",
+        "output": {
+          "monitor_spec": [
+            "Meta-0",
+            "MetaVendor",
+            "MetaVirtualMonitor",
+            "0x00"
+          ],
+          "physical_size": [
+            3360,
+            2100
+          ],
+          "scale": 2.0,
+          "layout_mode": 1,
+          "legacy_ui_scale": 1.0
+        },
+        "xroot_geometry": [
+          0,
+          0,
+          1680,
+          1050
+        ],
+        "ei_region": {
+          "device_id": 410673504,
+          "device_generation": 4,
+          "region_index": 0,
+          "x": 0,
+          "y": 0,
+          "width": 1680,
+          "height": 1050,
+          "mapping_id": null,
+          "physical_scale": 2.0
+        },
+        "equivalent_absolute_devices": 2,
+        "xroot_to_eis_scale": [
+          1.0,
+          1.0
+        ],
+        "coordinate_space": "Published EIS region; physical_scale is metadata, not an extra multiplier",
+        "temporary_output_created": false
+      },
+      "pid": 283681,
+      "layout_probe": {
+        "window": [
+          0,
+          0,
+          1680,
+          1018
+        ],
+        "tabs": [
+          "Selection",
+          "Viewport",
+          "Document"
+        ],
+        "tab_rects": [
+          [
+            1381,
+            127,
+            87,
+            37
+          ],
+          [
+            1476,
+            127,
+            86,
+            37
+          ],
+          [
+            1570,
+            127,
+            97,
+            37
+          ]
+        ],
+        "time_entries": [
+          [
+            438,
+            907,
+            168,
+            34
+          ]
+        ]
+      },
+      "allocation": {
+        "window": [
+          0,
+          0,
+          1680,
+          1018
+        ],
+        "tabs": [
+          "Selection",
+          "Viewport",
+          "Document"
+        ],
+        "tab_rects": [
+          [
+            1381,
+            127,
+            87,
+            37
+          ],
+          [
+            1476,
+            127,
+            86,
+            37
+          ],
+          [
+            1570,
+            127,
+            97,
+            37
+          ]
+        ],
+        "time_entry": [
+          438,
+          907,
+          168,
+          34
+        ],
+        "viewport": [
+          231,
+          93,
+          1128,
+          630
+        ],
+        "timeline": [
+          231,
+          793,
+          1128,
+          108
+        ]
+      },
+      "remaining_studio_owner": null,
+      "display_state": [
+        2,
+        [
+          [
+            [
+              "Meta-0",
+              "MetaVendor",
+              "MetaVirtualMonitor",
+              "0x00"
+            ],
+            [
+              [
+                "3360x2100@30.000",
+                3360,
+                2100,
+                30.0,
+                1.0,
+                [
+                  1.0,
+                  1.25,
+                  1.5,
+                  1.75,
+                  2.0,
+                  2.2459893226623535,
+                  2.5,
+                  2.745098114013672,
+                  3.0,
+                  3.2558138370513916,
+                  3.5,
+                  3.75,
+                  4.0
+                ],
+                {
+                  "is-current": true,
+                  "is-preferred": true
+                }
+              ]
+            ],
+            {
+              "is-builtin": false,
+              "display-name": "MetaVendor"
+            }
+          ]
+        ],
+        [
+          [
+            0,
+            0,
+            2.0,
+            0,
+            true,
+            [
+              [
+                "Meta-0",
+                "MetaVendor",
+                "MetaVirtualMonitor",
+                "0x00"
+              ]
+            ],
+            {}
+          ]
+        ],
+        {
+          "renderer": "native",
+          "layout-mode": 1,
+          "supports-changing-layout-mode": true,
+          "legacy-ui-scaling-factor": 1
+        }
+      ]
+    },
+    {
+      "backend": "x11",
+      "desktop_scale": 1.5,
+      "language": "zh-Hans",
+      "checks": [
+        {
+          "id": "empty-workspace-branding-export",
+          "passed": true,
+          "seconds": 2.695386096020229,
+          "observed": {
+            "file": "empty-workspace.png",
+            "dimensions": [
+              2240,
+              1368
+            ],
+            "bytes": 106095,
+            "sha256": "bb6aa5b7879efa64cc72a771fd5c9d18bfbd7f1d6c154b87f4f31139b3a49876"
+          }
+        },
+        {
+          "id": "native-open-source",
+          "passed": true,
+          "seconds": 3.2872981959953904,
+          "observed": {
+            "native_chooser": true,
+            "time_min": 0.0,
+            "time_max": 1.0
+          }
+        },
+        {
+          "id": "scaled-workbench-layout-and-localization",
+          "passed": true,
+          "seconds": 1.2343780279625207,
+          "observed": {
+            "window": [
+              0,
+              0,
+              2240,
+              1368
+            ],
+            "tabs": [
+              "选中内容",
+              "视口",
+              "文档"
+            ],
+            "tab_rects": [
+              [
+                1941,
+                128,
+                76,
+                37
+              ],
+              [
+                2025,
+                128,
+                54,
+                37
+              ],
+              [
+                2087,
+                128,
+                54,
+                37
+              ]
+            ],
+            "time_entry": [
+              438,
+              1256,
+              168,
+              34
+            ],
+            "viewport": [
+              231,
+              93,
+              1688,
+              978
+            ],
+            "timeline": [
+              231,
+              1142,
+              1688,
+              108
+            ]
+          }
+        },
+        {
+          "id": "native-time-seek",
+          "passed": true,
+          "seconds": 0.2856094650342129,
+          "observed": {
+            "value": 0.5,
+            "method": "Native GTK AccessibleRange / public AT-SPI Value"
+          }
+        },
+        {
+          "id": "native-backing-scale-snapshot-sizes",
+          "passed": true,
+          "seconds": 5.305966553045437,
+          "observed": {
+            "gtk_backing_scale": 1,
+            "desktop_scale": 1.5,
+            "viewport": {
+              "file": "viewport.png",
+              "dimensions": [
+                1688,
+                978
+              ],
+              "bytes": 49893,
+              "sha256": "8bb6544aa56be2f4bf77195ee145305a56723b596527ec59f989c949c0b5dfed"
+            },
+            "workspace": {
+              "file": "workspace.png",
+              "dimensions": [
+                2240,
+                1368
+              ],
+              "bytes": 174146,
+              "sha256": "7022a38e48284c397f0a1ae43f5d6af9efde52dc3914548c8d2966228fc089f0"
+            },
+            "timeline_text_crop": {
+              "file": "timeline-text.png",
+              "dimensions": [
+                180,
+                108
+              ],
+              "bytes": 4713,
+              "sha256": "c08ed843897ce8add31046df01ab6a20843a91a496165fbf8250510079ee891c",
+              "source_png_sha256": "7022a38e48284c397f0a1ae43f5d6af9efde52dc3914548c8d2966228fc089f0",
+              "source_pixel_rectangle": [
+                231,
+                1142,
+                180,
+                108
+              ],
+              "method": "Exact owned screenshot crop; no redraw or glyph replacement"
+            }
+          }
+        },
+        {
+          "id": "native-dialog-and-keyboard-cancel",
+          "passed": true,
+          "seconds": 0.9154590729740448,
+          "observed": {
+            "real_eis_escape": true,
+            "source_time_unchanged": true
+          }
+        },
+        {
+          "id": "native-about-author-and-dialog-layout",
+          "passed": true,
+          "seconds": 0.7299180020345375,
+          "observed": {
+            "author_names_visible": true,
+            "about_bounds": [
+              0,
+              0,
+              360,
+              589
+            ],
+            "visible_image_rects": [],
+            "required_controls_within_window": true,
+            "real_eis_escape": true
+          }
+        },
+        {
+          "id": "scientific-raster-independent-of-desktop-scale",
+          "passed": true,
+          "seconds": 7.060723185946699,
+          "observed": {
+            "file": "comparison.png",
+            "dimensions": [
+              1280,
+              480
+            ],
+            "bytes": 10279,
+            "sha256": "33e90a717dee420ba30d10b2b2acd99f88c43535e19f2d9d74e0ff0055680378"
+          }
+        },
+        {
+          "id": "native-pointer-orbit-when-mapping-is-unambiguous",
+          "passed": true,
+          "seconds": 6.790379974001553,
+          "observed": {
+            "tested": true,
+            "real_middle_drag": true,
+            "exported_camera_pose_changed": true,
+            "verified_pointer_target": {
+              "rect": [
+                231,
+                93,
+                1688,
+                980
+              ],
+              "start": [
+                1075.0,
+                615.0
+              ],
+              "end": [
+                1176.2800000000002,
+                673.8000000000001
+              ]
+            }
+          }
+        }
+      ],
+      "passed": true,
+      "artifacts": [
+        {
+          "file": "empty-workspace.png",
+          "dimensions": [
+            2240,
+            1368
+          ],
+          "bytes": 106095,
+          "sha256": "bb6aa5b7879efa64cc72a771fd5c9d18bfbd7f1d6c154b87f4f31139b3a49876"
+        },
+        {
+          "file": "viewport.png",
+          "dimensions": [
+            1688,
+            978
+          ],
+          "bytes": 49893,
+          "sha256": "8bb6544aa56be2f4bf77195ee145305a56723b596527ec59f989c949c0b5dfed"
+        },
+        {
+          "file": "workspace.png",
+          "dimensions": [
+            2240,
+            1368
+          ],
+          "bytes": 174146,
+          "sha256": "7022a38e48284c397f0a1ae43f5d6af9efde52dc3914548c8d2966228fc089f0"
+        },
+        {
+          "file": "timeline-text.png",
+          "dimensions": [
+            180,
+            108
+          ],
+          "bytes": 4713,
+          "sha256": "c08ed843897ce8add31046df01ab6a20843a91a496165fbf8250510079ee891c",
+          "source_png_sha256": "7022a38e48284c397f0a1ae43f5d6af9efde52dc3914548c8d2966228fc089f0",
+          "source_pixel_rectangle": [
+            231,
+            1142,
+            180,
+            108
+          ],
+          "method": "Exact owned screenshot crop; no redraw or glyph replacement"
+        },
+        {
+          "file": "comparison.png",
+          "dimensions": [
+            1280,
+            480
+          ],
+          "bytes": 10279,
+          "sha256": "33e90a717dee420ba30d10b2b2acd99f88c43535e19f2d9d74e0ff0055680378"
+        },
+        {
+          "file": "comparison-workspace.png",
+          "dimensions": [
+            2240,
+            1368
+          ],
+          "bytes": 180096,
+          "sha256": "08133dbcb989f19e975a7b3b8194443ce2253a8a0974d4b54e46b408383f4d87"
+        },
+        {
+          "file": "comparison-caption-left.png",
+          "dimensions": [
+            180,
+            40
+          ],
+          "bytes": 1134,
+          "sha256": "cb8423130c4aa0536262e62bf016b89c16582011398cc070eba0d5d7df36de22",
+          "source_png_sha256": "08133dbcb989f19e975a7b3b8194443ce2253a8a0974d4b54e46b408383f4d87",
+          "source_pixel_rectangle": [
+            231,
+            93,
+            180,
+            40
+          ],
+          "method": "Exact owned screenshot crop; no redraw or glyph replacement"
+        },
+        {
+          "file": "comparison-caption-right.png",
+          "dimensions": [
+            180,
+            40
+          ],
+          "bytes": 1081,
+          "sha256": "6a032ddd6bd72ace65807f76cf4bdc7b13f9326205f5183fd24f98ff89492a8b",
+          "source_png_sha256": "08133dbcb989f19e975a7b3b8194443ce2253a8a0974d4b54e46b408383f4d87",
+          "source_pixel_rectangle": [
+            1075,
+            93,
+            180,
+            40
+          ],
+          "method": "Exact owned screenshot crop; no redraw or glyph replacement"
+        }
+      ],
+      "pointer_input_tested": true,
+      "requested_software_rendering": false,
+      "runtime_origins": {
+        "app": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/__init__.py",
+        "sdk": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/__init__.py",
+        "version": "2.3.0"
+      },
+      "coordinate_mapping": {
+        "profile": "existing-eis",
+        "output": {
+          "monitor_spec": [
+            "Meta-0",
+            "MetaVendor",
+            "MetaVirtualMonitor",
+            "0x00"
+          ],
+          "physical_size": [
+            3360,
+            2100
+          ],
+          "scale": 1.5,
+          "layout_mode": 1,
+          "legacy_ui_scale": 1.0
+        },
+        "xroot_geometry": [
+          0,
+          0,
+          2240,
+          1400
+        ],
+        "ei_region": {
+          "device_id": 410895328,
+          "device_generation": 4,
+          "region_index": 0,
+          "x": 0,
+          "y": 0,
+          "width": 2240,
+          "height": 1400,
+          "mapping_id": null,
+          "physical_scale": 1.5
+        },
+        "equivalent_absolute_devices": 2,
+        "xroot_to_eis_scale": [
+          1.0,
+          1.0
+        ],
+        "coordinate_space": "Published EIS region; physical_scale is metadata, not an extra multiplier",
+        "temporary_output_created": false
+      },
+      "pid": 284125,
+      "layout_probe": {
+        "window": [
+          0,
+          0,
+          2240,
+          1368
+        ],
+        "tabs": [
+          "选中内容",
+          "视口",
+          "文档"
+        ],
+        "tab_rects": [
+          [
+            1941,
+            128,
+            76,
+            37
+          ],
+          [
+            2025,
+            128,
+            54,
+            37
+          ],
+          [
+            2087,
+            128,
+            54,
+            37
+          ]
+        ],
+        "time_entries": [
+          [
+            438,
+            1256,
+            168,
+            34
+          ]
+        ]
+      },
+      "allocation": {
+        "window": [
+          0,
+          0,
+          2240,
+          1368
+        ],
+        "tabs": [
+          "选中内容",
+          "视口",
+          "文档"
+        ],
+        "tab_rects": [
+          [
+            1941,
+            128,
+            76,
+            37
+          ],
+          [
+            2025,
+            128,
+            54,
+            37
+          ],
+          [
+            2087,
+            128,
+            54,
+            37
+          ]
+        ],
+        "time_entry": [
+          438,
+          1256,
+          168,
+          34
+        ],
+        "viewport": [
+          231,
+          93,
+          1688,
+          978
+        ],
+        "timeline": [
+          231,
+          1142,
+          1688,
+          108
+        ]
+      },
+      "remaining_studio_owner": null,
+      "display_state": [
+        2,
+        [
+          [
+            [
+              "Meta-0",
+              "MetaVendor",
+              "MetaVirtualMonitor",
+              "0x00"
+            ],
+            [
+              [
+                "3360x2100@30.000",
+                3360,
+                2100,
+                30.0,
+                1.0,
+                [
+                  1.0,
+                  1.25,
+                  1.5,
+                  1.75,
+                  2.0,
+                  2.2459893226623535,
+                  2.5,
+                  2.745098114013672,
+                  3.0,
+                  3.2558138370513916,
+                  3.5,
+                  3.75,
+                  4.0
+                ],
+                {
+                  "is-current": true,
+                  "is-preferred": true
+                }
+              ]
+            ],
+            {
+              "is-builtin": false,
+              "display-name": "MetaVendor"
+            }
+          ]
+        ],
+        [
+          [
+            0,
+            0,
+            1.5,
+            0,
+            true,
+            [
+              [
+                "Meta-0",
+                "MetaVendor",
+                "MetaVirtualMonitor",
+                "0x00"
+              ]
+            ],
+            {}
+          ]
+        ],
+        {
+          "renderer": "native",
+          "layout-mode": 1,
+          "supports-changing-layout-mode": true,
+          "legacy-ui-scaling-factor": 1
+        }
+      ]
+    }
+  ],
+  "source_commit": "5dfdc0ec879acbed57ea708613aa24bf2cff5c76",
+  "working_tree_changes": [],
+  "tool_sha256": "b54e88b39205c45bea2836a06c07af1dd7fea73886fb7231ea1372e993c38d12",
+  "initial_display_state": [
+    2,
+    [
+      [
+        [
+          "Meta-0",
+          "MetaVendor",
+          "MetaVirtualMonitor",
+          "0x00"
+        ],
+        [
+          [
+            "3360x2100@30.000",
+            3360,
+            2100,
+            30.0,
+            1.0,
+            [
+              1.0,
+              1.25,
+              1.5,
+              1.75,
+              2.0,
+              2.2459893226623535,
+              2.5,
+              2.745098114013672,
+              3.0,
+              3.2558138370513916,
+              3.5,
+              3.75,
+              4.0
+            ],
+            {
+              "is-current": true,
+              "is-preferred": true
+            }
+          ]
+        ],
+        {
+          "is-builtin": false,
+          "display-name": "MetaVendor"
+        }
+      ]
+    ],
+    [
+      [
+        0,
+        0,
+        1.0,
+        0,
+        true,
+        [
+          [
+            "Meta-0",
+            "MetaVendor",
+            "MetaVirtualMonitor",
+            "0x00"
+          ]
+        ],
+        {}
+      ]
+    ],
+    {
+      "renderer": "native",
+      "layout-mode": 1,
+      "supports-changing-layout-mode": true,
+      "legacy-ui-scaling-factor": 1
+    }
+  ],
+  "initial_experimental_features": [
+    "scale-monitor-framebuffer"
+  ],
+  "initial_feature_override": [
+    "scale-monitor-framebuffer"
+  ],
+  "source_sha256": "5a70cc062e17e5676e4103299ec11d967023c964af436fe689b9911af34aba89",
+  "methodology": "Real normal application, native AT-SPI/EIS and portals; actual Mutter monitor scale, no GDK_SCALE override. Screenshots are the owned application only.",
+  "runtime_module_root": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu",
+  "runtime_sha256": {
+    "gs_studio/__init__.py": "7ae7486d3c96022fb219c133b1030d691d72aed0bc77d7019c5a4d6c2ceab63e",
+    "gs_studio/__main__.py": "c30c17c2d60a6cf70d5680cd218bc0f5632ba0b042e07b9bab9e7488c4945021",
+    "gs_studio/application.py": "df60ba9ce0b005c6322ade442690126e653600cc55137d3d1e52b12ebeb8127a",
+    "gs_studio/branding.py": "7e6d8fb5b311915acd8dab0bdd9eff28833af01b9dc8ccb8a878c3385cc8b57e",
+    "gs_studio/camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967",
+    "gs_studio/capture_catalog.py": "c71805e7b6ad73fb06c70a9ebef09da2fa736c9dfa96091f10672ed67671cc57",
+    "gs_studio/comparison.py": "75152ab8f808d9492cf22780ca2b840dc0827721928fde4c40490d9c5c667a1a",
+    "gs_studio/drawing_text.py": "09427df909b75c91f8a227566d2c529f63dd2c1a8d446a8b6ef14895c1c6ffdd",
+    "gs_studio/gl_renderer.py": "86d69b376f9fdaaa13b2689d57fe08eb476f532d350dac7d83b9a35673d208cd",
+    "gs_studio/gpu_sort.py": "1e336b92fd7a4dc728398a32747be5a46cdff522f43b5c7f3bcf91d51036cf10",
+    "gs_studio/gpu_visibility.py": "bae39d7e8bbdcee72de792210454302d026c967513f0622c4f76abfc4fbf5ffe",
+    "gs_studio/i18n.py": "7b12218879de0e9fda662ae0f64f9bb27be7556776b6a89fafdcf4fdb40b06cd",
+    "gs_studio/image_view.py": "e36416c0fd70def05a8136c4a8836d631c288e0981dcdfd73234c3eb6dbbd529",
+    "gs_studio/inspector.py": "d809370287dd82b97088c09c19f7dac4c3c2ae71bdc9a99b3016a2a3c06e18ad",
+    "gs_studio/jobs.py": "b2814538d702029a21316bc65696e1ab3d0fa65ed5954d036e1e6627425b2180",
+    "gs_studio/model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+    "gs_studio/navigation.py": "903805f8472c765e0d6a2577d96908ee08fafc00f4b6ac417656238bf6007f99",
+    "gs_studio/outliner.py": "c22b9888064a90792457fc9f1f5b958997f265c487905b55ad9eb6ab2c4b9c3c",
+    "gs_studio/snapshots.py": "fddaf9e47491c2eea1b59de2975a741ec6daff80b184fdf58b7cd391107656e0",
+    "gs_studio/timeline.py": "2b41ee156d4993337cca32f807c6ddbbb032fc7b2264bcbbc4e5bb42a21078bb",
+    "gs_studio/viewport.py": "2eb8cfa2c0ce8fcb0cab40c9f046f3777dddb8809ceb6cf9d907c4a01f829364"
+  },
+  "scientific_png_identical_across_scales": true,
+  "final_display_state": [
+    2,
+    [
+      [
+        [
+          "Meta-0",
+          "MetaVendor",
+          "MetaVirtualMonitor",
+          "0x00"
+        ],
+        [
+          [
+            "3360x2100@30.000",
+            3360,
+            2100,
+            30.0,
+            1.0,
+            [
+              1.0,
+              1.25,
+              1.5,
+              1.75,
+              2.0,
+              2.2459893226623535,
+              2.5,
+              2.745098114013672,
+              3.0,
+              3.2558138370513916,
+              3.5,
+              3.75,
+              4.0
+            ],
+            {
+              "is-current": true,
+              "is-preferred": true
+            }
+          ]
+        ],
+        {
+          "is-builtin": false,
+          "display-name": "MetaVendor"
+        }
+      ]
+    ],
+    [
+      [
+        0,
+        0,
+        1.0,
+        0,
+        true,
+        [
+          [
+            "Meta-0",
+            "MetaVendor",
+            "MetaVirtualMonitor",
+            "0x00"
+          ]
+        ],
+        {}
+      ]
+    ],
+    {
+      "renderer": "native",
+      "layout-mode": 1,
+      "supports-changing-layout-mode": true,
+      "legacy-ui-scaling-factor": 1
+    }
+  ],
+  "final_experimental_features": [
+    "scale-monitor-framebuffer"
+  ],
+  "final_feature_override": [
+    "scale-monitor-framebuffer"
+  ],
+  "display_configuration_restored": true,
+  "feature_override_restored": true,
+  "monitors_xml_unchanged": true,
+  "source_unchanged": true,
+  "runtime_unchanged": true,
+  "remaining_studio_owner": null
+}

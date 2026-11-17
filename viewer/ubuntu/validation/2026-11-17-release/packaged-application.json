@@ -1,0 +1,845 @@
+{
+  "kind": "detached Debian payload, real GNOME application unittest windows",
+  "started_utc": "2026-11-17T05:47:05.962030+00:00",
+  "package_root": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu",
+  "source_commit": "5dfdc0ec879acbed57ea708613aa24bf2cff5c76",
+  "working_tree_changes": [],
+  "test_application_sha256": "1cc6acb604972eb10fb6f5b6a33215b94a8729a677c7822f91d0e30cb54aa57e",
+  "runner_sha256": "2f47215a7e21aa1b3fc5412139aa817111ad9913c393d64ace1469d7abfe2138",
+  "runtime_code_sha256": {
+    "gs_studio/__init__.py": "7ae7486d3c96022fb219c133b1030d691d72aed0bc77d7019c5a4d6c2ceab63e",
+    "gs_studio/__main__.py": "c30c17c2d60a6cf70d5680cd218bc0f5632ba0b042e07b9bab9e7488c4945021",
+    "gs_studio/application.py": "df60ba9ce0b005c6322ade442690126e653600cc55137d3d1e52b12ebeb8127a",
+    "gs_studio/branding.py": "7e6d8fb5b311915acd8dab0bdd9eff28833af01b9dc8ccb8a878c3385cc8b57e",
+    "gs_studio/camera.py": "baa9b9804aa1eb67df8ad7eef7df5da02f864ee3870d0089d472c38d5caa9967",
+    "gs_studio/capture_catalog.py": "c71805e7b6ad73fb06c70a9ebef09da2fa736c9dfa96091f10672ed67671cc57",
+    "gs_studio/comparison.py": "75152ab8f808d9492cf22780ca2b840dc0827721928fde4c40490d9c5c667a1a",
+    "gs_studio/drawing_text.py": "09427df909b75c91f8a227566d2c529f63dd2c1a8d446a8b6ef14895c1c6ffdd",
+    "gs_studio/gl_renderer.py": "86d69b376f9fdaaa13b2689d57fe08eb476f532d350dac7d83b9a35673d208cd",
+    "gs_studio/gpu_sort.py": "1e336b92fd7a4dc728398a32747be5a46cdff522f43b5c7f3bcf91d51036cf10",
+    "gs_studio/gpu_visibility.py": "bae39d7e8bbdcee72de792210454302d026c967513f0622c4f76abfc4fbf5ffe",
+    "gs_studio/i18n.py": "7b12218879de0e9fda662ae0f64f9bb27be7556776b6a89fafdcf4fdb40b06cd",
+    "gs_studio/image_view.py": "e36416c0fd70def05a8136c4a8836d631c288e0981dcdfd73234c3eb6dbbd529",
+    "gs_studio/inspector.py": "d809370287dd82b97088c09c19f7dac4c3c2ae71bdc9a99b3016a2a3c06e18ad",
+    "gs_studio/jobs.py": "b2814538d702029a21316bc65696e1ab3d0fa65ed5954d036e1e6627425b2180",
+    "gs_studio/model.py": "cbf9649ca7bc3bf7b3ba7ca9620cc09108ea77b91763e3bceb0b4461eb4f3953",
+    "gs_studio/navigation.py": "903805f8472c765e0d6a2577d96908ee08fafc00f4b6ac417656238bf6007f99",
+    "gs_studio/outliner.py": "c22b9888064a90792457fc9f1f5b958997f265c487905b55ad9eb6ab2c4b9c3c",
+    "gs_studio/snapshots.py": "fddaf9e47491c2eea1b59de2975a741ec6daff80b184fdf58b7cd391107656e0",
+    "gs_studio/timeline.py": "2b41ee156d4993337cca32f807c6ddbbb032fc7b2264bcbbc4e5bb42a21078bb",
+    "gs_studio/viewport.py": "2eb8cfa2c0ce8fcb0cab40c9f046f3777dddb8809ceb6cf9d907c4a01f829364",
+    "gsv/__init__.py": "a856d55e10b7be9631710b45406f414437a15d25550b08e4df72a0096334aca2",
+    "gsv/camera_render.py": "ade3a100c007f71d45de937d9ce55a1c348664c8099021ecf27714dd93ee3b37",
+    "gsv/cli.py": "e40c9e4fb3049deb972a2bd39099853d78ad86ef031c95226c1f9c07e6069922",
+    "gsv/codecs.py": "f18e710f398849d4a16b75aa4330e5f43b4a41a7e6d1174a09550a5567b35079",
+    "gsv/container.py": "e55d446a868a3e9830f0696f9b4cbad7d4ecc2beec0dcbaa07f8a6b8c1e4c573",
+    "gsv/evaluate.py": "1652ef5f467b64cb984d48630fdca1effbabce9e8448f685eb32e7799210b88d",
+    "gsv/metrics.py": "8c62d29608aec4ede9c5af82ebec91b117d788658c6a526c03386d9084c3c1a2"
+  },
+  "expected_tests_per_backend": 32,
+  "chooser_completion_mocked": true,
+  "scope": "Real compositor/GTK/OpenGL windows with programmatic unittest widget actions; chooser completion is mocked. No native portal/input or complete production workflow acceptance claim.",
+  "input_session_created": false,
+  "monitor_created": false,
+  "keyboard_or_pointer_injection": false,
+  "language_fixture_created": false,
+  "window_regressions": [
+    {
+      "backend": "x11",
+      "cwd": "<checkout>/viewer/dist/release-validation/final-artifact/desktop-application-venv/x11/cwd",
+      "log": "<checkout>/viewer/dist/release-validation/final-artifact/desktop-application-venv/x11/application.log",
+      "worker_pid": 288201,
+      "returncode": 0,
+      "remaining_owned_group_pids": [],
+      "process_elapsed_seconds": 45.197927478991915,
+      "remaining_studio_owner": null,
+      "libraries": {
+        "app": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/__init__.py",
+        "application": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/application.py",
+        "sdk": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/__init__.py",
+        "version": "2.3.0",
+        "python": "3.12.3",
+        "executable": "<checkout>/.venv/bin/python",
+        "PyOpenGL": "3.1.7",
+        "PyOpenGL_file": "<distro-opengl>/usr/lib/python3/dist-packages/OpenGL/__init__.py",
+        "numpy": "1.26.4",
+        "gi_file": "/usr/lib/python3/dist-packages/gi/__init__.py",
+        "gi_cairo_bridge": "<distro-gi-cairo>/usr/lib/python3/dist-packages/gi/_gi_cairo.cpython-312-x86_64-linux-gnu.so",
+        "Gtk": [
+          4,
+          14,
+          5
+        ],
+        "Adw": [
+          1,
+          5,
+          0
+        ]
+      },
+      "runtime_module_origins": {
+        "gs_studio": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/__init__.py",
+        "gs_studio.application": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/application.py",
+        "gs_studio.branding": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/branding.py",
+        "gs_studio.camera": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/camera.py",
+        "gs_studio.capture_catalog": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/capture_catalog.py",
+        "gs_studio.comparison": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/comparison.py",
+        "gs_studio.drawing_text": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/drawing_text.py",
+        "gs_studio.gl_renderer": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/gl_renderer.py",
+        "gs_studio.gpu_sort": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/gpu_sort.py",
+        "gs_studio.gpu_visibility": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/gpu_visibility.py",
+        "gs_studio.i18n": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/i18n.py",
+        "gs_studio.image_view": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/image_view.py",
+        "gs_studio.inspector": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/inspector.py",
+        "gs_studio.jobs": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/jobs.py",
+        "gs_studio.model": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/model.py",
+        "gs_studio.navigation": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/navigation.py",
+        "gs_studio.outliner": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/outliner.py",
+        "gs_studio.snapshots": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/snapshots.py",
+        "gs_studio.timeline": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/timeline.py",
+        "gs_studio.viewport": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/viewport.py",
+        "gsv": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/__init__.py",
+        "gsv.camera_render": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/camera_render.py",
+        "gsv.codecs": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/codecs.py",
+        "gsv.container": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/container.py",
+        "gsv.evaluate": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/evaluate.py",
+        "gsv.metrics": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/metrics.py"
+      },
+      "runtime_sys_path": [
+        "<checkout>/viewer/ubuntu/tests",
+        "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu",
+        "<distro-opengl>/usr/lib/python3/dist-packages",
+        "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu",
+        "/usr/lib/python312.zip",
+        "/usr/lib/python3.12",
+        "/usr/lib/python3.12/lib-dynload",
+        "<checkout>/.venv/lib/python3.12/site-packages",
+        "/usr/lib/python3/dist-packages",
+        "/usr/lib/python3/dist-packages",
+        "/usr/local/lib/python3.12/dist-packages",
+        "/usr/lib/python3/dist-packages",
+        "/usr/lib/python3.12/dist-packages"
+      ],
+      "source_tree_runtime_shadowing": false,
+      "discovered_tests": 32,
+      "tests_run": 32,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "unexpected_successes": 0,
+      "test_seconds": 44.2459178220015,
+      "graphics_observations": [
+        {
+          "test": "test_application.ApplicationTests.test_apply_camera_field_is_equivalent_to_enter_and_can_be_undone",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_authored_keys_capture_the_current_interactive_near_clip",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_authored_paths_refresh_with_keys_and_editor_preserves_focused_text",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_camera_control_toggle_keeps_other_selection_primary",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_camera_view_preserves_selection_and_rejects_a_foreign_domain",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_cancelled_load_disposes_then_replacement_uses_new_scene",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_comparison_chooses_explicit_capture_and_switches_view_domain",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_copy_attributes_preserves_literal_markup_and_entities_without_global_clipboard",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_document_and_header_counts_include_session_cameras_and_authored_times",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_domain_activation_updates_native_clock_visibility_and_frames",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_empty_source_import_retains_frame_clock_and_rejects_session_conflict",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_exact_id_without_owner_rejects_ambiguity_instead_of_selecting_first_field",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_exact_time_entry_extends_session_timeline_without_changing_source",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_explicit_calibrated_preview_never_scores_linked_reference_images",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_failed_open_keeps_document_and_close_cancels_capture",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_foreign_camera_keys_cannot_seek_or_retime_and_are_hidden_from_active_lane",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_fov_editor_scales_skew_with_focal_length_and_accepts_native_boundaries",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_inspector_context_key_selector_and_comparison_controls",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_mixed_primary_member_keeps_duplicate_ids_bound_to_owners",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_native_text_undo_preserves_camera_and_creation_undo_clears_selection",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_old_chooser_completion_cannot_unlock_new_scene_chooser",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_playback_batches_rig_calibrations_and_keeps_foreign_inspection_single",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_preview_range_and_rate_commit_pause_but_uncommitted_or_invalid_rate_do_not",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_preview_rate_and_range_commit_only_after_enter",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_rig_view_inspection_does_not_switch_viewing_camera",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_save_snapshot_does_not_clear_new_edits_or_lock_replacement",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_scene_selection_playback_camera_animation_and_comparison",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_single_key_authored_camera_can_be_viewed_across_clock_but_cannot_be_edited",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_source_and_geometry_selections_cannot_edit_previous_user_camera",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_static_source_transport_includes_authored_camera_duration",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_trajectory_capacity_error_keeps_scene_seek_and_playback_working",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_ui_png_exports_preview_resolution_workspace_and_full_comparison",
+          "graphics_info": {
+            "vendor": "NVIDIA Corporation",
+            "renderer": "NVIDIA GeForce RTX 4090/PCIe/SSE2",
+            "version": "4.6.0 NVIDIA 620.70.06",
+            "display_backend": "x11"
+          }
+        }
+      ],
+      "passed": true,
+      "chooser_completion_mocked": true,
+      "diagnostics": {
+        "critical_entries": 0,
+        "python_traceback_entries": 0,
+        "warning_free_claim": false
+      },
+      "log_sha256": "b14c899831ff93cac35f4649bb4a998041a6075d6463e61b1e0af07d694bd36d"
+    },
+    {
+      "backend": "wayland",
+      "cwd": "<checkout>/viewer/dist/release-validation/final-artifact/desktop-application-venv/wayland/cwd",
+      "log": "<checkout>/viewer/dist/release-validation/final-artifact/desktop-application-venv/wayland/application.log",
+      "worker_pid": 288757,
+      "returncode": 0,
+      "remaining_owned_group_pids": [],
+      "process_elapsed_seconds": 16.410119816020597,
+      "remaining_studio_owner": null,
+      "libraries": {
+        "app": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/__init__.py",
+        "application": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/application.py",
+        "sdk": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/__init__.py",
+        "version": "2.3.0",
+        "python": "3.12.3",
+        "executable": "<checkout>/.venv/bin/python",
+        "PyOpenGL": "3.1.7",
+        "PyOpenGL_file": "<distro-opengl>/usr/lib/python3/dist-packages/OpenGL/__init__.py",
+        "numpy": "1.26.4",
+        "gi_file": "/usr/lib/python3/dist-packages/gi/__init__.py",
+        "gi_cairo_bridge": "<distro-gi-cairo>/usr/lib/python3/dist-packages/gi/_gi_cairo.cpython-312-x86_64-linux-gnu.so",
+        "Gtk": [
+          4,
+          14,
+          5
+        ],
+        "Adw": [
+          1,
+          5,
+          0
+        ]
+      },
+      "runtime_module_origins": {
+        "gs_studio": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/__init__.py",
+        "gs_studio.application": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/application.py",
+        "gs_studio.branding": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/branding.py",
+        "gs_studio.camera": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/camera.py",
+        "gs_studio.capture_catalog": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/capture_catalog.py",
+        "gs_studio.comparison": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/comparison.py",
+        "gs_studio.drawing_text": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/drawing_text.py",
+        "gs_studio.gl_renderer": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/gl_renderer.py",
+        "gs_studio.gpu_sort": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/gpu_sort.py",
+        "gs_studio.gpu_visibility": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/gpu_visibility.py",
+        "gs_studio.i18n": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/i18n.py",
+        "gs_studio.image_view": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/image_view.py",
+        "gs_studio.inspector": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/inspector.py",
+        "gs_studio.jobs": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/jobs.py",
+        "gs_studio.model": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/model.py",
+        "gs_studio.navigation": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/navigation.py",
+        "gs_studio.outliner": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/outliner.py",
+        "gs_studio.snapshots": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/snapshots.py",
+        "gs_studio.timeline": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/timeline.py",
+        "gs_studio.viewport": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gs_studio/viewport.py",
+        "gsv": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/__init__.py",
+        "gsv.camera_render": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/camera_render.py",
+        "gsv.codecs": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/codecs.py",
+        "gsv.container": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/container.py",
+        "gsv.evaluate": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/evaluate.py",
+        "gsv.metrics": "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu/gsv/metrics.py"
+      },
+      "runtime_sys_path": [
+        "<checkout>/viewer/ubuntu/tests",
+        "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu",
+        "<distro-opengl>/usr/lib/python3/dist-packages",
+        "<checkout>/viewer/dist/release-validation/final-artifact/package-root/usr/share/4dgs-studio/ubuntu",
+        "/usr/lib/python312.zip",
+        "/usr/lib/python3.12",
+        "/usr/lib/python3.12/lib-dynload",
+        "<checkout>/.venv/lib/python3.12/site-packages",
+        "/usr/lib/python3/dist-packages",
+        "/usr/lib/python3/dist-packages",
+        "/usr/local/lib/python3.12/dist-packages",
+        "/usr/lib/python3/dist-packages",
+        "/usr/lib/python3.12/dist-packages"
+      ],
+      "source_tree_runtime_shadowing": false,
+      "discovered_tests": 32,
+      "tests_run": 32,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "unexpected_successes": 0,
+      "test_seconds": 15.591767597012222,
+      "graphics_observations": [
+        {
+          "test": "test_application.ApplicationTests.test_apply_camera_field_is_equivalent_to_enter_and_can_be_undone",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_authored_keys_capture_the_current_interactive_near_clip",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_authored_paths_refresh_with_keys_and_editor_preserves_focused_text",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_camera_control_toggle_keeps_other_selection_primary",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_camera_view_preserves_selection_and_rejects_a_foreign_domain",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_cancelled_load_disposes_then_replacement_uses_new_scene",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_comparison_chooses_explicit_capture_and_switches_view_domain",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_copy_attributes_preserves_literal_markup_and_entities_without_global_clipboard",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_document_and_header_counts_include_session_cameras_and_authored_times",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_domain_activation_updates_native_clock_visibility_and_frames",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_empty_source_import_retains_frame_clock_and_rejects_session_conflict",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_exact_id_without_owner_rejects_ambiguity_instead_of_selecting_first_field",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_exact_time_entry_extends_session_timeline_without_changing_source",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_explicit_calibrated_preview_never_scores_linked_reference_images",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_failed_open_keeps_document_and_close_cancels_capture",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_foreign_camera_keys_cannot_seek_or_retime_and_are_hidden_from_active_lane",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_fov_editor_scales_skew_with_focal_length_and_accepts_native_boundaries",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_inspector_context_key_selector_and_comparison_controls",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_mixed_primary_member_keeps_duplicate_ids_bound_to_owners",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_native_text_undo_preserves_camera_and_creation_undo_clears_selection",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_old_chooser_completion_cannot_unlock_new_scene_chooser",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_playback_batches_rig_calibrations_and_keeps_foreign_inspection_single",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_preview_range_and_rate_commit_pause_but_uncommitted_or_invalid_rate_do_not",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_preview_rate_and_range_commit_only_after_enter",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_rig_view_inspection_does_not_switch_viewing_camera",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_save_snapshot_does_not_clear_new_edits_or_lock_replacement",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_scene_selection_playback_camera_animation_and_comparison",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_single_key_authored_camera_can_be_viewed_across_clock_but_cannot_be_edited",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_source_and_geometry_selections_cannot_edit_previous_user_camera",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_static_source_transport_includes_authored_camera_duration",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_trajectory_capacity_error_keeps_scene_seek_and_playback_working",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        },
+        {
+          "test": "test_application.ApplicationTests.test_ui_png_exports_preview_resolution_workspace_and_full_comparison",
+          "graphics_info": {
+            "vendor": "Mesa",
+            "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+            "version": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4",
+            "display_backend": "wayland"
+          }
+        }
+      ],
+      "passed": true,
+      "chooser_completion_mocked": true,
+      "diagnostics": {
+        "critical_entries": 0,
+        "python_traceback_entries": 0,
+        "warning_free_claim": false
+      },
+      "log_sha256": "8b85fdacfc282ac1219a787ae5dc486bc4d6e70709028586c4f53988b53d4ff5"
+    }
+  ],
+  "passed": true,
+  "initial_studio_owner": null,
+  "initial_monitors": [
+    {
+      "x": 0,
+      "y": 0,
+      "scale": 1.0,
+      "transform": 0,
+      "primary": true,
+      "connectors": [
+        "Meta-0"
+      ]
+    }
+  ],
+  "initial_logical_monitors": 1,
+  "final_monitors": [
+    {
+      "x": 0,
+      "y": 0,
+      "scale": 1.0,
+      "transform": 0,
+      "primary": true,
+      "connectors": [
+        "Meta-0"
+      ]
+    }
+  ],
+  "final_logical_monitors": 1,
+  "remaining_studio_owner": null,
+  "source_commit_after": "5dfdc0ec879acbed57ea708613aa24bf2cff5c76",
+  "working_tree_changes_after": [],
+  "runtime_code_unchanged": true,
+  "test_application_unchanged": true
+}

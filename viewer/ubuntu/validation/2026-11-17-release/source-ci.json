@@ -1,0 +1,36 @@
+{
+  "url": "https://github.com/Lightcone-ZhangYifa/4dgs-studio/actions/runs/44024773369",
+  "headSha": "5dfdc0ec879acbed57ea708613aa24bf2cff5c76",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "name": "Studio / macOS arm64",
+      "conclusion": "success",
+      "url": "https://github.com/Lightcone-ZhangYifa/4dgs-studio/actions/runs/44024773369/job/133842359773"
+    },
+    {
+      "name": "Studio / Ubuntu Desktop",
+      "conclusion": "success",
+      "url": "https://github.com/Lightcone-ZhangYifa/4dgs-studio/actions/runs/44024773369/job/133842359939"
+    },
+    {
+      "name": "GSV / Python 3.10",
+      "conclusion": "success",
+      "url": "https://github.com/Lightcone-ZhangYifa/4dgs-studio/actions/runs/44024773369/job/133842359993"
+    },
+    {
+      "name": "GSV / Python 3.14",
+      "conclusion": "success",
+      "url": "https://github.com/Lightcone-ZhangYifa/4dgs-studio/actions/runs/44024773369/job/133842360110"
+    }
+  ],
+  "ubuntu_tests": {
+    "discovered": 266,
+    "passed": 264,
+    "skipped": 2,
+    "seconds": 33.753
+  },
+  "sdk_tests": 78,
+  "feature_actions_reviewed": 80,
+  "catalog_keys_per_language": 489
+}

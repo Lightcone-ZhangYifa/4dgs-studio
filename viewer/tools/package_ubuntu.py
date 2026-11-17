@@ -110,6 +110,7 @@ def build(destination):
         shutil.copy2(ROOT / "viewer/ubuntu/README.md", doc / "README.md")
         shutil.copy2(ROOT / "viewer/ubuntu/PARITY.md", doc / "PARITY.md")
         shutil.copy2(ROOT / "viewer/ubuntu/DESKTOP_VALIDATION.md", doc / "DESKTOP_VALIDATION.md")
+        shutil.copy2(ROOT / "viewer/ubuntu/RELEASE_VALIDATION.md", doc / "RELEASE_VALIDATION.md")
         shutil.copy2(ROOT / "viewer/ubuntu/PRODUCTION_VALIDATION.md", doc / "PRODUCTION_VALIDATION.md")
         shutil.copy2(ROOT / "viewer/ubuntu/FEATURE_AUDIT.md", doc / "FEATURE_AUDIT.md")
         shutil.copy2(ROOT / "viewer/ubuntu/feature-map.json", doc / "feature-map.json")

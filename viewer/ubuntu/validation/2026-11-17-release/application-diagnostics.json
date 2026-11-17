@@ -1,0 +1,122 @@
+[
+  {
+    "report_group": "scaling-source-pango-ready",
+    "case": "wayland-100-en",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "critical_entries": 0,
+    "traceback_entries": 0
+  },
+  {
+    "report_group": "scaling-source-pango-ready",
+    "case": "wayland-125-zh-Hans",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "critical_entries": 0,
+    "traceback_entries": 0
+  },
+  {
+    "report_group": "scaling-source-pango-ready",
+    "case": "wayland-150-en",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "critical_entries": 0,
+    "traceback_entries": 0
+  },
+  {
+    "report_group": "scaling-source-pango-ready",
+    "case": "wayland-175-zh-Hans",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "critical_entries": 0,
+    "traceback_entries": 0
+  },
+  {
+    "report_group": "scaling-source-pango-ready",
+    "case": "wayland-200-en",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "critical_entries": 0,
+    "traceback_entries": 0
+  },
+  {
+    "report_group": "scaling-source-pango-ready",
+    "case": "x11-100-en",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "critical_entries": 0,
+    "traceback_entries": 0
+  },
+  {
+    "report_group": "scaling-source-pango-ready",
+    "case": "x11-150-zh-Hans",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "critical_entries": 0,
+    "traceback_entries": 0
+  },
+  {
+    "report_group": "scaling-source-pango-ready",
+    "case": "x11-200-zh-Hans",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "critical_entries": 0,
+    "traceback_entries": 0
+  },
+  {
+    "report_group": "scaling-source-xsettings",
+    "case": "x11-100-en",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "critical_entries": 0,
+    "traceback_entries": 0
+  },
+  {
+    "report_group": "scaling-source-xsettings",
+    "case": "x11-150-zh-Hans",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "critical_entries": 0,
+    "traceback_entries": 0
+  },
+  {
+    "report_group": "scaling-source-xsettings",
+    "case": "x11-200-zh-Hans",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "critical_entries": 0,
+    "traceback_entries": 0
+  },
+  {
+    "report_group": "scaling-deb-final",
+    "case": "wayland-125-zh-Hans",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "critical_entries": 0,
+    "traceback_entries": 0
+  },
+  {
+    "report_group": "scaling-deb-final",
+    "case": "wayland-200-en",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "critical_entries": 0,
+    "traceback_entries": 0
+  },
+  {
+    "report_group": "scaling-deb-final",
+    "case": "x11-150-zh-Hans",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "critical_entries": 0,
+    "traceback_entries": 0
+  },
+  {
+    "report_group": "scaling-deb-xsettings",
+    "case": "x11-150-zh-Hans",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "critical_entries": 0,
+    "traceback_entries": 0
+  }
+]

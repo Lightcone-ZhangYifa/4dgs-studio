@@ -244,6 +244,15 @@ and manual acceptance checklist for each target driver before release.
 
 ## Current verification scope
 
+The [Ubuntu 2.3.0-1 release validation](RELEASE_VALIDATION.md) records canonical
+author/icons, the exact tested Debian artifact, real GNOME scaling from 100%
+through 200%, native Cantarell and fallback-font paths, and detached-payload
+execution on both display backends. All 135 desktop checks and 32 application
+tests per backend passed. The build revision's Ubuntu suite ran 266 tests:
+264 passed and two opt-in benchmarks skipped. This adds release evidence to
+the historical workflow and production records below; system-wide dpkg
+installation and hardware Wayland remain outside the verified scope.
+
 The later [production-data validation](PRODUCTION_VALIDATION.md) tests real
 160k, 640k, 1.28M and 2.56M-point, 36-sample GSVs. Endpoint retention and batch
 camera evaluation are committed at `bf7a410`, with reliable NVIDIA visibility

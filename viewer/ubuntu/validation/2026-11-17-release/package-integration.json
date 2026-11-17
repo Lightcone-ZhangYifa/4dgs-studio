@@ -1,0 +1,234 @@
+{
+  "format": "gsv.debian-headless-integration/1",
+  "passed": true,
+  "scope": "Exact Debian archive static validation plus isolated XDG MIME/desktop discovery and headless icon pixel comparison. No GUI, application launch, system install, global database update or default association change.",
+  "deb": "4dgs-studio_2.3.0-1_all.deb",
+  "expected_sha256": "f25e990879f6e5a3fca8803bbd2ebb7bf4c9d61aaf62c089c3f21c1656c2040d",
+  "commands": [
+    {
+      "argv": [
+        "desktop-file-validate",
+        "share/applications/io.github.LightconeZhangYifa.GSVStudio.desktop"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "appstreamcli",
+        "validate",
+        "--no-net",
+        "share/metainfo/io.github.LightconeZhangYifa.GSVStudio.metainfo.xml"
+      ],
+      "returncode": 0,
+      "stdout": "\n✔ Validation was successful: pedantic: 1\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "update-mime-database",
+        "share/mime"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "update-desktop-database",
+        "share/applications"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "gtk-update-icon-cache",
+        "--force",
+        "--ignore-theme-index",
+        "share/icons/hicolor"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "gtk-update-icon-cache: Cache file created successfully.\n"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "headless-probe.py"
+      ],
+      "returncode": 0,
+      "stdout": "{\n  \"passed\": true,\n  \"desktop_id\": \"io.github.LightconeZhangYifa.GSVStudio.desktop\",\n  \"desktop_file\": \"share/applications/io.github.LightconeZhangYifa.GSVStudio.desktop\",\n  \"executable\": \"4dgs-studio\",\n  \"commandline\": \"4dgs-studio %F\",\n  \"supported_types\": [\n    \"application/x-gsv\"\n  ],\n  \"desktop_icon_names\": [\n    \"io.github.LightconeZhangYifa.GSVStudio\",\n    \"io.github.LightconeZhangYifa.GSVStudio-symbolic\"\n  ],\n  \"recommended_for_gsv\": true,\n  \"extension_and_magic_type\": \"application/x-gsv\",\n  \"different_extension_magic_type\": \"application/x-gsv\",\n  \"mime_icon_names\": [\n    \"io.github.LightconeZhangYifa.GSVStudio\",\n    \"application-x-gsv\",\n    \"application-x-generic\",\n    \"io.github.LightconeZhangYifa.GSVStudio-symbolic\",\n    \"application-x-gsv-symbolic\",\n    \"application-x-generic-symbolic\"\n  ],\n  \"icons\": [\n    {\n      \"size\": 16,\n      \"width\": 16,\n      \"height\": 16,\n      \"has_alpha\": true,\n      \"rgba_sha256\": \"5620061c2a04bd85368f0aae1a362185bd7c89d8b34cc0c251301f7e8dc06eec\",\n      \"canonical_svg_rgba_equal\": true,\n      \"changed_channels\": 0\n    },\n    {\n      \"size\": 22,\n      \"width\": 22,\n      \"height\": 22,\n      \"has_alpha\": true,\n      \"rgba_sha256\": \"0a082a4e296a7c48cf19957d2c140c30d7eba4982ed45d5eb67df05d063e3ad5\",\n      \"canonical_svg_rgba_equal\": true,\n      \"changed_channels\": 0\n    },\n    {\n      \"size\": 24,\n      \"width\": 24,\n      \"height\": 24,\n      \"has_alpha\": true,\n      \"rgba_sha256\": \"a6e28e19757a2674a87fd679a3f30477ec1d34c49e3c23abe3bfcba99d957c66\",\n      \"canonical_svg_rgba_equal\": true,\n      \"changed_channels\": 0\n    },\n    {\n      \"size\": 32,\n      \"width\": 32,\n      \"height\": 32,\n      \"has_alpha\": true,\n      \"rgba_sha256\": \"226464ed7a78c45a946e20a888e0ce1cdf059a55612b0fd0ccc9b4d5cc3c5532\",\n      \"canonical_svg_rgba_equal\": true,\n      \"changed_channels\": 0\n    },\n    {\n      \"size\": 48,\n      \"width\": 48,\n      \"height\": 48,\n      \"has_alpha\": true,\n      \"rgba_sha256\": \"61ef2c297dd4abb9dc4acafa28d0a204e85abcf339a3cc7d435d45b9f04484a6\",\n      \"canonical_svg_rgba_equal\": true,\n      \"changed_channels\": 0\n    },\n    {\n      \"size\": 64,\n      \"width\": 64,\n      \"height\": 64,\n      \"has_alpha\": true,\n      \"rgba_sha256\": \"8e681de9acc2488226dc8932bee963f78fd3a8c07e7ccd55fe72dec809af43a4\",\n      \"canonical_svg_rgba_equal\": true,\n      \"changed_channels\": 0\n    },\n    {\n      \"size\": 96,\n      \"width\": 96,\n      \"height\": 96,\n      \"has_alpha\": true,\n      \"rgba_sha256\": \"0da99be67d95ace20acf9aa2be35ddc54cf047b09e2ccae4ebe408b1ba4edd0c\",\n      \"canonical_svg_rgba_equal\": true,\n      \"changed_channels\": 0\n    },\n    {\n      \"size\": 128,\n      \"width\": 128,\n      \"height\": 128,\n      \"has_alpha\": true,\n      \"rgba_sha256\": \"9ae420bfa5e8dcd1a6215b78d18f431c43adde84f15884bab3c5159c24fc456f\",\n      \"canonical_svg_rgba_equal\": true,\n      \"changed_channels\": 0\n    },\n    {\n      \"size\": 192,\n      \"width\": 192,\n      \"height\": 192,\n      \"has_alpha\": true,\n      \"rgba_sha256\": \"82dd70a4c7772e908d3b4225409364c5ffad007af4ddb159be980c54a57c8e40\",\n      \"canonical_svg_rgba_equal\": true,\n      \"changed_channels\": 0\n    },\n    {\n      \"size\": 256,\n      \"width\": 256,\n      \"height\": 256,\n      \"has_alpha\": true,\n      \"rgba_sha256\": \"5c8bd13c307586c8d13c53cbba615016519834750b59b17433e1499ac15fc469\",\n      \"canonical_svg_rgba_equal\": true,\n      \"changed_channels\": 0\n    },\n    {\n      \"size\": 512,\n      \"width\": 512,\n      \"height\": 512,\n      \"has_alpha\": true,\n      \"rgba_sha256\": \"6c7296727630a985a93dca680b1268b3aea72a635396b41f9bd325c5aa301c4c\",\n      \"canonical_svg_rgba_equal\": true,\n      \"changed_channels\": 0\n    }\n  ],\n  \"gi_file\": \"/usr/lib/python3/dist-packages/gi/__init__.py\",\n  \"Gio_version\": \"2.0\",\n  \"application_launched\": false\n}\n",
+      "stderr": ""
+    }
+  ],
+  "application_launched": false,
+  "system_package_installed": false,
+  "actual_absolute_installed_launcher_executed": false,
+  "real_user_association_before": {
+    ".config/mimeapps.list": "3dd89c45c5b04e8ff6ffe9e13a0840ac67a6b5f59637306c239205055762eda1",
+    ".local/share/applications/mimeapps.list": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "actual_sha256": "f25e990879f6e5a3fca8803bbd2ebb7bf4c9d61aaf62c089c3f21c1656c2040d",
+  "build_source_commit": "5dfdc0ec879acbed57ea708613aa24bf2cff5c76",
+  "archive_root_ownership_verified": true,
+  "archive_entries": 123,
+  "launcher_static": {
+    "mode": "0755",
+    "uid": 0,
+    "gid": 0,
+    "shebang": "/usr/bin/python3",
+    "absolute_import_prefix": "/usr/share/4dgs-studio/ubuntu",
+    "sha256": "f1c9b80b202d459b61751d3b210c994001d91d8aef0a76e012328a666295f9f4",
+    "executed": false,
+    "PATH_contains_relocated_launcher_for_discovery_only": true
+  },
+  "canonical_svg": {
+    "source_path": "viewer/Resources/AppIcon.svg",
+    "sha256": "2a246fa54988b71783071e4a8df6e4bc073734daaaf2b5322a79963ce8f535bc",
+    "matches_build_commit": true,
+    "installed_mode": "0644"
+  },
+  "headless_probe": {
+    "passed": true,
+    "desktop_id": "io.github.LightconeZhangYifa.GSVStudio.desktop",
+    "desktop_file": "share/applications/io.github.LightconeZhangYifa.GSVStudio.desktop",
+    "executable": "4dgs-studio",
+    "commandline": "4dgs-studio %F",
+    "supported_types": [
+      "application/x-gsv"
+    ],
+    "desktop_icon_names": [
+      "io.github.LightconeZhangYifa.GSVStudio",
+      "io.github.LightconeZhangYifa.GSVStudio-symbolic"
+    ],
+    "recommended_for_gsv": true,
+    "extension_and_magic_type": "application/x-gsv",
+    "different_extension_magic_type": "application/x-gsv",
+    "mime_icon_names": [
+      "io.github.LightconeZhangYifa.GSVStudio",
+      "application-x-gsv",
+      "application-x-generic",
+      "io.github.LightconeZhangYifa.GSVStudio-symbolic",
+      "application-x-gsv-symbolic",
+      "application-x-generic-symbolic"
+    ],
+    "icons": [
+      {
+        "size": 16,
+        "width": 16,
+        "height": 16,
+        "has_alpha": true,
+        "rgba_sha256": "5620061c2a04bd85368f0aae1a362185bd7c89d8b34cc0c251301f7e8dc06eec",
+        "canonical_svg_rgba_equal": true,
+        "changed_channels": 0
+      },
+      {
+        "size": 22,
+        "width": 22,
+        "height": 22,
+        "has_alpha": true,
+        "rgba_sha256": "0a082a4e296a7c48cf19957d2c140c30d7eba4982ed45d5eb67df05d063e3ad5",
+        "canonical_svg_rgba_equal": true,
+        "changed_channels": 0
+      },
+      {
+        "size": 24,
+        "width": 24,
+        "height": 24,
+        "has_alpha": true,
+        "rgba_sha256": "a6e28e19757a2674a87fd679a3f30477ec1d34c49e3c23abe3bfcba99d957c66",
+        "canonical_svg_rgba_equal": true,
+        "changed_channels": 0
+      },
+      {
+        "size": 32,
+        "width": 32,
+        "height": 32,
+        "has_alpha": true,
+        "rgba_sha256": "226464ed7a78c45a946e20a888e0ce1cdf059a55612b0fd0ccc9b4d5cc3c5532",
+        "canonical_svg_rgba_equal": true,
+        "changed_channels": 0
+      },
+      {
+        "size": 48,
+        "width": 48,
+        "height": 48,
+        "has_alpha": true,
+        "rgba_sha256": "61ef2c297dd4abb9dc4acafa28d0a204e85abcf339a3cc7d435d45b9f04484a6",
+        "canonical_svg_rgba_equal": true,
+        "changed_channels": 0
+      },
+      {
+        "size": 64,
+        "width": 64,
+        "height": 64,
+        "has_alpha": true,
+        "rgba_sha256": "8e681de9acc2488226dc8932bee963f78fd3a8c07e7ccd55fe72dec809af43a4",
+        "canonical_svg_rgba_equal": true,
+        "changed_channels": 0
+      },
+      {
+        "size": 96,
+        "width": 96,
+        "height": 96,
+        "has_alpha": true,
+        "rgba_sha256": "0da99be67d95ace20acf9aa2be35ddc54cf047b09e2ccae4ebe408b1ba4edd0c",
+        "canonical_svg_rgba_equal": true,
+        "changed_channels": 0
+      },
+      {
+        "size": 128,
+        "width": 128,
+        "height": 128,
+        "has_alpha": true,
+        "rgba_sha256": "9ae420bfa5e8dcd1a6215b78d18f431c43adde84f15884bab3c5159c24fc456f",
+        "canonical_svg_rgba_equal": true,
+        "changed_channels": 0
+      },
+      {
+        "size": 192,
+        "width": 192,
+        "height": 192,
+        "has_alpha": true,
+        "rgba_sha256": "82dd70a4c7772e908d3b4225409364c5ffad007af4ddb159be980c54a57c8e40",
+        "canonical_svg_rgba_equal": true,
+        "changed_channels": 0
+      },
+      {
+        "size": 256,
+        "width": 256,
+        "height": 256,
+        "has_alpha": true,
+        "rgba_sha256": "5c8bd13c307586c8d13c53cbba615016519834750b59b17433e1499ac15fc469",
+        "canonical_svg_rgba_equal": true,
+        "changed_channels": 0
+      },
+      {
+        "size": 512,
+        "width": 512,
+        "height": 512,
+        "has_alpha": true,
+        "rgba_sha256": "6c7296727630a985a93dca680b1268b3aea72a635396b41f9bd325c5aa301c4c",
+        "canonical_svg_rgba_equal": true,
+        "changed_channels": 0
+      }
+    ],
+    "gi_file": "/usr/lib/python3/dist-packages/gi/__init__.py",
+    "Gio_version": "2.0",
+    "application_launched": false
+  },
+  "temporary_database_files": {
+    "share/applications/mimeinfo.cache": "252412afebfdb9df4c4c0b5f65f3d0e5dd2522f883f731ede02d75cca5b1351c",
+    "share/mime/mime.cache": "b5405ae266ce56f9655da03c21edeef21c5930260a4e7b97075f495bc01cac97",
+    "share/icons/hicolor/icon-theme.cache": "c3eb3e1ac3333d8410fa50e40f744bfbb53acc661c483c99be244e53fc644075"
+  },
+  "real_user_association_after": {
+    ".config/mimeapps.list": "3dd89c45c5b04e8ff6ffe9e13a0840ac67a6b5f59637306c239205055762eda1",
+    ".local/share/applications/mimeapps.list": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "real_user_associations_unchanged": true,
+  "deb_sha256_after": "f25e990879f6e5a3fca8803bbd2ebb7bf4c9d61aaf62c089c3f21c1656c2040d"
+}

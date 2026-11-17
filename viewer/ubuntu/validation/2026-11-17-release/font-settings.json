@@ -1,0 +1,117 @@
+{
+  "session_environment_file": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/environment.json",
+  "global_dconf_modified": false,
+  "settings_backend": "keyfile",
+  "probes": {
+    "private-session-wayland": {
+      "configuration_directory": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "exit_code": 0,
+      "stderr": "",
+      "observed": {
+        "backend": "wayland-gsv-release-ready",
+        "interface_settings": {
+          "font-name": "Cantarell 11",
+          "text-scaling-factor": 1.0,
+          "gtk-theme": "Adwaita",
+          "icon-theme": "Adwaita"
+        },
+        "interface_user_overrides": {
+          "font-name": "Cantarell 11",
+          "text-scaling-factor": 1.0,
+          "gtk-theme": null,
+          "icon-theme": null
+        },
+        "gtk_settings": {
+          "gtk-font-name": "Cantarell 11",
+          "gtk-xft-dpi": 98304,
+          "gtk-theme-name": "Adwaita",
+          "gtk-icon-theme-name": "Adwaita"
+        },
+        "widget_pango_font": "Sans 13.333px"
+      }
+    },
+    "source-case-wayland125": {
+      "configuration_directory": "<checkout>/viewer/dist/release-validation/scaling-source-pango-ready/wayland-125-zh-Hans/config",
+      "exit_code": 0,
+      "stderr": "",
+      "observed": {
+        "backend": "wayland-gsv-release-ready",
+        "interface_settings": {
+          "font-name": "Cantarell 11",
+          "text-scaling-factor": 1.0,
+          "gtk-theme": "Adwaita",
+          "icon-theme": "Adwaita"
+        },
+        "interface_user_overrides": {
+          "font-name": null,
+          "text-scaling-factor": null,
+          "gtk-theme": null,
+          "icon-theme": null
+        },
+        "gtk_settings": {
+          "gtk-font-name": "Cantarell 11",
+          "gtk-xft-dpi": 98304,
+          "gtk-theme-name": "Adwaita",
+          "gtk-icon-theme-name": "Adwaita"
+        },
+        "widget_pango_font": "Sans 13.333px"
+      }
+    },
+    "source-case-x11-150": {
+      "configuration_directory": "<checkout>/viewer/dist/release-validation/scaling-source-pango-ready/x11-150-zh-Hans/config",
+      "exit_code": 0,
+      "stderr": "libEGL warning: DRI3 error: Could not get DRI3 device\nlibEGL warning: Ensure your X server supports DRI3 to get accelerated rendering\n",
+      "observed": {
+        "backend": ":1",
+        "interface_settings": {
+          "font-name": "Cantarell 11",
+          "text-scaling-factor": 1.0,
+          "gtk-theme": "Adwaita",
+          "icon-theme": "Adwaita"
+        },
+        "interface_user_overrides": {
+          "font-name": null,
+          "text-scaling-factor": null,
+          "gtk-theme": null,
+          "icon-theme": null
+        },
+        "gtk_settings": {
+          "gtk-font-name": "Sans 10",
+          "gtk-xft-dpi": 98304,
+          "gtk-theme-name": "Default",
+          "gtk-icon-theme-name": "Adwaita"
+        },
+        "widget_pango_font": "Sans 13.333px"
+      }
+    }
+  },
+  "private_portal_settings": {
+    "font-name": [
+      "Cantarell 11"
+    ],
+    "text-scaling-factor": [
+      1.0
+    ]
+  },
+  "private_portal_processes": {
+    "270441": {
+      "DBUS_SESSION_BUS_ADDRESS": "<isolated-session-bus>",
+      "GSETTINGS_BACKEND": "keyfile",
+      "XDG_CONFIG_HOME": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "WAYLAND_DISPLAY": null,
+      "DISPLAY": null
+    },
+    "270458": {
+      "DBUS_SESSION_BUS_ADDRESS": "<isolated-session-bus>",
+      "GSETTINGS_BACKEND": "keyfile",
+      "XDG_CONFIG_HOME": "<checkout>/viewer/dist/release-validation/isolated-gnome-ready/config",
+      "WAYLAND_DISPLAY": null,
+      "DISPLAY": null
+    }
+  },
+  "x11_root_settings_properties": {
+    "stdout": "_XSETTINGS_SETTINGS:  no such atom on any window.\nRESOURCE_MANAGER:  not found.\n",
+    "stderr": "",
+    "exit_code": 0
+  }
+}

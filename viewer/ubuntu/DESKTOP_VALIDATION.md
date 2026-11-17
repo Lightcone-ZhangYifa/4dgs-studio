@@ -1,5 +1,10 @@
 # Desktop validation: scope and retained reports
 
+The subsequent [Ubuntu 2.3.0-1 release validation](RELEASE_VALIDATION.md) records
+the exact formal deb, author/icon integration, real 100–200% GNOME scaling,
+native-font coverage, and final detached-payload tests. The complete parity
+runs below remain historical evidence at their stated revisions.
+
 The later [production-data validation](PRODUCTION_VALIDATION.md) records the
 real 160k–2.56M-point tests and subsequent endpoint/calibration optimizations.
 The source revisions and complete parity runs below are historical evidence.

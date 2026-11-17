@@ -1,0 +1,63 @@
+{
+  "path_replacements": {
+    "/home/zhangyifa/4dgs-studio": "<checkout>",
+    "/tmp/gsv-gi-cairo": "<distro-gi-cairo>",
+    "/tmp/gsv-distro-opengl": "<distro-opengl>"
+  },
+  "ephemeral_bus_addresses_redacted": true,
+  "raw_reports": {
+    "scaling-source.json": {
+      "raw_report_sha256": "f81a525f66f7c6983f3e6d3f42414be4ba291898b97007e8aa2de7bcb28997c7",
+      "retained_sha256": "3671f44567e4bc190e4f572c8f4b70b0eab314c07eac49ed00e5e647617a8de8"
+    },
+    "scaling-source-xsettings.json": {
+      "raw_report_sha256": "6495a817795a2511ad1455ca61db0b6f152a55698f34aa157a739280e1884291",
+      "retained_sha256": "d54cd0911ee1d37c612c2abbb12389ed0dcb14354147e40f6982a21ac4c0423f"
+    },
+    "scaling-deb.json": {
+      "raw_report_sha256": "1f8dad52a620106df4c6d05863f9bbcd5efc21850a848bcc11160e124cb9da84",
+      "retained_sha256": "12101b1c94366f0740300b819af1c23bbb7319a73a3f561cc947701a82e48201"
+    },
+    "scaling-deb-xsettings.json": {
+      "raw_report_sha256": "a53ba65faa4d280c54bd613f3ee6336c58ed9b835f7936dbc6cdc4e68a6b39f0",
+      "retained_sha256": "5d28026747149d10a1cffc1dcd8604562e22e9ed45ad2853821b77afe79f3573"
+    },
+    "scaling-summary.json": {
+      "raw_report_sha256": "07be9a25e588fc4582e08a63f2e0191d736e1f3c97a4e5c1f4fbe1f42499b655",
+      "retained_sha256": "ec447c1ef24bb794d740ba31ad4fd326036beee1e9e1528f4132e08de434046d"
+    },
+    "packaged-application.json": {
+      "raw_report_sha256": "b01691048cc00fd231842f56515f210cfc271a0aafd16af60fae4ee015742c91",
+      "retained_sha256": "ab205ea0c0e29bf783306cd93e1758da248a75f214b94e870227522529fd311e"
+    },
+    "package-provenance.json": {
+      "raw_report_sha256": "dcb5996f26aed7a4cf625e906b52a9858fb38666711c66530f0f8ec7f2a651fd",
+      "retained_sha256": "dcb5996f26aed7a4cf625e906b52a9858fb38666711c66530f0f8ec7f2a651fd"
+    },
+    "package-integration.json": {
+      "raw_report_sha256": "e7e1f3ed1f8b1114f46b1abd410cf82a9c7e2fb039f4bbb457c13419db5e8e8c",
+      "retained_sha256": "e7e1f3ed1f8b1114f46b1abd410cf82a9c7e2fb039f4bbb457c13419db5e8e8c"
+    },
+    "font-settings.json": {
+      "raw_report_sha256": "cee6bccf738201e9bfd55718554d9009591e827c284967b5c86a9fc41f3835f5",
+      "retained_sha256": "7ede524fbcc4cf821b46dadc86884527ece3e19140e5c602e48cdab9a29ee99c"
+    },
+    "font-settings-xsettings.json": {
+      "raw_report_sha256": "ab77da45f8a5a239b8b67acab6a1fb20c640fe42b1878e9b0c8c5166ccb2712e",
+      "retained_sha256": "ab77da45f8a5a239b8b67acab6a1fb20c640fe42b1878e9b0c8c5166ccb2712e"
+    },
+    "timeline-text.png": {
+      "unchanged_pixel_artifact_sha256": "aeffa13e649e11529022297e248473355c9ec7f2a9068ba8fa113f2326346905"
+    },
+    "comparison-caption-left.png": {
+      "unchanged_pixel_artifact_sha256": "11deb90b07667fa7691aebcaf3debbe37ade949a786a8b980817a912bab396e2"
+    },
+    "comparison-caption-right.png": {
+      "unchanged_pixel_artifact_sha256": "79d3a9e272429946d1264ab862f4d3a4f2edc69c349c53d98caeaf9623f98eb1"
+    },
+    "desktop-cleanup.json": {
+      "raw_report_sha256": "d25095110c5d0ad67c2fdfa5d06eadaceb2dbf20e0374aac9a323a1aa4792011",
+      "retained_sha256": "d272baf44fae08ad29b808a89642dff7674a25304c4f5b5af86ab02519248c20"
+    }
+  }
+}
