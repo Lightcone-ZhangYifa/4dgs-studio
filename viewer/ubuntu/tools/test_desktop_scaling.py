@@ -69,10 +69,14 @@ def apply(bus, connector, scale, layout_mode, *, mode_id=None):
     _, mode, _, _ = current_output(current, connector)
     payload = [(0, 0, float(scale), 0, True, [(connector, mode_id or mode[0], {})])]
     # Method 1 applies only to this session; method 2 would persist user state.
+    # Mutter's physical-layout mode rejects this optional property when its
+    # experimental layout switching is disabled, even for its current value.
+    properties = {} if int(current[3]['layout-mode']) == layout_mode else {
+        'layout-mode': GLib.Variant('u', layout_mode)}
     bus.call_sync('org.gnome.Mutter.DisplayConfig', '/org/gnome/Mutter/DisplayConfig',
         'org.gnome.Mutter.DisplayConfig', 'ApplyMonitorsConfig',
         GLib.Variant('(uua(iiduba(ssa{sv}))a{sv})',
-            (current[0], 1, payload, {'layout-mode': GLib.Variant('u', layout_mode)})),
+            (current[0], 1, payload, properties)),
         None, 0, 10000, None)
     wait_for(lambda: math.isclose(float(current_output(state(bus),connector)[2][2]),scale,
                                  abs_tol=1e-7), 'temporary desktop scale '+str(scale), 10)
@@ -160,8 +164,13 @@ def run_case(args, case, source, output):
     if backend == 'x11':
         env.update(__NV_PRIME_RENDER_OFFLOAD='1',__GLX_VENDOR_LIBRARY_NAME='nvidia',
                    __EGL_VENDOR_LIBRARY_FILENAMES='/usr/share/glvnd/egl_vendor.d/10_nvidia.json')
+    else:
+        # This remote GNOME session has no accessible DRM render node. Native
+        # Wayland checks explicitly use Mesa software, as the package tests do.
+        env['LIBGL_ALWAYS_SOFTWARE']='1'
     result = {'backend':backend,'desktop_scale':scale,'language':language,
               'checks':[],'passed':False,'artifacts':[],'pointer_input_tested':False}
+    result['requested_software_rendering']=backend=='wayland'
     process = log = None
 
     def check(name, operation):
@@ -191,6 +200,7 @@ def run_case(args, case, source, output):
         if [node.get_name() for node in tabs] != expected:
             raise AssertionError('Inspector language or page layout changed')
         tab_rects = [rect(node) for node in tabs]
+        result['layout_probe']={'window':frame,'tabs':expected,'tab_rects':tab_rects}
         if not all(contained(frame,value) for value in tab_rects):
             raise AssertionError('A required inspector tab is clipped outside its window')
         entries = [node for node in d.app_nodes() if 'EditableText' in node.get_interfaces()
@@ -234,7 +244,11 @@ def run_case(args, case, source, output):
         d.pid=process.pid
         d.allow_close=d.allow_discard=True
         result['pid']=process.pid
-        wait_for(lambda:d.owner_pid()==process.pid and d.window(),'normal scaled Studio launch')
+        def launched():
+            if process.poll() is not None:
+                raise RuntimeError('Scaled application exited before its first window; inspect application.log')
+            return d.owner_pid()==process.pid and d.window()
+        wait_for(launched,'normal scaled Studio launch',60)
         action(d.window(),'window.toggle-maximized')
         d.maximized=True
         pump(.7)
@@ -263,6 +277,9 @@ def run_case(args, case, source, output):
             node=public_timeline()
             wait_for(lambda:Atspi.Value.get_maximum_value(node)>Atspi.Value.get_minimum_value(node),
                      'loaded source-native timeline',60)
+            # Stack allocation and the compositor's modal-unmap transition can
+            # follow publication of the source time range by one paint cycle.
+            pump(.8)
             return {'native_chooser':True,'time_min':Atspi.Value.get_minimum_value(node),
                     'time_max':Atspi.Value.get_maximum_value(node)}
         check('native-open-source',open_source)
@@ -331,13 +348,13 @@ def run_case(args, case, source, output):
         check('native-about-author-and-dialog-layout',about)
 
         def scientific():
-            d.window_action('compare')
+            action(wait_for(lambda:d.button(labels['compare.button']),'native Render / GT toggle'))
             wait_for(lambda:d.find(lambda node:node.get_role_name()=='label' and showing(node)
                 and 'PSNR' in node.get_name()),'completed calibrated comparison',60)
             value=save('screenshot',labels['file.screenshot'],'comparison.png')
             if value['dimensions'] != [1280,480]:
                 raise AssertionError('Scientific comparison raster changed with desktop DPI')
-            d.window_action('compare')
+            action(wait_for(lambda:d.button(labels['compare.close']),'native Return to 3D'))
             return value
         check('scientific-raster-independent-of-desktop-scale',scientific)
 

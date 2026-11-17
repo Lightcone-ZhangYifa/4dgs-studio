@@ -364,7 +364,7 @@ class StudioWindow(Adw.ApplicationWindow):
         return column
 
     def _inspector(self):
-        panel = box(Gtk.Orientation.VERTICAL, 6, width_request=270)
+        panel = box(Gtk.Orientation.VERTICAL, 6, width_request=320)
         panel.add_css_class("sidebar")
         self.selection_label = label(tr("selection.none", "No selection"), xalign=0, margin_start=12, margin_top=10, wrap=True)
         panel.append(self.selection_label)

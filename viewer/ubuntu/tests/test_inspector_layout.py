@@ -48,6 +48,42 @@ class InspectorLayoutTests(unittest.TestCase):
             yield from self.descendants(child)
             child = child.get_next_sibling()
 
+    def test_unselected_english_notebook_tabs_fit_at_natural_inspector_width(self):
+        # The source-free inspector has a smaller body minimum than the camera
+        # editor. Its English Document tab used to extend three logical pixels
+        # beyond a mapped maximized window despite fully readable text.
+        window = self.StudioWindow(self.app)
+        try:
+            for index, title in enumerate(('Selection', 'Viewport', 'Document')):
+                window.tabs.get_tab_label(window.tabs.get_nth_page(index)).set_text(title)
+            window.present()
+            for width in (1440, 1050):
+                window.set_default_size(width, 900)
+                window.inner_paned.set_position(10000)
+                # Default size is a compositor request, not the allocation or
+                # CSD-inclusive size. Wait through layout frames before bounds.
+                frames = [0]
+                def allocated(_widget, _clock):
+                    frames[0] += 1
+                    return frames[0] < 3
+                window.add_tick_callback(allocated)
+                self.wait(lambda: frames[0] >= 3
+                          and window.tabs.get_mapped() and window.inspector.get_width() > 0)
+                for index in range(3):
+                    widget = window.tabs.get_tab_label(window.tabs.get_nth_page(index))
+                    while widget is not None and widget.get_accessible_role() != self.Gtk.AccessibleRole.TAB:
+                        widget = widget.get_parent()
+                    self.assertIsNotNone(widget, 'Notebook must expose its real native tab control')
+                    bounds = self.bounds(widget, window)
+                    self.assertGreaterEqual(bounds.get_x(), 0)
+                    self.assertLessEqual(bounds.get_x()+bounds.get_width(), window.get_width(),
+                                         'A full tab hit/focus allocation must fit, not only its label')
+        finally:
+            if not window.closed:
+                window._finish_close()
+            self.wait(lambda: not any(worker.running for worker in
+                (window.loader, window.frames, window.comparisons, window.file_jobs)))
+
     def test_camera_controls_stay_inside_window_when_divider_requests_a_narrow_inspector(self):
         from test_application import write_scene
 
